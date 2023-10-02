@@ -27,33 +27,42 @@ def get_data_augmentation(image_size):
 def create_model(name='model', only_classtoken=False, koleo_lambda=0, classifier=False, l2=False,
                  input_shape=(32, 32, 3), num_classes=10, transformer_layers=3,
                  projection_dim=64, out_block_kwargs={}, block_kwargs={}, pathways_kwargs={},
-                 image_size=72, patch_size=8, **kwargs):
+                 image_size=72, patch_size=8):
     inputs = layers.Input(shape=input_shape)
     # Augment data.
     augmented = get_data_augmentation(image_size)(inputs)
+
     # Create patches.
     patches = Patches(patch_size, name=name + '_patch')(augmented)
     num_patches = (image_size // patch_size) ** 2
+
     # Encode patches.
     encoded_patches = PatchEncoder(num_patches, projection_dim, name=name + '_patchenc')(patches)
+
+    # divide to different pathways
     if classifier:
       pathways = [encoded_patches]
     else:
       pathways = SplitPathways(num_patches, name=name + '_pathways', **pathways_kwargs)(encoded_patches)
       pathways = [tf.squeeze(path, axis=-2) for path in tf.split(pathways, pathways.shape[-2], axis=-2)]
 
+    # process each pathway
     blocks = [ViTBlock(name=name + f'_block{l}', **block_kwargs) for l in range(transformer_layers)]
     for l in range(transformer_layers):
       for i in range(len(pathways)):
         pathways[i] = blocks[l](pathways[i])
 
+    # save only the class token
     if only_classtoken:
       for i in range(len(pathways)):
         pathways[i] = pathways[i][:, 0]
+
+    # out block
     out_block = ViTOutBlock(name=name + '_outblock', **out_block_kwargs,
                             activity_regularizer=KoLeoRegularizer(koleo_lambda) if koleo_lambda else (tf.keras.regularizers.L2(l2) if l2 else None))
     embedding = tf.keras.layers.Concatenate(name=name + '_embedding', axis=-1)([out_block(enc)[..., None] for enc in pathways])
 
+    # classification head
     logits = layers.Dense(num_classes, activation=None, name=name + '_logits')(embedding[..., 0] if classifier else tf.stop_gradient(embedding[..., 0]))
 
     # Create the Keras model.
@@ -61,7 +70,8 @@ def create_model(name='model', only_classtoken=False, koleo_lambda=0, classifier
     return model
 
 
-def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={}, optimizer_cls=tf.optimizers.Nadam, optimizer_kwargs={}, classifier=False):
+def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={}, optimizer_cls=tf.optimizers.Nadam,
+                  optimizer_kwargs={}, classifier=False):
     optimizer = optimizer_cls(**optimizer_kwargs)
     serialize(optimizer, 'Custom')
 
@@ -86,11 +96,11 @@ def get_class(cls, file):
     return cls
 
 
-def train(model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
+def train(model_name, model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
           optimizer_kwargs={},
           classifier=False, dataset=Cifar10, batch_size=128, num_epochs=150):
     dataset = get_class(dataset, data)()
-    model = create_model(input_shape=dataset.get_shape(), **model_kwargs)
+    model = create_model(model_name, input_shape=dataset.get_shape(), **model_kwargs)
     loss = get_class(loss, losses)
     compile_model(model, loss=loss, loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs, classifier=classifier)
 

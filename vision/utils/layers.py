@@ -123,23 +123,24 @@ class ViTOutBlock(layers.Layer):
 
 @serialize
 class SplitPathways(layers.Layer):
-    def __init__(self, num_patches, n=2, d=0.5, intersection=True, **kwargs):
-        super(SplitPathways, self).__init__(**kwargs)
-        assert intersection or n == 2
-        self.n = n
-        self.num_patches = num_patches
-        self.num_patches_per_path = int(num_patches * d)
-        self.intersection = intersection
+  def __init__(self, num_patches, n=2, d=0.5, intersection=True, fixed=False, seed=0, **kwargs):
+    super(SplitPathways, self).__init__(**kwargs)
+    assert intersection or n == 2
+    self.n = n
+    self.seed = seed
+    self.fixed = fixed
+    self.num_patches = num_patches
+    self.num_patches_per_path = int(num_patches * d)
+    self.intersection = intersection
 
-    def call(self, inputs, training=False):
-        if not training:
-            tf.random.set_seed(0)
-        if self.intersection:
-            indices = tf.stack(
-                [tf.random.shuffle(tf.range(self.num_patches))[:self.num_patches_per_path] for _ in range(self.n)],
-                axis=-1)
-        else:
-            indices = tf.reshape(
-                tf.random.shuffle(tf.range(self.num_patches))[:self.num_patches - (self.num_patches % self.n)],
-                (-1, self.n))
-        return tf.gather(inputs, indices, axis=-2, batch_dims=0)
+    # TODO: make fixed actually fixed, because it is not working right now
+
+  def call(self, inputs, training=False):
+    if not training or self.fixed:
+        set_seed(self.seed)
+        tf.keras.utils.set_random_seed(self.seed)
+    if self.intersection:
+      indices = tf.stack([tf.random.shuffle(tf.range(self.num_patches))[:self.num_patches_per_path] for _ in range(self.n)], axis=-1)
+    else:
+      indices = tf.reshape(tf.random.shuffle(tf.range(self.num_patches))[:self.num_patches - (self.num_patches % self.n)], (-1, self.n))
+    return tf.gather(inputs, indices, axis=-2, batch_dims=0)
