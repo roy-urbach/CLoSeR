@@ -8,9 +8,9 @@ QUEUE_CPU = 'gsla-cpu'
 
 
 def run_command(cmd):
-    print(f'Calling {cmd}')
     if isinstance(cmd, str):
         cmd = cmd.split()
+    print(f"Calling {' '.join(cmd)}")
     import subprocess
     result = subprocess.run(cmd, stdout=subprocess.PIPE)
     return result.stdout.decode('utf-8')
@@ -27,7 +27,8 @@ def run():
 
     train_call = f'python3 train.py -b {args.batch} -e {args.epochs} --json {args.json}'
 
-    cmd = f'bsub -q {QUEUE_GPU} -J {model_name} -o {output_name}.o -e {error_name}.e \"{train_call}\"'
+    cmd = ['bsub', '-q', QUEUE_GPU, '-J', {model_name}, '-o', output_name + '.o',
+           '-e', error_name+'.e', f'"{train_call}"']
 
     print(run_command(cmd))
 
