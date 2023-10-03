@@ -25,12 +25,12 @@ def run():
     output_name = os.path.join(path, 'output')
     error_name = os.path.join(path, 'error')
 
-    train_call = f'module load miniconda; conda activate tf-gpu; python3 train.py -b {args.batch} -e {args.epochs} --json {args.json}'
+    train_call = f'conda activate tf-gpu; python3 train.py -b {args.batch} -e {args.epochs} --json {args.json}'
 
     cmd = ['bsub', '-q', QUEUE_GPU, '-J', model_name, '-o', output_name + '.o',
            '-e', error_name+'.e', f'"{train_call}"']
 
-    print(run_command(cmd))
+    print(run_command(cmd), flush=True)
 
 
 if __name__ == '__main__':
