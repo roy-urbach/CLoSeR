@@ -25,7 +25,7 @@ def serialize(c, package=''):
 
 def save_model(model, name=''):
     from datetime import date
-    model_name = 'models/' + (model.name if not name else name) + str(date.today()) + '.h5'
+    model_name = 'models/' + (model.name if not name else model.name+ '/' + name) + str(date.today()) + '.h5'
     model.save(model_name)
 
 
@@ -36,4 +36,4 @@ def load_model(fn):
 
 
 def load_model_from_json(model_name):
-    return load_model(f'models/{model_name}.h5')
+    return load_model(f'models/{model_name}/model.h5')
