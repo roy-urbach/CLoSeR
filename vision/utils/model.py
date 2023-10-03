@@ -1,8 +1,9 @@
-from layers import *
-from losses import *
-from data import *
-import data
-import losses
+from utils.layers import *
+from utils.losses import *
+from utils.data import *
+from utils.utils import *
+import utils.data
+import utils.losses
 from tensorflow.keras import layers
 from tensorflow import keras
 import tensorflow as tf
@@ -100,14 +101,14 @@ def train(model_name, model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
           optimizer_kwargs={},
           classifier=False, dataset=Cifar10, batch_size=128, num_epochs=150):
     print("Getting dataset...", end='\t')
-    dataset = get_class(dataset, data)()
+    dataset = get_class(dataset, utils.data)()
     print("Done!")
 
     print("Creating model...", end='\t')
     model = create_model(model_name, input_shape=dataset.get_shape(), **model_kwargs)
     print("Done!")
 
-    loss = get_class(loss, losses)
+    loss = get_class(loss, utils.losses)
 
     print("Compiling model...", end='\t')
     compile_model(model, loss=loss, loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs, classifier=classifier)

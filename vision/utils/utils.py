@@ -1,3 +1,3 @@
-from tf_utils import *
-from io_utils import *
+from utils.tf_utils import *
+from utils.io_utils import *
 
