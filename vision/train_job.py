@@ -17,7 +17,8 @@ def run():
     args = parse()
     model_name = args.json.split('.json')[0]
     path = os.path.join(BASE_PATH, model_name)
-    os.mkdir(path)
+    if not os.path.exists(path):
+        os.mkdir(path)
     output_name = os.path.join(path, 'output')
     error_name = os.path.join(path, 'error')
 
