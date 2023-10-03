@@ -25,8 +25,11 @@ def run():
     time.sleep(3)
     print("DONE!")
 
-    with open(f"models/{model_name}/stupid_output.o", 'w') as f:
-        f.write(f"{model_name}\n{args.__dict__}\n{kwargs}")
+    import sys
+    sys.stdout.flush()
+
+    # with open(f"models/{model_name}/stupid_output.o", 'w') as f:
+    #     f.write(f"{model_name}\n{args.__dict__}\n{kwargs}")
 
     # TODO: uncomment to actually run
     # from utils.model import train
