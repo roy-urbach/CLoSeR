@@ -17,9 +17,9 @@ def run():
     model_name = args.json.split('.json')[0]
     kwargs = load_json(args.json)
 
-    print(model_name, flush=True)
-    print(args.__dict__, flush=True)
-    print(kwargs, flush=True)
+    txt = '\n'.join([str(s) for s in [model_name, args.__dict__, kwargs]])
+
+    print(txt, flush=True)
 
     import sys
     sys.stdout.flush()
@@ -30,7 +30,7 @@ def run():
 
     dummy = f"models/{model_name}/dummy.o"
     with open(dummy, 'w') as f:
-        f.write("This is a dummy")
+        f.write(txt)
     # os.remove(dummy)
 
     # TODO: uncomment to actually run
