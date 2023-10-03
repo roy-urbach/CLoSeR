@@ -27,7 +27,7 @@ def run():
 
     train_call = f'python3 train.py -b {args.batch} -e {args.epochs} --json {args.json}'
 
-    cmd = ['bsub', '-q', QUEUE_GPU, '-J', {model_name}, '-o', output_name + '.o',
+    cmd = ['bsub', '-q', QUEUE_GPU, '-J', model_name, '-o', output_name + '.o',
            '-e', error_name+'.e', f'"{train_call}"']
 
     print(run_command(cmd))
