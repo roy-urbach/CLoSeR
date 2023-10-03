@@ -5,7 +5,9 @@ BASE_PATH = 'models'
 QUEUE_GPU = "gsla-gpu"
 QUEUE_CPU = 'gsla-cpu'
 
+
 def run_command(cmd):
+    print(f'Calling {cmd}')
     if isinstance(cmd, str):
         cmd = cmd.split()
     import subprocess
@@ -26,7 +28,7 @@ def run():
 
     cmd = f'bsub -q {QUEUE_GPU} -J {model_name} -o {output_name}-%J.o -e {error_name}-%J.e "{train_call}"'
 
-    print(run_command(train_call))
+    print(run_command(cmd))
 
 
 if __name__ == '__main__':
