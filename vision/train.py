@@ -30,7 +30,7 @@ def run():
 
     dummy = f"models/{model_name}/dummy.o"
     with open(dummy, 'w') as f:
-        f.write(txt)
+        f.write("This is a dummy!")
     # os.remove(dummy)
 
     # TODO: uncomment to actually run
