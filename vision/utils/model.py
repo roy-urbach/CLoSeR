@@ -87,9 +87,9 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={}, optimizer_
 
 def get_class(cls, file):
     if isinstance(cls, str):
-        classes = [c for c in dir(file) if isinstance(getattr(file, c), type) and hasattr(c, '__name__') and c.__name__ == cls]
+        classes = [c for c in dir(file) if isinstance(getattr(file, c), type) and c==cls]
         if not classes:
-            raise ValueError(f"{file}.{cls} doesn't exist")
+            raise ValueError(f"{file.__name__}.{cls} doesn't exist")
         else:
             cls = classes[0]
     else:
