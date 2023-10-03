@@ -74,7 +74,7 @@ def create_model(name='model', only_classtoken=False, koleo_lambda=0, classifier
 def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={}, optimizer_cls=tf.optimizers.Nadam,
                   optimizer_kwargs={}, classifier=False):
     optimizer = optimizer_cls(**optimizer_kwargs)
-    serialize(optimizer, 'Custom')
+    serialize(optimizer.__class__, 'Custom')
 
     model.compile(
         optimizer=optimizer,
