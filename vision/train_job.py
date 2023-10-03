@@ -5,6 +5,8 @@ BASE_PATH = 'models'
 # QUEUE_GPU = "gsla-gpu"    # TODO: change back when it works
 QUEUE_GPU = 'sch-gpu'
 QUEUE_CPU = 'gsla-cpu'
+CONDA_PATH = '/home/labs/schneidmann/royu/miniconda3/etc/profile.d/conda.sh'
+VENV_NAME = 'tf-gpu'
 
 
 def run_command(cmd):
@@ -25,7 +27,7 @@ def run():
     output_name = os.path.join(path, 'output')
     error_name = os.path.join(path, 'error')
 
-    train_call = f'source ~/miniconda3/etc/profile.d/conda.sh; conda activate tf-gpu; python3 train.py -b {args.batch} -e {args.epochs} --json {args.json}'
+    train_call = f'source {CONDA_PATH}; conda activate {VENV_NAME}; python3 train.py -b {args.batch} -e {args.epochs} --json {args.json}'
 
     cmd = ['bsub', '-q', QUEUE_GPU, '-J', model_name, '-o', output_name + '.o',
            '-e', error_name+'.e', f'"{train_call}"']
