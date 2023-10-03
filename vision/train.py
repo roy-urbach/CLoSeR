@@ -21,6 +21,10 @@ def run():
     print(args.__dict__, flush=True)
     print(kwargs, flush=True)
 
+    import time
+    time.sleep(3)
+    print("DONE!")
+
     # TODO: uncomment to actually run
     # from utils.model import train
     # train(model_name, **kwargs, batch_size=args.batch, num_epochs=args.epochs)
