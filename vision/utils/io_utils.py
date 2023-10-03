@@ -7,4 +7,6 @@ def load_json(fn, base_path='config/'):
         fn = fn + '.json'
     fn = os.path.join(base_path, fn)
     assert os.path.exists(fn), f"{fn} doesn't exist"
-    return json.loads(fn)
+    with open(fn, 'r') as f:
+        dct = json.load(f)
+    return dct
