@@ -3,6 +3,6 @@ from utils.io_utils import *
 import sys
 
 
-def printd(s):
-    print(s, flush=True)
+def printd(*args, **kwargs):
+    print(*args, flush=True, **kwargs)
     sys.stdout.flush()
