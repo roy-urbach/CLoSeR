@@ -11,8 +11,8 @@ from utils.utils import *
 class MLP(layers.Layer):
     def __init__(self, hidden_units, dropout_rate=0.1, **kwargs):
         super(MLP, self).__init__(**kwargs)
-        self.dense = [layers.Dense(units, activation=tf.nn.gelu) for units in hidden_units]
-        self.dropout = [layers.Dropout(dropout_rate, name=self.name + f'_do{i}') for _ in hidden_units]
+        self.dense = [layers.Dense(units, activation=tf.nn.gelu, name=self.name + f'_fc{i}') for i, units in enumerate(hidden_units)]
+        self.dropout = [layers.Dropout(dropout_rate, name=self.name + f'_do{i}') for i, _ in enumerate(hidden_units)]
         self.depth = len(hidden_units)
 
     def call(self, inputs):
