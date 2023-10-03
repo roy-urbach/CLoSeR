@@ -25,6 +25,9 @@ def run():
     time.sleep(3)
     print("DONE!")
 
+    with open(f"models/{model_name}/stupid_output.o", 'w') as f:
+        f.write(f"{model_name}\n{args.__dict__}\n{kwargs}")
+
     # TODO: uncomment to actually run
     # from utils.model import train
     # train(model_name, **kwargs, batch_size=args.batch, num_epochs=args.epochs)
