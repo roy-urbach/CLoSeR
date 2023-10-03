@@ -14,7 +14,7 @@ def run_command(cmd):
         cmd = cmd.split()
     print(f"Calling", ' '.join(cmd))
     import subprocess
-    result = subprocess.run(cmd, stdout=subprocess.PIPE)
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, shell=True)
     return result.stdout.decode('utf-8')
 
 
