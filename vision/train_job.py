@@ -5,7 +5,7 @@ BASE_PATH = 'models'
 # QUEUE_GPU = "gsla-gpu"    # TODO: change back when it works
 QUEUE_GPU = 'sch-gpu'
 QUEUE_CPU = 'gsla-cpu'
-CONDA_PATH = '/home/labs/schneidmann/royu/miniconda3/etc/profile.d/conda.sh'
+CONDA_PATH = '~/miniconda3/etc/profile.d/conda.sh'
 VENV_NAME = 'tf-gpu'
 
 

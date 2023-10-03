@@ -21,15 +21,17 @@ def run():
     print(args.__dict__, flush=True)
     print(kwargs, flush=True)
 
+    import sys
+    sys.stdout.flush()
+
     import time
     time.sleep(3)
     print("DONE!")
 
-
     dummy = f"models/{model_name}/dummy.o"
     with open(dummy, 'w') as f:
         f.write("This is a dummy")
-    os.remove(dummy)
+    # os.remove(dummy)
 
     # TODO: uncomment to actually run
     # from utils.model import train
