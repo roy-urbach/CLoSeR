@@ -10,7 +10,7 @@ QUEUE_CPU = 'gsla-cpu'
 def run_command(cmd):
     if isinstance(cmd, str):
         cmd = cmd.split()
-    print(f"Calling {' '.join(cmd)}")
+    print(f"Calling", ' '.join(cmd))
     import subprocess
     result = subprocess.run(cmd, stdout=subprocess.PIPE)
     return result.stdout.decode('utf-8')
