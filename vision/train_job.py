@@ -25,7 +25,7 @@ def run():
 
     cmd = f'bsub -q {QUEUE_GPU} -J {model_name} -o {output_name}-%J.o -e {error_name}-%J.e "{train_call}"'
 
-    run_command(train_call)
+    print(run_command(train_call))
 
 
 if __name__ == '__main__':
