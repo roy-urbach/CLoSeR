@@ -23,19 +23,9 @@ def run():
 
     import sys
     sys.stdout.flush()
-    #
-    # import time
-    # time.sleep(3)
-    # print("DONE!")
-    #
-    # dummy = f"models/{model_name}/dummy.o"
-    # with open(dummy, 'w') as f:
-    #     f.write("This is a dummy!")
-    # os.remove(dummy)
 
-    # TODO: uncomment to actually run
-    # from utils.model import train
-    # train(model_name, **kwargs, batch_size=args.batch, num_epochs=args.epochs)
+    from utils.model import train
+    train(model_name, **kwargs, batch_size=args.batch, num_epochs=args.epochs)
 
 
 if __name__ == '__main__':

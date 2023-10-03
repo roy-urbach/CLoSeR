@@ -29,7 +29,11 @@ def save_model(model, name=''):
     model.save(model_name)
 
 
-def load_model(model_name):
+def load_model(fn):
     with keras.saving.custom_object_scope(get_custom_objects()):
-        reconstructed_model = tf.keras.models.load_model(model_name)
+        reconstructed_model = tf.keras.models.load_model(fn)
     return reconstructed_model
+
+
+def load_model_from_json(model_name):
+    return load_model(f'models/{model_name}.h5')
