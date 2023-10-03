@@ -17,9 +17,9 @@ def run():
     model_name = args.json.split('.json')[0]
     kwargs = load_json(args.json)
 
-    print(model_name)
-    print(args.__dict__)
-    print(kwargs)
+    print(model_name, flush=True)
+    print(args.__dict__, flush=True)
+    print(kwargs, flush=True)
 
     # TODO: uncomment to actually run
     # from utils.model import train
