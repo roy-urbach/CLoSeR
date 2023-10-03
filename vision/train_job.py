@@ -19,6 +19,14 @@ def run_command(cmd):
 
 
 def run():
+    # get_cmd()
+    with open('/tmp/cmd', 'w') as f:
+        f.write(get_cmd())
+
+    # print(run_command(cmd), flush=True)
+
+
+def get_cmd():
     args = parse()
     model_name = args.json.split('.json')[0]
     path = os.path.join(BASE_PATH, model_name)
@@ -31,9 +39,7 @@ def run():
     activate_conda = ''#f'conda run -n {VENV_NAME}'
     bsub_call = f'bsub -q {QUEUE_GPU} -J {model_name} -o {output_name}.o -e {error_name}.e'
     cmd = [*activate_conda.split(), *bsub_call.split(), f'"{train_call}"']
-
-    print(run_command(cmd), flush=True)
-
+    return ' '.join(cmd)
 
 if __name__ == '__main__':
     run()
