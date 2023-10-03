@@ -28,7 +28,7 @@ def run():
     error_name = os.path.join(path, 'error')
 
     train_call = f'python3 train.py -b {args.batch} -e {args.epochs} --json {args.json}'
-    activate_conda = f'conda run -n {VENV_NAME}'
+    activate_conda = ''#f'conda run -n {VENV_NAME}'
     bsub_call = f'bsub -q {QUEUE_GPU} -J {model_name} -o {output_name}.o -e {error_name}.e'
     cmd = [*activate_conda.split(), *bsub_call.split(), f'"{train_call}"']
 
