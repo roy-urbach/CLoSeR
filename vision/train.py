@@ -8,12 +8,12 @@ def parse():
     parser.add_argument('-e', '--epochs', type=int, default=100, help='number of epochs')
     parser.add_argument('-j', '--json', type=str, help='name of the config json')
 
-    args = parser.parse_args()
+    args = parser.parse_known_args()
     return args
 
 
 def run():
-    args = parse()
+    args = parse()[0]
     model_name = args.json.split('.json')[0]
     kwargs = load_json(args.json)
 

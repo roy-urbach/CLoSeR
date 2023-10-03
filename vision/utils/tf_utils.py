@@ -23,9 +23,9 @@ def serialize(c, package=''):
     return c
 
 
-def save_model(model):
+def save_model(model, name=''):
     from datetime import date
-    model_name = 'models/' + model.name + str(date.today()) + '.h5'
+    model_name = 'models/' + (model.name if not name else name) + str(date.today()) + '.h5'
     model.save(model_name)
 
 

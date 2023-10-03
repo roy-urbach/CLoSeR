@@ -115,5 +115,5 @@ def train(model_name, model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
         validation_split=dataset.get_val_split(),
     )
 
-    save_model(model)
+    save_model(model, 'model')
     return model, history
