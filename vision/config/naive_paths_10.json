@@ -1,5 +1,6 @@
 {
    "model_kwargs":{
+      "l2": 1e-5,
       "pathways_kwargs":{
          "n":10,
          "d":0.2,

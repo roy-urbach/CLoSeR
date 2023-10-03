@@ -53,18 +53,18 @@ class PatchEncoder(layers.Layer):
         class_token = w_init(shape=(1, projection_dim), dtype="float32")
         self.class_token = tf.Variable(initial_value=class_token, trainable=True)
         self.projection = layers.Dense(units=projection_dim)
-        self.position_embedding = layers.Embedding(input_dim=num_patches+1, output_dim=projection_dim)
+        self.position_embedding = layers.Embedding(input_dim=num_patches + 1, output_dim=projection_dim)
 
     def call(self, patch):
         batch = tf.shape(patch)[0]
         # reshape the class token embedins
-        class_token = tf.tile(self.class_token, multiples = [batch, 1])
+        class_token = tf.tile(self.class_token, multiples=[batch, 1])
         class_token = tf.reshape(class_token, (batch, 1, self.projection_dim))
         # calculate patches embeddings
         patches_embed = self.projection(patch)
         patches_embed = tf.concat([patches_embed, class_token], 1)
         # calcualte positional embeddings
-        positions = tf.range(start=0, limit=self.num_patches+1, delta=1)
+        positions = tf.range(start=0, limit=self.num_patches + 1, delta=1)
         positions_embed = self.position_embedding(positions)
         # add both embeddings
         encoded = patches_embed + positions_embed
@@ -123,24 +123,41 @@ class ViTOutBlock(layers.Layer):
 
 @serialize
 class SplitPathways(layers.Layer):
-  def __init__(self, num_patches, n=2, d=0.5, intersection=True, fixed=False, seed=0, **kwargs):
-    super(SplitPathways, self).__init__(**kwargs)
-    assert intersection or n == 2
-    self.n = n
-    self.seed = seed
-    self.fixed = fixed
-    self.num_patches = num_patches
-    self.num_patches_per_path = int(num_patches * d)
-    self.intersection = intersection
+    def __init__(self, num_patches, n=2, d=0.5, intersection=True, fixed=False, seed=0, **kwargs):
+        super(SplitPathways, self).__init__(**kwargs)
+        assert intersection or n == 2
+        self.n = n
+        self.seed = seed
+        self.fixed = fixed
+        self.num_patches = num_patches
+        self.num_patches_per_path = int(num_patches * d)
+        self.intersection = intersection
+        if fixed:
+            set_seed(self.seed)
+            if self.intersection:
+                self.indices = tf.stack(
+                    [tf.random.shuffle(tf.range(self.num_patches))[:self.num_patches_per_path] for _ in range(self.n)],
+                    axis=-1)
+            else:
+                self.indices = tf.reshape(
+                    tf.random.shuffle(tf.range(self.num_patches))[:self.num_patches - (self.num_patches % self.n)],
+                    (-1, self.n))
+        else:
+            self.indices = None
 
-    # TODO: make fixed actually fixed, because it is not working right now
-
-  def call(self, inputs, training=False):
-    if not training or self.fixed:
-        set_seed(self.seed)
-        tf.keras.utils.set_random_seed(self.seed)
-    if self.intersection:
-      indices = tf.stack([tf.random.shuffle(tf.range(self.num_patches))[:self.num_patches_per_path] for _ in range(self.n)], axis=-1)
-    else:
-      indices = tf.reshape(tf.random.shuffle(tf.range(self.num_patches))[:self.num_patches - (self.num_patches % self.n)], (-1, self.n))
-    return tf.gather(inputs, indices, axis=-2, batch_dims=0)
+    def call(self, inputs, training=False):
+        if not training or self.fixed:
+            set_seed(self.seed)
+            tf.keras.utils.set_random_seed(self.seed)
+        if self.indices is None:
+            if self.intersection:
+                indices = tf.stack(
+                    [tf.random.shuffle(tf.range(self.num_patches))[:self.num_patches_per_path] for _ in range(self.n)],
+                    axis=-1)
+            else:
+                indices = tf.reshape(
+                    tf.random.shuffle(tf.range(self.num_patches))[:self.num_patches - (self.num_patches % self.n)],
+                    (-1, self.n))
+        else:
+            indices = self.indices
+        return tf.gather(inputs, indices, axis=-2, batch_dims=0)
