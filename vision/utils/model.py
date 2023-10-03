@@ -100,24 +100,24 @@ def get_class(cls, file):
 def train(model_name, model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
           optimizer_kwargs={},
           classifier=False, dataset=Cifar10, batch_size=128, num_epochs=150):
-    print("Getting dataset...", end='\t')
+    printd("Getting dataset...", end='\t')
     dataset = get_class(dataset, utils.data)()
-    print("Done!")
+    printd("Done!")
 
-    print("Creating model...", end='\t')
+    printd("Creating model...", end='\t')
     model = create_model(model_name, input_shape=dataset.get_shape(), **model_kwargs)
-    print("Done!")
+    printd("Done!")
 
     loss = get_class(loss, utils.losses)
 
-    print("Compiling model...", end='\t')
+    printd("Compiling model...", end='\t')
     compile_model(model, loss=loss, loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs, classifier=classifier)
-    print("Done!")
+    printd("Done!")
 
     # TODO: checkpoint callback (where to save?)
     # TODO: regression callback?
 
-    print("Fitting the model!")
+    printd("Fitting the model!")
     history = model.fit(
         x=dataset.get_x_train(),
         y=dataset.get_y_train(),
@@ -126,7 +126,7 @@ def train(model_name, model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
         validation_split=dataset.get_val_split(),
     )
 
-    print("saving the model!")
+    printd("saving the model!")
     save_model(model, 'model')
-    print("Done!")
+    printd("Done!")
     return model, history
