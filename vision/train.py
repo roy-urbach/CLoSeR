@@ -1,6 +1,5 @@
 import argparse
-from utils.utils import *
-from utils.model import train
+from utils.io_utils import *
 
 
 def parse():
@@ -23,6 +22,7 @@ def run():
     print(kwargs)
 
     # TODO: uncomment to actually run
+    # from utils.model import train
     # train(model_name, **kwargs, batch_size=args.batch, num_epochs=args.epochs)
 
 
