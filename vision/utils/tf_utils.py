@@ -23,9 +23,19 @@ def serialize(c, package=''):
     return c
 
 
-def save_model(model, name=''):
-    model_name = 'models/' + (model.name if not name else model.name+ '/' + name) + '.h5'
-    model.save(model_name)
+def save_model(model):
+    fn = get_model_fn(model)
+    model.save(fn)
+
+
+def get_model_fn(model_or_name):
+    if isinstance(model_or_name, str):
+        model_name = model_or_name
+    else:
+        assert hasattr(model_or_name, 'name')
+        model_name = model_or_name.name
+    fn = os.path.join('models', model_name, 'model.h5')
+    return fn
 
 
 def load_model(fn):
@@ -35,7 +45,7 @@ def load_model(fn):
 
 
 def load_model_from_json(model_name):
-    fn = f'models/{model_name}/model.h5'
+    fn = get_model_fn(model_name)
     if os.path.exists(fn):
         return load_model(fn)
     else:

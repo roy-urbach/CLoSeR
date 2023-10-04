@@ -131,9 +131,12 @@ def train(model_name, model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
             batch_size=batch_size,
             epochs=num_epochs,
             validation_split=dataset.get_val_split(),
+            callbacks=[tf.keras.callbacks.ModelCheckpoint(filepath=get_model_fn(model),
+                                                          save_weights_only=False,
+                                                          verbose=1)]
         )
 
         printd("saving the model!")
-        save_model(model, 'model')
+        save_model(model)
         printd("Done!")
     return model

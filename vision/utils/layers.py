@@ -112,14 +112,13 @@ class ViTOutBlock(layers.Layer):
         x = self.dropout(x)
         x = self.mlp(x)
         out = self.dense(x)
-        # self.add_loss(self.reg * koleo_regularizer(out))
         return out
 
     def get_config(self):
         return {**super().get_config(), 'activity_regularizer': self.activity_regularizer}
 
 
-# ours layers
+# "our" layers
 
 @serialize
 class SplitPathways(layers.Layer):
@@ -136,11 +135,11 @@ class SplitPathways(layers.Layer):
             set_seed(self.seed)
             if self.intersection:
                 self.indices = tf.stack(
-                    [tf.random.shuffle(tf.range(self.num_patches))[:self.num_patches_per_path] for _ in range(self.n)],
+                    [tf.random.shuffle(tf.range(1, self.num_patches))[:self.num_patches_per_path] for _ in range(self.n)],
                     axis=-1)
             else:
                 self.indices = tf.reshape(
-                    tf.random.shuffle(tf.range(self.num_patches))[:self.num_patches - (self.num_patches % self.n)],
+                    tf.random.shuffle(tf.range(1, self.num_patches))[:self.num_patches - (self.num_patches % self.n)],
                     (-1, self.n))
         else:
             self.indices = None
@@ -160,4 +159,7 @@ class SplitPathways(layers.Layer):
                     (-1, self.n))
         else:
             indices = self.indices
+
+        # everyone gets the class token
+        indices = tf.concat([tf.zeros((1, self.n), dtype=indices.dtype), indices], axis=0)
         return tf.gather(inputs, indices, axis=-2, batch_dims=0)
