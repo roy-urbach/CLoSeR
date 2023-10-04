@@ -36,4 +36,8 @@ def load_model(fn):
 
 
 def load_model_from_json(model_name):
-    return load_model(f'models/{model_name}/model.h5')
+    fn = f'models/{model_name}/model.h5'
+    if os.path.exists(fn):
+        return load_model(fn)
+    else:
+        return None

@@ -104,29 +104,36 @@ def train(model_name, model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
     dataset = get_class(dataset, utils.data)()
     printd("Done!")
 
-    printd("Creating model...", end='\t')
-    model = create_model(model_name, input_shape=dataset.get_shape(), **model_kwargs)
-    printd("Done!")
+    printd("Checking if model already trained...", end='\t')
+    model = load_model_from_json(model_name)
+    if model is not None:
+        printd("Loaded model!")
+    else:
+        printd("Model never trained before")
+        printd("Creating model...", end='\t')
+        model = create_model(model_name, input_shape=dataset.get_shape(), **model_kwargs)
+        printd("Done!")
 
-    loss = get_class(loss, utils.losses)
+        loss = get_class(loss, utils.losses)
 
-    printd("Compiling model...", end='\t')
-    compile_model(model, loss=loss, loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs, classifier=classifier)
-    printd("Done!")
+        printd("Compiling model...", end='\t')
+        compile_model(model, loss=loss, loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs, classifier=classifier)
+        printd("Done!")
 
     # TODO: checkpoint callback (where to save?)
     # TODO: regression callback?
 
-    printd("Fitting the model!")
-    history = model.fit(
-        x=dataset.get_x_train(),
-        y=dataset.get_y_train(),
-        batch_size=batch_size,
-        epochs=num_epochs,
-        validation_split=dataset.get_val_split(),
-    )
+    if num_epochs:
+        printd("Fitting the model!")
+        history = model.fit(
+            x=dataset.get_x_train(),
+            y=dataset.get_y_train(),
+            batch_size=batch_size,
+            epochs=num_epochs,
+            validation_split=dataset.get_val_split(),
+        )
 
-    printd("saving the model!")
-    save_model(model, 'model')
-    printd("Done!")
-    return model, history
+        printd("saving the model!")
+        save_model(model, 'model')
+        printd("Done!")
+    return model
