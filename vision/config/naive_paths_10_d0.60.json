@@ -1,0 +1,11 @@
+{
+    "model_kwargs": {
+        "l2": 1e-05,
+        "pathways_kwargs": {
+            "n": 10,
+            "d": 0.6000000000000001,
+            "fixed": true
+        }
+    },
+    "dataset": "Cifar10"
+}
