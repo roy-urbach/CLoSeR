@@ -2,6 +2,8 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
+
+from utils.tf_utils import set_seed, serialize
 from utils.utils import *
 
 
@@ -125,7 +127,7 @@ class ViTOutBlock(layers.Layer):
 
 @serialize
 class SplitPathways(layers.Layer):
-    def __init__(self, num_patches, n=2, d=0.5, intersection=True, fixed=False, seed=0, **kwargs):
+    def __init__(self, num_patches, n=2, d=0.5, intersection=True, fixed=False, seed=0, old=True, **kwargs):
         super(SplitPathways, self).__init__(**kwargs)
         assert intersection or n == 2
         self.n = n
@@ -134,15 +136,16 @@ class SplitPathways(layers.Layer):
         self.num_patches = num_patches
         self.num_patches_per_path = int(num_patches * d)
         self.intersection = intersection
+        self.old = old
         if fixed:
             set_seed(self.seed)
             if self.intersection:
                 self.indices = tf.stack(
-                    [tf.random.shuffle(tf.range(1, self.num_patches))[:self.num_patches_per_path] for _ in range(self.n)],
+                    [tf.random.shuffle(tf.range(1 - old, self.num_patches))[:self.num_patches_per_path] for _ in range(self.n)],
                     axis=-1)
             else:
                 self.indices = tf.reshape(
-                    tf.random.shuffle(tf.range(1, self.num_patches))[:self.num_patches - (self.num_patches % self.n)],
+                    tf.random.shuffle(tf.range(1 - old, self.num_patches))[:self.num_patches - (self.num_patches % self.n)],
                     (-1, self.n))
         else:
             self.indices = None
@@ -154,15 +157,16 @@ class SplitPathways(layers.Layer):
         if self.indices is None:
             if self.intersection:
                 indices = tf.stack(
-                    [tf.random.shuffle(tf.range(self.num_patches))[:self.num_patches_per_path] for _ in range(self.n)],
+                    [tf.random.shuffle(tf.range(1-self.old, self.num_patches))[:self.num_patches_per_path] for _ in range(self.n)],
                     axis=-1)
             else:
                 indices = tf.reshape(
-                    tf.random.shuffle(tf.range(self.num_patches))[:self.num_patches - (self.num_patches % self.n)],
+                    tf.random.shuffle(tf.range(1-self.old, self.num_patches))[:self.num_patches - (self.num_patches % self.n)],
                     (-1, self.n))
         else:
             indices = self.indices
 
         # everyone gets the class token
-        indices = tf.concat([tf.zeros((1, self.n), dtype=indices.dtype), indices], axis=0)
+        if not self.old:
+            indices = tf.concat([tf.zeros((1, self.n), dtype=indices.dtype), indices], axis=0)
         return tf.gather(inputs, indices, axis=-2, batch_dims=0)

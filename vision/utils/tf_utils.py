@@ -3,6 +3,7 @@ import tensorflow as tf
 from tensorflow import keras
 import os
 import random
+from utils.utils import printd
 
 
 def set_seed(s):
@@ -50,3 +51,13 @@ def load_model_from_json(model_name):
         return load_model(fn)
     else:
         return None
+
+
+def load_checkpoint(model):
+    checkpoint_name = f'/models/{model.name}/weights.ckpt'
+    if os.path.exists(checkpoint_name):
+        printd("checkpoint found. loading...", end='\t')
+        model.load(checkpoint_name)
+        printd("done!")
+    else:
+        printd("no checkpoint found")
