@@ -1,6 +1,8 @@
 from utils.io_utils import load_json, save_json
 from utils.tf_utils import load_model_from_json
 from utils.utils import get_class
+from model.layers import *
+from model.losses import *
 
 
 def eval():
@@ -25,6 +27,7 @@ def eval():
     x_train_embd = model.predict(dataset.get_x_train())[0]
     x_test_embd = model.predict(dataset.get_x_test())[0]
     embd_dataset = data.Data(x_train_embd, dataset.get_y_train(), x_test_embd, dataset.get_y_test())
+
     from evaluation.evaluation import classify_head_eval
     results = {}
     if args.knn:
