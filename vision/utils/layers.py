@@ -105,6 +105,7 @@ class ViTOutBlock(layers.Layer):
         self.mlp = MLP(mlp_head_units, dropout_rate=dropout_rate)
         self.dense = layers.Dense(output_dim)
         self.reg = reg
+        self.mlp_head_units = mlp_head_units
 
     def call(self, encoded_patches):
         x = self.ln(encoded_patches)
@@ -115,7 +116,9 @@ class ViTOutBlock(layers.Layer):
         return out
 
     def get_config(self):
-        return {**super().get_config(), 'activity_regularizer': self.activity_regularizer}
+        return {**super().get_config(),
+                'activity_regularizer': self.activity_regularizer,
+                'mlp_head_units': self.mlp_head_units}
 
 
 # "our" layers
