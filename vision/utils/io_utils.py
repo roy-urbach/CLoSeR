@@ -12,11 +12,11 @@ def load_json(fn, base_path='config/'):
     return dct
 
 
-def save_json(fn, dct, base_path='config/', **kwargs):
+def save_json(fn, dct, base_path='config/', indent=4, **kwargs):
     if not fn.endswith('json'):
         fn = fn + '.json'
     fn = os.path.join(base_path, fn)
     with open(fn, 'w') as f:
-        json.dump(dct, f, **kwargs)
+        json.dump(dct, f, indent=indent, **kwargs)
     print(f"saved as {fn}")
     return fn

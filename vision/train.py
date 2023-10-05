@@ -24,7 +24,7 @@ def run():
     import sys
     sys.stdout.flush()
 
-    from utils.model import train
+    from model.model import train
     train(model_name, **kwargs, batch_size=args.batch, num_epochs=args.epochs)
 
 

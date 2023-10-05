@@ -31,5 +31,8 @@ def classify_head_eval(dataset, m=lambda x: x.reshape(x.shape[0], -1), pca=False
         from sklearn.neighbors import KNeighborsClassifier
         model = KNeighborsClassifier(k)
     model.fit(train_embd, y_train.flatten()[inds])
+    train_score = model.score(train_embd, y_train.flatten()[inds])
+    test_score = model.score(m(x_test), y_test.flatten())
     print(
-        f"Train acc: {model.score(train_embd, y_train.flatten()[inds]):.5f}; Test acc: {model.score(m(x_test), y_test.flatten()):.5f}")
+        f"Train acc: {train_score:.5f}; Test acc: {test_score:.5f}")
+    return train_score, test_score

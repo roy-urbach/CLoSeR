@@ -1,10 +1,9 @@
-from utils.layers import *
-from utils.losses import *
+from model.layers import *
+from model.losses import *
 from utils.data import *
 from utils.tf_utils import get_model_fn, save_model, load_model_from_json
 from utils.utils import *
 import utils.data
-import utils.losses
 from tensorflow.keras import layers
 from tensorflow import keras
 import tensorflow as tf
@@ -86,18 +85,6 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={}, optimizer_
     )
 
 
-def get_class(cls, file):
-    if isinstance(cls, str):
-        classes = [getattr(file, c) for c in dir(file) if isinstance(getattr(file, c), type) and c==cls]
-        if not classes:
-            raise ValueError(f"{file.__name__}.{cls} doesn't exist")
-        else:
-            cls = classes[0]
-    else:
-        assert isinstance(cls, type)
-    return cls
-
-
 def train(model_name, model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
           optimizer_kwargs={},
           classifier=False, dataset=Cifar10, batch_size=128, num_epochs=150):
@@ -115,7 +102,7 @@ def train(model_name, model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
         model = create_model(model_name, input_shape=dataset.get_shape(), **model_kwargs)
         printd("Done!")
 
-        loss = get_class(loss, utils.losses)
+        loss = get_class(loss, model.losses)
 
         printd("Compiling model...", end='\t')
         compile_model(model, loss=loss, loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs, classifier=classifier)
