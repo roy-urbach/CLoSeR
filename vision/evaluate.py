@@ -1,11 +1,9 @@
+from utils.io_utils import load_json, save_json
+from utils.tf_utils import load_model_from_json
+from utils.utils import get_class
+
+
 def eval():
-    import sys
-    print(sys.path)
-
-    from utils.io_utils import load_json, save_json
-    from utils.tf_utils import load_model_from_json
-    from utils.utils import get_class
-
     import argparse
 
     def parse():
