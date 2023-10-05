@@ -4,6 +4,8 @@ from utils.utils import get_class
 from model.layers import *
 from model.losses import *
 
+RESULTS_FILE_NAME = 'classification_eval'
+
 
 def eval():
     import argparse
@@ -29,7 +31,13 @@ def eval():
     embd_dataset = data.Data(x_train_embd, dataset.get_y_train(), x_test_embd, dataset.get_y_test())
 
     from evaluation.evaluation import classify_head_eval
-    results = {}
+
+    base_path = f'models/{model.name}'
+
+    results = load_json(RESULTS_FILE_NAME, base_path=base_path)
+    if results is None:
+        results = {}
+
     if args.knn:
         for k in [1] + list(range(5, 50, 5)):
             print(f"k={k}:", end='\t')
@@ -37,7 +45,7 @@ def eval():
     if args.linear:
         results['logistic'] = classify_head_eval(embd_dataset, linear=True, svm=False)
 
-    save_json('classification_eval', results, base_path=f'models/{model.name}')
+    save_json(RESULTS_FILE_NAME, results, base_path=base_path)
 
 
 if __name__ == '__main__':
