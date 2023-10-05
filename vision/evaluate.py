@@ -11,8 +11,7 @@ def eval():
         parser.add_argument('-j', '--json', type=str, help='name of the config json')
         parser.add_argument('--knn', action=argparse.BooleanOptionalAction, default=False)
         parser.add_argument('--linear', action=argparse.BooleanOptionalAction, default=True)
-        args = parser.parse_known_args()
-        return args
+        return parser.parse_args()
 
     args = parse()
 
