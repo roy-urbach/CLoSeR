@@ -13,8 +13,11 @@ from utils.utils import *
 class MLP(layers.Layer):
     def __init__(self, hidden_units, dropout_rate=0.1, **kwargs):
         super(MLP, self).__init__(**kwargs)
-        self.dense = [layers.Dense(units, activation=tf.nn.gelu, name=self.name + f'_fc{i}') for i, units in enumerate(hidden_units)]
-        self.dropout = [layers.Dropout(dropout_rate, name=self.name + f'_do{i}') for i, _ in enumerate(hidden_units)]
+        self.hidden_units = hidden_units
+        self.dense = [layers.Dense(units, activation=tf.nn.gelu, name=self.name + f'_fc{i}')
+                      for i, units in enumerate(self.hidden_units)]
+        self.dropout = [layers.Dropout(dropout_rate, name=self.name + f'_do{i}')
+                        for i, _ in enumerate(self.hidden_units)]
         self.depth = len(hidden_units)
 
     def call(self, inputs):
@@ -23,6 +26,9 @@ class MLP(layers.Layer):
             x = self.dense[l](x)
             x = self.dropout[l](x)
         return x
+
+    def get_config(self):
+        return dict(**super().get_config(),hidden_units=self.hidden_units)
 
 
 @serialize
@@ -104,8 +110,9 @@ class ViTOutBlock(layers.Layer):
         self.ln = layers.LayerNormalization(epsilon=1e-6)
         self.fl = layers.Flatten()
         self.dropout = layers.Dropout(dropout_rate)
+        self.output_dim = output_dim
         self.mlp = MLP(mlp_head_units, dropout_rate=dropout_rate)
-        self.dense = layers.Dense(output_dim)
+        self.dense = layers.Dense(self.output_dim)
         self.reg = reg
         self.mlp_head_units = mlp_head_units
 
@@ -120,7 +127,8 @@ class ViTOutBlock(layers.Layer):
     def get_config(self):
         return {**super().get_config(),
                 'activity_regularizer': self.activity_regularizer,
-                'mlp_head_units': self.mlp_head_units}
+                'mlp_head_units': self.mlp_head_units,
+                'output_dim': self.output_dim}
 
 
 # "our" layers
