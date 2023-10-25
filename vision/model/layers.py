@@ -70,9 +70,9 @@ class PatchEncoder(layers.Layer):
         class_token = tf.reshape(class_token, (batch, self.num_class_tokens, self.projection_dim))
         # calculate patches embeddings
         patches_embed = self.projection(patch)
-        patches_embed = tf.concat([patches_embed, class_token], 1)
+        patches_embed = tf.concat([class_token, patches_embed], 1)
         # calcualte positional embeddings
-        positions = tf.range(start=0, limit=self.num_patches + 1, delta=1)
+        positions = tf.concat([tf.zeros(self.num_class_tokens), tf.range(start=0, limit=self.num_patches, delta=1)], axis=0)
         positions_embed = self.position_embedding(positions)
         # add both embeddings
         encoded = patches_embed + positions_embed
