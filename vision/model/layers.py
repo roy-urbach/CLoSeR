@@ -53,12 +53,12 @@ class Patches(layers.Layer):
 
 @serialize
 class PatchEncoder(layers.Layer):
-    def __init__(self, num_patches=196, projection_dim=768, **kwargs):
+    def __init__(self, num_patches=196, projection_dim=768, num_class_tokens=1, **kwargs):
         super(PatchEncoder, self).__init__(**kwargs)
         self.num_patches = num_patches
         self.projection_dim = projection_dim
-        w_init = tf.random_normal_initializer()
-        class_token = w_init(shape=(1, projection_dim), dtype="float32")
+        self.num_class_tokens = num_class_tokens
+        class_token = tf.random_normal_initializer()(shape=(self.num_class_tokens, projection_dim), dtype="float32")
         self.class_token = tf.Variable(initial_value=class_token, trainable=True)
         self.projection = layers.Dense(units=projection_dim)
         self.position_embedding = layers.Embedding(input_dim=num_patches + 1, output_dim=projection_dim)
@@ -67,7 +67,7 @@ class PatchEncoder(layers.Layer):
         batch = tf.shape(patch)[0]
         # reshape the class token embedins
         class_token = tf.tile(self.class_token, multiples=[batch, 1])
-        class_token = tf.reshape(class_token, (batch, 1, self.projection_dim))
+        class_token = tf.reshape(class_token, (batch, self.num_class_tokens, self.projection_dim))
         # calculate patches embeddings
         patches_embed = self.projection(patch)
         patches_embed = tf.concat([patches_embed, class_token], 1)
@@ -135,46 +135,50 @@ class ViTOutBlock(layers.Layer):
 
 @serialize
 class SplitPathways(layers.Layer):
-    def __init__(self, num_patches, n=2, d=0.5, intersection=True, fixed=False, seed=0, old=True, **kwargs):
+    def __init__(self, num_patches, token_per_path=False, n=2, d=0.5, intersection=True, fixed=False, seed=0, old=True, **kwargs):
         super(SplitPathways, self).__init__(**kwargs)
         assert intersection or n == 2
         self.n = n
         self.seed = seed
         self.fixed = fixed
         self.num_patches = num_patches
+        self.token_per_path = token_per_path
         self.num_patches_per_path = int(num_patches * d)
         self.intersection = intersection
         self.old = old
+        self.indices = None
         if fixed:
             set_seed(self.seed)
-            if self.intersection:
-                self.indices = tf.stack(
-                    [tf.random.shuffle(tf.range(1 - old, self.num_patches))[:self.num_patches_per_path] for _ in range(self.n)],
-                    axis=-1)
-            else:
-                self.indices = tf.reshape(
-                    tf.random.shuffle(tf.range(1 - old, self.num_patches))[:self.num_patches - (self.num_patches % self.n)],
-                    (-1, self.n))
-        else:
-            self.indices = None
+            self.get_indices()
 
-    def call(self, inputs, training=False):
-        if not training or self.fixed:
-            set_seed(self.seed)
-            tf.keras.utils.set_random_seed(self.seed)
+    def get_indices(self):
         if self.indices is None:
+            shift = (1 - self.old) * (self.n if self.token_per_path else 1)
             if self.intersection:
                 indices = tf.stack(
-                    [tf.random.shuffle(tf.range(1-self.old, self.num_patches))[:self.num_patches_per_path] for _ in range(self.n)],
+                    [tf.random.shuffle(tf.range(shift, self.num_patches+shift))[:self.num_patches_per_path] for _ in range(self.n)],
                     axis=-1)
             else:
                 indices = tf.reshape(
-                    tf.random.shuffle(tf.range(1-self.old, self.num_patches))[:self.num_patches - (self.num_patches % self.n)],
+                    tf.random.shuffle(tf.range(shift, self.num_patches+shift))[:self.num_patches - (self.num_patches % self.n)],
                     (-1, self.n))
+
+            if self.fixed:
+                self.indices = indices
         else:
             indices = self.indices
 
         # everyone gets the class token
         if not self.old:
-            indices = tf.concat([tf.zeros((1, self.n), dtype=indices.dtype), indices], axis=0)
+            cls_tokens_to_add = tf.range(self.n, dtype=indices.dtype)[None] if self.token_per_path else tf.zeros((1, self.n), dtype=indices.dtype)
+            indices = tf.concat([cls_tokens_to_add , indices], axis=0)
+        return indices
+
+    def call(self, inputs, training=False):
+        if not training or self.fixed:
+            set_seed(self.seed)
+            tf.keras.utils.set_random_seed(self.seed)
+
+        indices = self.get_indices()
+
         return tf.gather(inputs, indices, axis=-2, batch_dims=0)

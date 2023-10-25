@@ -38,7 +38,8 @@ def create_model(name='model', only_classtoken=False, koleo_lambda=0, classifier
     num_patches = (image_size // patch_size) ** 2
 
     # Encode patches.
-    encoded_patches = PatchEncoder(num_patches, projection_dim, name=name + '_patchenc')(patches)
+    encoded_patches = PatchEncoder(num_patches, projection_dim, name=name + '_patchenc',
+                                   num_class_tokens=pathways_kwargs.get('n', 2) if pathways_kwargs.get('token_per_path', False) else 1)(patches)
 
     # divide to different pathways
     if classifier:
