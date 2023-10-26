@@ -27,7 +27,7 @@ def get_data_augmentation(image_size):
 
 def create_model(name='model', koleo_lambda=0, classifier=False, l2=False, input_shape=(32, 32, 3), num_classes=10,
                  encoder='ViTEncoder', encoder_per_path=False, projection_dim=64, encoder_kwargs={}, pathways_kwargs={},
-                 image_size=72, patch_size=8):
+                 image_size=72, patch_size=8, class_token=True):
     inputs = layers.Input(shape=input_shape)
     # Augment data.
     augmented = get_data_augmentation(image_size)(inputs)
@@ -38,13 +38,13 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False, input
 
     # Encode patches.
     encoded_patches = PatchEncoder(num_patches, projection_dim, name=name + '_patchenc',
-                                   num_class_tokens=pathways_kwargs.get('n', 2) if pathways_kwargs.get('token_per_path', False) else 1)(patches)
+                                   num_class_tokens=pathways_kwargs.get('n', 2) if pathways_kwargs.get('token_per_path', False) and class_token else int(class_token))(patches)
 
     # divide to different pathways
     if classifier:
       pathways = [encoded_patches]
     else:
-      pathways = SplitPathways(num_patches, name=name + '_pathways', **pathways_kwargs)(encoded_patches)
+      pathways = SplitPathways(num_patches, name=name + '_pathways', class_token=class_token, **pathways_kwargs)(encoded_patches)
       pathways = [tf.squeeze(path, axis=-2) for path in tf.split(pathways, pathways.shape[-2], axis=-2)]
 
     import model.encoders

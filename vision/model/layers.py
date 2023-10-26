@@ -137,7 +137,7 @@ class ViTOutBlock(tf_layers.Layer):
 
 @serialize
 class SplitPathways(tf_layers.Layer):
-    def __init__(self, num_patches, token_per_path=False, n=2, d=0.5, intersection=True, fixed=False, seed=0, old=True,
+    def __init__(self, num_patches, class_token=True, token_per_path=False, n=2, d=0.5, intersection=True, fixed=False, seed=0, old=True,
                  **kwargs):
         super(SplitPathways, self).__init__(**kwargs)
         assert intersection or n == 2
@@ -146,6 +146,8 @@ class SplitPathways(tf_layers.Layer):
         self.fixed = fixed
         self.num_patches = num_patches
         self.token_per_path = token_per_path
+        self.class_token = class_token
+        self.shift = (1 - self.old) * (self.n if self.token_per_path else 1) if self.class_token else 0
         self.num_patches_per_path = int(num_patches * d)
         self.intersection = intersection
         self.old = old
@@ -156,15 +158,14 @@ class SplitPathways(tf_layers.Layer):
 
     def get_indices(self):
         if self.indices is None:
-            shift = (1 - self.old) * (self.n if self.token_per_path else 1)
             if self.intersection:
                 indices = tf.stack(
-                    [tf.random.shuffle(tf.range(shift, self.num_patches + shift))[:self.num_patches_per_path] for _ in
+                    [tf.random.shuffle(tf.range(self.shift, self.num_patches + self.shift))[:self.num_patches_per_path] for _ in
                      range(self.n)],
                     axis=-1)
             else:
                 indices = tf.reshape(
-                    tf.random.shuffle(tf.range(shift, self.num_patches + shift))[
+                    tf.random.shuffle(tf.range(self.shift, self.num_patches + self.shift))[
                     :self.num_patches - (self.num_patches % self.n)],
                     (-1, self.n))
 
