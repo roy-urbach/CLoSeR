@@ -1,4 +1,5 @@
 from model.layers import *
+from tensorflow.keras import layers as tf_layers
 
 
 class ViTEncoder:
@@ -19,5 +20,10 @@ class ViTEncoder:
 
 @serialize
 class MLPEncoder(MLP):
-    def obsulete_method(self):
-        return True
+    def __init__(self, *args, out_dim=64, out_regularizer=None, **kwargs):
+        super(MLPEncoder, self).__init__(*args, **kwargs)
+        self.out_layer = tf_layers.Dense(out_dim, acivation=None,
+                                         activity_regularizer=out_regularizer, name=self.name + '_out')
+
+    def call(self, *args, **kwargs):
+        return self.out_layer(super().call(*args, **kwargs))
