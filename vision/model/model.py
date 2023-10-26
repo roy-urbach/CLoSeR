@@ -25,9 +25,8 @@ def get_data_augmentation(image_size):
     return data_augmentation
 
 
-def create_model(name='model', only_classtoken=False, koleo_lambda=0, classifier=False, l2=False,
-                 input_shape=(32, 32, 3), num_classes=10, transformer_layers=3,
-                 projection_dim=64, out_block_kwargs={}, block_kwargs={}, pathways_kwargs={},
+def create_model(name='model', koleo_lambda=0, classifier=False, l2=False, input_shape=(32, 32, 3), num_classes=10,
+                 encoder='ViTEncoder', encoder_per_path=False, projection_dim=64, encoder_kwargs={}, pathways_kwargs={},
                  image_size=72, patch_size=8):
     inputs = layers.Input(shape=input_shape)
     # Augment data.
@@ -48,21 +47,14 @@ def create_model(name='model', only_classtoken=False, koleo_lambda=0, classifier
       pathways = SplitPathways(num_patches, name=name + '_pathways', **pathways_kwargs)(encoded_patches)
       pathways = [tf.squeeze(path, axis=-2) for path in tf.split(pathways, pathways.shape[-2], axis=-2)]
 
-    # process each pathway
-    blocks = [ViTBlock(name=name + f'_block{l}', **block_kwargs) for l in range(transformer_layers)]
-    for l in range(transformer_layers):
-      for i in range(len(pathways)):
-        pathways[i] = blocks[l](pathways[i])
+    import encoders
+    Encoder = get_class(encoder, encoders)
+    out_reg = KoLeoRegularizer(koleo_lambda) if koleo_lambda else (tf.keras.regularizers.L2(l2) if l2 else None)
+    enc_init = lambda: Encoder(name=name, **encoder_kwargs, out_regularizer=out_reg)
+    encoders = [enc_init() for _ in range(len(pathways))] if encoder_per_path else [enc_init()] * len(pathways)
 
-    # save only the class token
-    if only_classtoken:
-      for i in range(len(pathways)):
-        pathways[i] = pathways[i][:, 0]
-
-    # out block
-    out_block = ViTOutBlock(name=name + '_outblock', **out_block_kwargs,
-                            activity_regularizer=KoLeoRegularizer(koleo_lambda) if koleo_lambda else (tf.keras.regularizers.L2(l2) if l2 else None))
-    embedding = tf.keras.layers.Concatenate(name=name + '_embedding', axis=-1)([out_block(enc)[..., None] for enc in pathways])
+    embedding = tf.keras.layers.Concatenate(name=name + '_embedding', axis=-1)([encoder(pathway)[..., None]
+                                                                                for encoder, pathway in zip(encoders, pathways)])
 
     # classification head
     logits = layers.Dense(num_classes, activation=None, name=name + '_logits')(embedding[..., 0] if classifier else tf.stop_gradient(embedding[..., 0]))
