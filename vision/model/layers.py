@@ -20,11 +20,11 @@ class MLP(tf_layers.Layer):
                         for i, _ in enumerate(self.hidden_units)]
         self.depth = len(hidden_units)
 
-    def call(self, inputs):
+    def call(self, inputs, training=None):
         x = inputs
         for l in range(self.depth):
             x = self.dense[l](x)
-            x = self.dropout[l](x)
+            x = self.dropout[l](x, training=training)
         return x
 
     def get_config(self):
