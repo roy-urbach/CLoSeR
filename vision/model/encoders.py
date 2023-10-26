@@ -22,8 +22,9 @@ class ViTEncoder:
 class MLPEncoder(MLP):
     def __init__(self, *args, out_dim=64, out_regularizer=None, **kwargs):
         super(MLPEncoder, self).__init__(*args, **kwargs)
+        self.flatten = tf_layers.Flatten(name=self.name + '_flatten')
         self.out_layer = tf_layers.Dense(out_dim, activation=None,
                                          activity_regularizer=out_regularizer, name=self.name + '_out')
 
-    def call(self, *args, **kwargs):
-        return self.out_layer(super().call(*args, **kwargs))
+    def call(self, inputs, **kwargs):
+        return self.out_layer(super().call(self.flatten(inputs), **kwargs))
