@@ -50,8 +50,8 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False, input
     import model.encoders
     Encoder = get_class(encoder, model.encoders)
     out_reg = KoLeoRegularizer(koleo_lambda) if koleo_lambda else (tf.keras.regularizers.L2(l2) if l2 else None)
-    enc_init = lambda: Encoder(name=name, **encoder_kwargs, out_regularizer=out_reg)
-    encoders = [enc_init() for _ in range(len(pathways))] if encoder_per_path else [enc_init()] * len(pathways)
+    enc_init = lambda i: Encoder(name=name+f'_enc{i if i is not None else ""}', **encoder_kwargs, out_regularizer=out_reg)
+    encoders = [enc_init(i) for i in range(len(pathways))] if encoder_per_path else [enc_init(None)] * len(pathways)
 
     embedding = tf.keras.layers.Concatenate(name=name + '_embedding', axis=-1)([encoder(pathway)[..., None]
                                                                                 for encoder, pathway in zip(encoders, pathways)])
