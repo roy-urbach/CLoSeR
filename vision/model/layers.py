@@ -136,7 +136,7 @@ class ViTOutBlock(layers.Layer):
 @serialize
 class SplitPathways(layers.Layer):
     def __init__(self, num_patches, token_per_path=False, n=2, d=0.5, intersection=True, fixed=False,
-                 seed=0, old=True, **kwargs):
+                 seed=0, old=False, **kwargs):
         super(SplitPathways, self).__init__(**kwargs)
         assert intersection or n == 2
         self.n = n
