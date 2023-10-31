@@ -1,3 +1,4 @@
+from utils.data import Cifar10
 from utils.io_utils import load_json, save_json
 from utils.tf_utils import load_model_from_json
 from utils.utils import get_class
@@ -19,16 +20,18 @@ def main():
         return parser.parse_args()
 
     args = parse()
-    return evaluate(args.json, knn=args.knn, linear=args.linear, ensemble=args.ensemble, save_results=True)
+    return evaluate(args.json, knn=args.knn, linear=args.linear,
+                    ensemble=args.ensemble, save_results=True, dataset=None)
 
 
-def evaluate(model, knn=False, linear=True, ensemble=True, save_results=False):
+def evaluate(model, knn=False, linear=True, ensemble=True, save_results=False, dataset=Cifar10()):
+    from utils import data
+
     if isinstance(model, str):
         kwargs = load_json(model)
         model = load_model_from_json(model)
-
-    from utils import data
-    dataset = get_class(kwargs.get('dataset', 'Cifar10'), data)()
+        if dataset is None:
+            dataset = get_class(kwargs.get('dataset', 'Cifar10'), data)
 
     x_train_embd = model.predict(dataset.get_x_train())
     x_test_embd = model.predict(dataset.get_x_test())
