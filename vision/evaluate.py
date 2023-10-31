@@ -15,6 +15,7 @@ def eval():
         parser.add_argument('-j', '--json', type=str, help='name of the config json')
         parser.add_argument('--knn', action=argparse.BooleanOptionalAction, default=False)
         parser.add_argument('--linear', action=argparse.BooleanOptionalAction, default=True)
+        parser.add_argument('--ensemble', action=argparse.BooleanOptionalAction, default=True)
         return parser.parse_args()
 
     args = parse()
@@ -26,9 +27,9 @@ def eval():
 
     model = load_model_from_json(args.json)
 
-    x_train_embd = model.predict(dataset.get_x_train())[0]
-    x_test_embd = model.predict(dataset.get_x_test())[0]
-    embd_dataset = data.Data(x_train_embd, dataset.get_y_train(), x_test_embd, dataset.get_y_test())
+    x_train_embd = model.predict(dataset.get_x_train())
+    x_test_embd = model.predict(dataset.get_x_test())
+    embd_dataset = data.Data(x_train_embd[0], dataset.get_y_train(), x_test_embd[0], dataset.get_y_test())
 
     from evaluation.evaluation import classify_head_eval
 
@@ -38,14 +39,20 @@ def eval():
     if results is None:
         results = {}
 
+    save_res = lambda *inputs: save_json(RESULTS_FILE_NAME, results, base_path=base_path)
+
     if args.knn:
         for k in [1] + list(range(5, 50, 5)):
             print(f"k={k}:", end='\t')
             results[f"k={k}"] = classify_head_eval(embd_dataset, linear=False, k=k)
+            save_res()
     if args.linear:
         results['logistic'] = classify_head_eval(embd_dataset, linear=True, svm=False)
-
-    save_json(RESULTS_FILE_NAME, results, base_path=base_path)
+        save_res()
+    if args.ensemble:
+        ds_ens = data.Data(x_train_embd, dataset.get_y_train(), x_test_embd, dataset.get_y_test())
+        results['ensemble_logistic'] = classify_head_eval(ds_ens, linear=True, svm=False, ensemble=True)
+        save_res()
 
 
 if __name__ == '__main__':
