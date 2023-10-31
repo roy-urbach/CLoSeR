@@ -19,10 +19,10 @@ def main():
         return parser.parse_args()
 
     args = parse()
-    return eval(args.json, knn=args.knn, linear=args.linear, ensemble=args.ensemble, save_results=True)
+    return evaluate(args.json, knn=args.knn, linear=args.linear, ensemble=args.ensemble, save_results=True)
 
 
-def eval(model, knn=False, linear=True, ensemble=True, save_results=False):
+def evaluate(model, knn=False, linear=True, ensemble=True, save_results=False):
     if isinstance(model, str):
         kwargs = load_json(model)
         model = load_model_from_json(model)
