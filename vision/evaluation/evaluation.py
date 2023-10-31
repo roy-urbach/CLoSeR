@@ -22,7 +22,8 @@ class EnsembleModel:
         self.models = []
 
     def split(self, X):
-        return np.split(X, X.shape[self.ensemble_axis],axis=self.ensemble_axis)
+        return [X_single.squeeze(axis=self.ensemble_axis)
+                for X_single in np.split(X, X.shape[self.ensemble_axis], axis=self.ensemble_axis)]
 
     def fit(self, X_train, y_train):
         from sklearn.base import clone as sklearn_clone
