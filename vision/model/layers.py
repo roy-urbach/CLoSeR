@@ -135,7 +135,8 @@ class ViTOutBlock(layers.Layer):
 
 @serialize
 class SplitPathways(layers.Layer):
-    def __init__(self, num_patches, token_per_path=False, n=2, d=0.5, intersection=True, fixed=False, seed=0, old=True, **kwargs):
+    def __init__(self, num_patches, token_per_path=False, n=2, d=0.5, intersection=True, fixed=False,
+                 seed=0, old=True, **kwargs):
         super(SplitPathways, self).__init__(**kwargs)
         assert intersection or n == 2
         self.n = n
@@ -156,7 +157,8 @@ class SplitPathways(layers.Layer):
             shift = (1 - self.old) * (self.n if self.token_per_path else 1)
             if self.intersection:
                 indices = tf.stack(
-                    [tf.random.shuffle(tf.range(shift, self.num_patches+shift))[:self.num_patches_per_path] for _ in range(self.n)],
+                    [tf.random.shuffle(tf.range(shift, self.num_patches+shift))[:self.num_patches_per_path]
+                     for _ in range(self.n)],
                     axis=-1)
             else:
                 indices = tf.reshape(
@@ -170,7 +172,8 @@ class SplitPathways(layers.Layer):
 
         # everyone gets the class token
         if not self.old:
-            cls_tokens_to_add = tf.range(self.n, dtype=indices.dtype)[None] if self.token_per_path else tf.zeros((1, self.n), dtype=indices.dtype)
+            cls_tokens_to_add = tf.range(self.n, dtype=indices.dtype)[None] if self.token_per_path else tf.zeros((1, self.n),
+                                                                                                                 dtype=indices.dtype)
             indices = tf.concat([cls_tokens_to_add , indices], axis=0)
         return indices
 
