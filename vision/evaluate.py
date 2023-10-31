@@ -7,7 +7,7 @@ from model.losses import *
 RESULTS_FILE_NAME = 'classification_eval'
 
 
-def eval():
+def main():
     import argparse
 
     def parse():
@@ -19,13 +19,16 @@ def eval():
         return parser.parse_args()
 
     args = parse()
+    return eval(args.json, knn=args.knn, linear=args.linear, ensemble=args.ensemble, save_results=True)
 
-    kwargs = load_json(args.json)
+
+def eval(model, knn=False, linear=True, ensemble=True, save_results=False):
+    if isinstance(model, str):
+        kwargs = load_json(model)
+        model = load_model_from_json(model)
 
     from utils import data
     dataset = get_class(kwargs.get('dataset', 'Cifar10'), data)()
-
-    model = load_model_from_json(args.json)
 
     x_train_embd = model.predict(dataset.get_x_train())
     x_test_embd = model.predict(dataset.get_x_test())
@@ -39,21 +42,22 @@ def eval():
     if results is None:
         results = {}
 
-    save_res = lambda *inputs: save_json(RESULTS_FILE_NAME, results, base_path=base_path)
+    save_res = lambda *inputs: save_json(RESULTS_FILE_NAME, results, base_path=base_path) if save_results else None
 
-    if args.knn:
+    if knn:
         for k in [1] + list(range(5, 50, 5)):
             print(f"k={k}:", end='\t')
             results[f"k={k}"] = classify_head_eval(embd_dataset, linear=False, k=k)
             save_res()
-    if args.linear:
+    if linear:
         results['logistic'] = classify_head_eval(embd_dataset, linear=True, svm=False)
         save_res()
-    if args.ensemble:
+    if ensemble:
         ds_ens = data.Data(x_train_embd, dataset.get_y_train(), x_test_embd, dataset.get_y_test())
         results['ensemble_logistic'] = classify_head_eval(ds_ens, linear=True, svm=False, ensemble=True)
         save_res()
+    return results
 
 
 if __name__ == '__main__':
-    eval()
+    main()
