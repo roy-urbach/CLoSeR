@@ -1,3 +1,5 @@
+from evaluation.ensemble import EnsembleVotingMethods
+from evaluation.evaluation import classify_head_eval_ensemble
 from utils.data import Cifar10
 from utils.io_utils import load_json, save_json
 from utils.tf_utils import load_model_from_json
@@ -55,9 +57,11 @@ def evaluate(model, knn=False, linear=True, ensemble=True, save_results=False, d
     if linear:
         results['logistic'] = classify_head_eval(embd_dataset, linear=True, svm=False)
         save_res()
+
     if ensemble:
         ds_ens = data.Data(x_train_embd, dataset.get_y_train(), x_test_embd, dataset.get_y_test())
-        results['ensemble_logistic'] = classify_head_eval(ds_ens, linear=True, svm=False, ensemble=True)
+        results.update(classify_head_eval_ensemble(ds_ens, linear=True, svm=False, ensemble=True,
+                                                   voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb]))
         save_res()
     return results
 
