@@ -57,7 +57,7 @@ def classify_head_eval_ensemble(dataset, linear=True, k=10, ensemble=False,
 
     for i, pathway in enumerate(ensemble.models):
         from utils.data import Data
-        cur_ds = Data(x_train[:, i], y_train.flatten(), x_test[:, i], y_test.flatten())
+        cur_ds = Data(x_train[..., i], y_train.flatten(), x_test[..., i], y_test.flatten())
         res[f'pathway{i}_{name}'] = (pathway.score(*cur_ds.get_train()),
                                      pathway.score(*cur_ds.get_test()))
 
