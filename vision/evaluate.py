@@ -1,7 +1,6 @@
 from evaluation.ensemble import EnsembleVotingMethods
 from evaluation.evaluation import classify_head_eval_ensemble
 from evaluation.utils import save_evaluation_json, load_evaluation_json
-from model.layers import *
 from utils.data import Cifar10
 from utils.io_utils import load_json
 from utils.tf_utils import load_model_from_json
@@ -63,4 +62,7 @@ def evaluate(model, knn=False, linear=True, ensemble=True, save_results=False, d
 
 
 if __name__ == '__main__':
+    import run_before_script
+    run_before_script.run()
+
     main()

@@ -29,4 +29,7 @@ def run():
 
 
 if __name__ == '__main__':
+    import run_before_script
+    run_before_script.run()
+
     run()
