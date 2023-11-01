@@ -31,9 +31,10 @@ def evaluate(model, knn=False, linear=True, ensemble=True, save_results=False, d
 
     if isinstance(model, str):
         kwargs = load_json(model)
+        assert kwargs is not None
         model = load_model_from_json(model)
         if dataset is None:
-            dataset = get_class(kwargs.get('dataset', 'Cifar10'), data)
+            dataset = get_class(kwargs.get('dataset', 'Cifar10'), data)()
 
     x_train_embd = model.predict(dataset.get_x_train())
     x_test_embd = model.predict(dataset.get_x_test())
