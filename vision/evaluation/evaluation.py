@@ -58,8 +58,10 @@ def classify_head_eval_ensemble(dataset, linear=True, k=10, ensemble=False,
     res = {}
 
     for i, pathway in enumerate(ensemble.models):
-        res[f'pathway{i}_{name}'] = (pathway.score(x_train, y_train.flatten()),
-                                     pathway.score(x_test, y_test.flatten()))
+        from utils.data import Data
+        cur_ds = Data(x_train[:, i], y_train.flatten(), x_test[:, i], y_test.flatten())
+        res[f'pathway{i}_{name}'] = (pathway.score(*cur_ds.get_train()),
+                                     pathway.score(*cur_ds.get_test()))
 
     for voting_method in voting_methods:
         train_score = ensemble.score(x_train, y_train.flatten(), voting_method=voting_method)
