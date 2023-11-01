@@ -1,15 +1,16 @@
 from enum import Enum
 import numpy as np
+from functools import partial
 
 
 class EnsembleVotingMethods(Enum):
     """
     Assumes shape (samples, classes, pathways)
     """
-    ArgmaxMeanProb = lambda probs: np.argmax(probs.mean(axis=-1), axis=1)
-    ArgmaxMaxProb = lambda probs: np.argmax(probs.max(axis=-1), axis=1)
-    ArgmaxMeanLogProb = lambda probs: np.argmax(np.log2(probs).mean(axis=-1), axis=1)
-    MajorityVote = lambda probs: np.array([np.argmax(np.bincount(s)) for s in np.argmax(probs, axis=1)])
+    ArgmaxMeanProb = partial(lambda probs: np.argmax(probs.mean(axis=-1), axis=1))
+    ArgmaxMaxProb = partial(lambda probs: np.argmax(probs.max(axis=-1), axis=1))
+    ArgmaxMeanLogProb = partial(lambda probs: np.argmax(np.log2(probs).mean(axis=-1), axis=1))
+    MajorityVote = partial(lambda probs: np.array([np.argmax(np.bincount(s)) for s in np.argmax(probs, axis=1)]))
 
 
 class EnsembleModel:

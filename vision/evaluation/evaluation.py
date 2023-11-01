@@ -1,7 +1,5 @@
 import numpy as np
-from sklearn.linear_model import LogisticRegression
 from sklearn.decomposition import PCA
-from enum import Enum
 
 from evaluation.ensemble import EnsembleModel, EnsembleVotingMethods
 
