@@ -36,9 +36,9 @@ def evaluate(model, knn=False, linear=True, ensemble=True, save_results=False, d
         if dataset is None:
             dataset = get_class(kwargs.get('dataset', 'Cifar10'), data)()
 
-    x_train_embd = model.predict(dataset.get_x_train())
-    x_test_embd = model.predict(dataset.get_x_test())
-    embd_dataset = data.Data(x_train_embd[0], dataset.get_y_train(), x_test_embd[0], dataset.get_y_test())
+    x_train_embd = model.predict(dataset.get_x_train())[0]
+    x_test_embd = model.predict(dataset.get_x_test())[0]
+    embd_dataset = data.Data(x_train_embd, dataset.get_y_train(), x_test_embd, dataset.get_y_test())
 
     from evaluation.evaluation import classify_head_eval
 
@@ -60,8 +60,7 @@ def evaluate(model, knn=False, linear=True, ensemble=True, save_results=False, d
         save_res()
 
     if ensemble:
-        ds_ens = data.Data(x_train_embd, dataset.get_y_train(), x_test_embd, dataset.get_y_test())
-        results.update(classify_head_eval_ensemble(ds_ens, linear=True, svm=False, ensemble=True,
+        results.update(classify_head_eval_ensemble(embd_dataset, linear=True, svm=False, ensemble=True,
                                                    voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb]))
         save_res()
     return results
