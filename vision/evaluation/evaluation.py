@@ -50,7 +50,7 @@ def classify_head_eval_ensemble(dataset, linear=True, k=10, ensemble=False,
         model = KNeighborsClassifier(k)
         name = f'knn{k}'
     if ensemble:
-        ensemble = EnsembleModel(model, ensemble_axis=1)
+        ensemble = EnsembleModel(model, ensemble_axis=-1)
     ensemble.fit(x_train, y_train.flatten())
 
     res = {}
