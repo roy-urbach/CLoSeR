@@ -10,6 +10,17 @@ from model.losses import *
 RESULTS_FILE_NAME = 'classification_eval'
 
 
+def load_evaluation_json(model_name):
+    base_path = f'models/{model_name}'
+    results = load_json(RESULTS_FILE_NAME, base_path=base_path)
+    return results
+
+
+def save_evaluation_json(model_name, dct):
+    base_path = f'models/{model_name}'
+    save_json(RESULTS_FILE_NAME, dct, base_path=base_path)
+
+
 def main():
     import argparse
 
@@ -42,13 +53,12 @@ def evaluate(model, knn=False, linear=True, ensemble=True, save_results=False, d
 
     from evaluation.evaluation import classify_head_eval
 
-    base_path = f'models/{model.name}'
+    results = load_evaluation_json(model.name)
 
-    results = load_json(RESULTS_FILE_NAME, base_path=base_path)
     if results is None:
         results = {}
 
-    save_res = lambda *inputs: save_json(RESULTS_FILE_NAME, results, base_path=base_path) if save_results else None
+    save_res = lambda *inputs: save_evaluation_json(model.name, results) if save_results else None
 
     if knn:
         for k in [1] + list(range(5, 50, 5)):
