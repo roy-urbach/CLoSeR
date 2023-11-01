@@ -4,6 +4,7 @@ from evaluation.utils import save_evaluation_json, load_evaluation_json
 from utils.data import Cifar10
 from utils.io_utils import load_json
 from utils.tf_utils import load_model_from_json
+from utils.utils import get_class
 
 
 def main():
