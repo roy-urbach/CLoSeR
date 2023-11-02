@@ -16,14 +16,15 @@ def main():
         parser.add_argument('--knn', action=argparse.BooleanOptionalAction, default=False)
         parser.add_argument('--linear', action=argparse.BooleanOptionalAction, default=True)
         parser.add_argument('--ensemble', action=argparse.BooleanOptionalAction, default=True)
+        parser.add_argument('--ensemble_knn', action=argparse.BooleanOptionalAction, default=False)
         return parser.parse_args()
 
     args = parse()
-    return evaluate(args.json, knn=args.knn, linear=args.linear,
-                    ensemble=args.ensemble, save_results=True, dataset=None)
+    return evaluate(args.json, knn=args.knn, linear=args.linear, ensemble=args.ensemble, ensemble_knn=args.ensemble_knn,
+                    save_results=True, dataset=None)
 
 
-def evaluate(model, knn=False, linear=True, ensemble=True, save_results=False, dataset=Cifar10()):
+def evaluate(model, knn=False, linear=True, ensemble=True, ensemble_knn=False, save_results=False, dataset=Cifar10()):
     from utils import data
 
     if isinstance(model, str):
@@ -60,6 +61,7 @@ def evaluate(model, knn=False, linear=True, ensemble=True, save_results=False, d
                                                    voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb]))
         save_res()
 
+    if ensemble_knn:
         results.update(classify_head_eval_ensemble(embd_dataset, linear=False, svm=False, ensemble=True, k=15,
                                                    voting_methods=EnsembleVotingMethods))
         save_res()
