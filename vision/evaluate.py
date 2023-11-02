@@ -59,6 +59,10 @@ def evaluate(model, knn=False, linear=True, ensemble=True, save_results=False, d
         results.update(classify_head_eval_ensemble(embd_dataset, linear=True, svm=False, ensemble=True,
                                                    voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb]))
         save_res()
+
+        results.update(classify_head_eval_ensemble(embd_dataset, linear=False, svm=False, ensemble=True, k=15,
+                                                   voting_methods=EnsembleVotingMethods))
+        save_res()
     return results
 
 
