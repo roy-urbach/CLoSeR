@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.decomposition import PCA
 
 from evaluation.ensemble import EnsembleModel, EnsembleVotingMethods
+from utils.utils import printd
 
 
 def linear_head_eval(svm=True):
@@ -65,6 +66,5 @@ def classify_head_eval_ensemble(dataset, linear=True, k=10, ensemble=False,
         train_score = ensemble.score(x_train, y_train.flatten(), voting_method=voting_method)
         test_score = ensemble.score(x_test, y_test.flatten(), voting_method=voting_method)
         res[f"ensemble_{name}_" + voting_method.name] = (train_score, test_score)
-        print(
-            f"{voting_method.name} Train acc: {train_score:.5f}; Test acc: {test_score:.5f}")
+        printd(f"{voting_method.name} Train acc: {train_score:.5f}; Test acc: {test_score:.5f}")
     return res

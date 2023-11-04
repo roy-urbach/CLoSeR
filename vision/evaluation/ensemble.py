@@ -1,6 +1,7 @@
 from enum import Enum
 import numpy as np
 from functools import partial
+from utils.utils import counter
 
 
 class EnsembleVotingMethods(Enum):
@@ -28,7 +29,7 @@ class EnsembleModel:
     def fit(self, X_train, y_train):
         from sklearn.base import clone as sklearn_clone
         self.models = [sklearn_clone(self.base_model).fit(X_train_single, y_train)
-                       for X_train_single in self.split(X_train)]
+                       for X_train_single in counter(self.split(X_train))]
 
     def predict(self, X, voting_method=EnsembleVotingMethods.ArgmaxMeanProb):
         probs = np.stack([getattr(model, self.get_score)(X_single)
