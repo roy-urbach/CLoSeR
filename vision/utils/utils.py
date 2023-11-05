@@ -21,6 +21,5 @@ def get_class(cls, file):
 
 
 def cosine_sim(vec1, vec2, axis=-1):
-    new_vec1 = vec1 / np.linalg.norm(vec1, axis=axis, keepdims=True)
-    new_vec2 = vec2 / np.linalg.norm(vec2, axis=axis, keepdims=True)
-    return (new_vec1 * new_vec2).sum(axis=axis)
+    normalize = lambda vec: vec / np.linalg.norm(vec, axis=axis, keepdims=True)
+    return (normalize(vec1) * normalize(vec2)).sum(axis=axis)
