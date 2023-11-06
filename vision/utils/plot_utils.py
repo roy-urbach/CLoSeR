@@ -77,3 +77,22 @@ def plot_with_CI(vals, x=None, label=None, fill_between=True, err=True, conf=0.9
                      **kwargs)
     else:
         plt.plot(x[mask], m[mask], alpha=0.8, label=label)
+
+
+def simpleaxis(ax, remove_left=False):
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    if remove_left:
+        ax.spines['left'].set_visible(False)
+    else:
+        ax.get_yaxis().tick_left()
+    ax.get_xaxis().tick_bottom()
+
+
+def set_ticks_style(fig, remove_left=False):
+    for ax in fig.axes:
+        ax.tick_params(axis='x', labelsize=12)
+        ax.tick_params(axis='y', labelsize=12)
+        ax.xaxis.label.set_size(12)
+        ax.yaxis.label.set_size(12)
+        simpleaxis(ax, remove_left=remove_left)
