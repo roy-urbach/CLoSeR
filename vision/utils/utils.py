@@ -30,6 +30,13 @@ def correlation(arr1, arr2):
     return (np.nanmean(np.multiply(arr1, arr2)) - np.nanmean(arr1) * np.nanmean(arr2)) / (np.nanstd(arr1) * np.nanstd(arr2))
 
 
+def correlation_t_test(corr, n, a=0.95):
+    t_cutoff = scipy.stats.t.ppf(a, df=n-2)
+    t = corr * np.sqrt(n-2) / (1 - corr**2)
+    p = 1 - scipy.stats.t.cdf(t, df=n - 2)
+    return t, t_cutoff, p
+
+
 def paired_t_test(x, y):
     mask = ~(np.isnan(x) | np.isnan(y))
     return scipy.stats.ttest_rel(x[mask], y[mask]).pvalue
