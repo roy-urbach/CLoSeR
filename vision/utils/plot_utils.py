@@ -2,11 +2,11 @@ from matplotlib import pyplot as plt
 from utils.utils import *
 
 
-def basic_scatterplot(x, y, identity=True, fig=None, c='k', corr=False, t=False, regress=False, mean_diff=False):
+def basic_scatterplot(x, y, identity=True, fig=None, c='k', corr=False, t=False, regress=False, mean_diff=False, label=None):
     x = np.array(x)
     y = np.array(y)
     if fig is None: fig = plt.figure()
-    plt.scatter(x, y, c=c, alpha=0.6)
+    plt.scatter(x, y, c=c, alpha=0.6, label=label)
     if corr:
         plt.title(f"r={correlation(x,y):.3f}")
     if t:

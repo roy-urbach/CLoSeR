@@ -62,7 +62,7 @@ class PatchEncoder(layers.Layer):
         self.class_token = tf.Variable(initial_value=class_token, trainable=True)
         self.projection = layers.Dense(units=projection_dim)
         self.position_embedding = layers.Embedding(input_dim=num_patches + 1, output_dim=projection_dim)
-        self.no_bug = no_bug # TODO: make it default True
+        self.no_bug = no_bug  # TODO: make it default True
 
     def call(self, patch):
         batch = tf.shape(patch)[0]
