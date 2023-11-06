@@ -56,7 +56,6 @@ def dct_to_multiviolin(dct, rotation=0, **kwargs):
 
 
 def get_CI(arr, conf=0.975, of_the_mean=True):
-    m = np.nanmean(arr, axis=0)
     std = np.nanstd(arr, axis=0, ddof=1)
     n = (~np.isnan(arr)).sum(axis=0)
     t = scipy.stats.t.ppf(conf, df=n - 1)
