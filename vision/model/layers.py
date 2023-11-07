@@ -53,7 +53,7 @@ class Patches(layers.Layer):
 
 @serialize
 class PatchEncoder(layers.Layer):
-    def __init__(self, num_patches=196, projection_dim=768, num_class_tokens=1, no_bug=False, **kwargs):
+    def __init__(self, num_patches=196, projection_dim=768, num_class_tokens=1, **kwargs):
         super(PatchEncoder, self).__init__(**kwargs)
         self.num_patches = num_patches
         self.projection_dim = projection_dim
@@ -62,7 +62,6 @@ class PatchEncoder(layers.Layer):
         self.class_token = tf.Variable(initial_value=class_token, trainable=True)
         self.projection = layers.Dense(units=projection_dim)
         self.position_embedding = layers.Embedding(input_dim=num_patches + 1, output_dim=projection_dim)
-        self.no_bug = no_bug  # TODO: make it default True
 
     def call(self, patch):
         batch = tf.shape(patch)[0]
@@ -73,7 +72,8 @@ class PatchEncoder(layers.Layer):
         patches_embed = self.projection(patch)
         patches_embed = tf.concat([class_token, patches_embed], 1)
         # calculate positional embeddings
-        positions = tf.concat([tf.zeros(self.num_class_tokens, dtype=tf.int32), tf.range(start=self.no_bug, limit=self.num_patches+self.no_bug, delta=1)], axis=0)
+        positions = tf.concat([tf.zeros(self.num_class_tokens, dtype=tf.int32),
+                               tf.range(start=1, limit=self.num_patches+1, delta=1)], axis=0)
         positions_embed = self.position_embedding(positions)
         # add both embeddings
         encoded = patches_embed + positions_embed
