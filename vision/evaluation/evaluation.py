@@ -64,6 +64,6 @@ def classify_head_eval_ensemble(dataset, linear=True, k=10, base_name='',
     for voting_method in voting_methods:
         train_score = ensemble.score(x_train, y_train.flatten(), voting_method=voting_method)
         test_score = ensemble.score(x_test, y_test.flatten(), voting_method=voting_method)
-        res[f"ensemble_{name}_" + voting_method.name] = (train_score, test_score)
-        printd(f"{voting_method.name} Train acc: {train_score:.5f}; Test acc: {test_score:.5f}")
+        res[base_name + f"ensemble_{name}_" + voting_method.name] = (train_score, test_score)
+        printd(f"{base_name + voting_method.name} Train acc: {train_score:.5f}; Test acc: {test_score:.5f}")
     return res
