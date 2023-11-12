@@ -40,7 +40,7 @@ def classify_head_eval(dataset, m=lambda x: x.reshape(x.shape[0], -1), pca=False
     return train_score, test_score
 
 
-def classify_head_eval_ensemble(dataset, linear=True, k=10, ensemble=False,
+def classify_head_eval_ensemble(dataset, linear=True, k=10, base_name='',
                                 voting_methods=EnsembleVotingMethods, **kwargs):
     (x_train, y_train), (x_test, y_test) = dataset.get_all()
     if linear:
@@ -50,8 +50,7 @@ def classify_head_eval_ensemble(dataset, linear=True, k=10, ensemble=False,
         from sklearn.neighbors import KNeighborsClassifier
         model = KNeighborsClassifier(k)
         name = f'knn{k}'
-    if ensemble:
-        ensemble = EnsembleModel(model, ensemble_axis=-1)
+    ensemble = EnsembleModel(model, ensemble_axis=-1)
     ensemble.fit(x_train, y_train.flatten())
 
     res = {}
@@ -59,8 +58,8 @@ def classify_head_eval_ensemble(dataset, linear=True, k=10, ensemble=False,
     for i, pathway in enumerate(ensemble.models):
         from utils.data import Data
         cur_ds = Data(x_train[..., i], y_train.flatten(), x_test[..., i], y_test.flatten())
-        res[f'pathway{i}_{name}'] = (pathway.score(*cur_ds.get_train()),
-                                     pathway.score(*cur_ds.get_test()))
+        res[base_name + f'pathway{i}_{name}'] = (pathway.score(*cur_ds.get_train()),
+                                                 pathway.score(*cur_ds.get_test()))
 
     for voting_method in voting_methods:
         train_score = ensemble.score(x_train, y_train.flatten(), voting_method=voting_method)
