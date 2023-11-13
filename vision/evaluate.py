@@ -47,6 +47,7 @@ def evaluate(model, knn=False, linear=True, ensemble=True, ensemble_knn=False, s
         evaluation_time = get_evaluation_time(model.name)
 
         if output_time and evaluation_time and output_time < evaluation_time:
+            print(f"Tried to evaluate, but output time is {output_time} and evaluation time is {evaluation_time} and override is False")
             return load_evaluation_json(model.name)
 
     if isinstance(model, str):
