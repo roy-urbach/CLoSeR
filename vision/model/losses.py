@@ -76,9 +76,9 @@ class ContrastiveSoftmaxLoss(Loss):
             dist = tf.minimum(dist, self.eps)
         similarity = -dist / self.temperature
         if self.stable:
-            similarity = similarity - tf.reduce_max(similarity, axis=0)
+            similarity = similarity - tf.reduce_max(similarity, axis=0, keepdims=True)
         similarity = tf.exp(similarity)
-        softmaxed = similarity / tf.reduce_sum(similarity, axis=0)
+        softmaxed = similarity / tf.reduce_sum(similarity, axis=0, keepdims=True)
         return 1 - tf.reduce_sum(tf.where(positive_mask, softmaxed / pos_n, 0))
         # out = -tf.reduce_sum(tf.where(positive_mask, tf.math.log(softmaxed) / pos_n, 0))
         # return out

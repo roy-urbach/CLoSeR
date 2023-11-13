@@ -101,7 +101,6 @@ def train(model_name, model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
         compile_model(model, loss=loss, loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs, classifier=classifier)
         printd("Done!")
 
-    # TODO: checkpoint callback (where to save?)
     # TODO: regression callback?
 
     if num_epochs:

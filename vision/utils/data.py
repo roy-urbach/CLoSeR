@@ -39,6 +39,7 @@ class Data:
 
 
 class Cifar10(Data):
+    LABELS = ["airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck"]
     def __init__(self, *args, **kwargs):
         (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
         super().__init__(x_train, y_train, x_test,  y_test, *args, **kwargs)

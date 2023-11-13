@@ -71,10 +71,9 @@ class PatchEncoder(tf_layers.Layer):
         # calculate patches embeddings
         patches_embed = self.projection(patch)
         patches_embed = tf.concat([class_token, patches_embed], 1)
-        # calcualte positional embeddings
-        positions = tf.concat(
-            [tf.zeros(self.num_class_tokens, dtype=tf.int32), tf.range(start=0, limit=self.num_patches, delta=1)],
-            axis=0)
+        # calculate positional embeddings
+        positions = tf.concat([tf.zeros(self.num_class_tokens, dtype=tf.int32),
+                               tf.range(start=1, limit=self.num_patches+1, delta=1)], axis=0)
         positions_embed = self.position_embedding(positions)
         # add both embeddings
         encoded = patches_embed + positions_embed
@@ -137,7 +136,7 @@ class ViTOutBlock(tf_layers.Layer):
 
 @serialize
 class SplitPathways(tf_layers.Layer):
-    def __init__(self, num_patches, class_token=True, token_per_path=False, n=2, d=0.5, intersection=True, fixed=False, seed=0, old=True,
+    def __init__(self, num_patches, token_per_path=False, n=2, d=0.5, intersection=True, fixed=False, seed=0, old=False,
                  **kwargs):
         super(SplitPathways, self).__init__(**kwargs)
         assert intersection or n == 2
@@ -146,7 +145,6 @@ class SplitPathways(tf_layers.Layer):
         self.fixed = fixed
         self.num_patches = num_patches
         self.token_per_path = token_per_path
-        self.class_token = class_token
         self.shift = (1 - self.old) * (self.n if self.token_per_path else 1) if self.class_token else 0
         self.num_patches_per_path = int(num_patches * d)
         self.intersection = intersection
@@ -176,9 +174,9 @@ class SplitPathways(tf_layers.Layer):
 
         # everyone gets the class token
         if not self.old:
-            cls_tokens_to_add = tf.range(self.n, dtype=indices.dtype)[None] if self.token_per_path else tf.zeros(
-                (1, self.n), dtype=indices.dtype)
-            indices = tf.concat([cls_tokens_to_add, indices], axis=0)
+            cls_tokens_to_add = tf.range(self.n, dtype=indices.dtype)[None] if self.token_per_path else tf.zeros((1, self.n),
+                                                                                                                 dtype=indices.dtype)
+            indices = tf.concat([cls_tokens_to_add , indices], axis=0)
         return indices
 
     def call(self, inputs, training=False):
