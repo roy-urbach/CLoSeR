@@ -1,10 +1,11 @@
 from evaluation.ensemble import EnsembleVotingMethods
 from evaluation.evaluation import classify_head_eval_ensemble
-from evaluation.utils import save_evaluation_json, load_evaluation_json
+from evaluation.utils import save_evaluation_json, load_evaluation_json, get_evaluation_time
 from utils.data import Cifar10, Data
 from utils.io_utils import load_json
 from utils.tf_utils import load_model_from_json
 from utils.utils import get_class
+from utils import data
 import numpy as np
 
 
@@ -30,15 +31,18 @@ def main():
         parser.add_argument('--linear', action=argparse.BooleanOptionalAction, default=True)
         parser.add_argument('--ensemble', action=argparse.BooleanOptionalAction, default=True)
         parser.add_argument('--ensemble_knn', action=argparse.BooleanOptionalAction, default=False)
+        parser.add_argument('--override', action=argparse.BooleanOptionalAction, default=False)
         return parser.parse_args()
 
     args = parse()
     return evaluate(args.json, knn=args.knn, linear=args.linear, ensemble=args.ensemble, ensemble_knn=args.ensemble_knn,
-                    save_results=True, dataset=None)
+                    save_results=True, dataset=None, override=args.override)
 
 
-def evaluate(model, knn=False, linear=True, ensemble=True, ensemble_knn=False, save_results=False, dataset=Cifar10()):
-    from utils import data
+def evaluate(model, knn=False, linear=True, ensemble=True, ensemble_knn=False, save_results=False, override=False, dataset=Cifar10()):
+    from utils.io_utils import get_output_time
+    if get_output_time(model.name) < get_evaluation_time(model.name) and not override:
+        return load_evaluation_json(model.name)
 
     if isinstance(model, str):
         kwargs = load_json(model)
