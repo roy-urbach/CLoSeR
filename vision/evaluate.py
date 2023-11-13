@@ -43,12 +43,12 @@ def evaluate(model, knn=False, linear=True, ensemble=True, ensemble_knn=False, s
 
     if not override:
         from utils.io_utils import get_output_time
-        output_time = get_output_time(model.name)
-        evaluation_time = get_evaluation_time(model.name)
+        output_time = get_output_time(model)
+        evaluation_time = get_evaluation_time(model)
 
         if output_time and evaluation_time and output_time < evaluation_time:
             print(f"Tried to evaluate, but output time is {output_time} and evaluation time is {evaluation_time} and override is False")
-            return load_evaluation_json(model.name)
+            return load_evaluation_json(model)
 
     if isinstance(model, str):
         kwargs = load_json(model)
