@@ -99,3 +99,8 @@ def set_ticks_style(fig, remove_left=False):
 
 def legend(*args, facecolor='w', framealpha=0, **kwargs):
     plt.legend(*args, **kwargs, facecolor=facecolor, framealpha=framealpha)
+
+
+def noticks():
+    plt.xticks([])
+    plt.yticks([])
