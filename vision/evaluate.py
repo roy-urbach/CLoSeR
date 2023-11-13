@@ -69,12 +69,13 @@ def evaluate(model, knn=False, linear=True, ensemble=True, ensemble_knn=False, s
             print(f"k={k}:", end='\t')
             results[f"k={k}"] = classify_head_eval(embd_dataset, linear=False, k=k)
             save_res()
+
     if linear:
         results['logistic'] = classify_head_eval(embd_dataset, linear=True, svm=False)
         save_res()
 
     if ensemble:
-        results.update(classify_head_eval_ensemble(embd_dataset, linear=True, svm=False, ensemble=True,
+        results.update(classify_head_eval_ensemble(embd_dataset, linear=True, svm=False,
                                                    voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb]))
         save_res()
 
@@ -85,7 +86,7 @@ def evaluate(model, knn=False, linear=True, ensemble=True, ensemble_knn=False, s
             save_res()
 
     if ensemble_knn:
-        results.update(classify_head_eval_ensemble(embd_dataset, linear=False, svm=False, ensemble=True, k=15,
+        results.update(classify_head_eval_ensemble(embd_dataset, linear=False, svm=False, k=15,
                                                    voting_methods=EnsembleVotingMethods))
         save_res()
     return results
