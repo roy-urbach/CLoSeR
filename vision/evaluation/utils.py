@@ -15,5 +15,5 @@ def save_evaluation_json(model_name, dct):
 
 
 def get_evaluation_time(model_name, raw=True):
-    fn = f'models/{model_name}/{RESULTS_FILE_NAME}'
+    fn = f'models/{model_name}/{RESULTS_FILE_NAME}.json'
     return get_file_time(fn, raw=raw)
