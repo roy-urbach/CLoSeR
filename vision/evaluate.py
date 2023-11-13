@@ -40,9 +40,14 @@ def main():
 
 
 def evaluate(model, knn=False, linear=True, ensemble=True, ensemble_knn=False, save_results=False, override=False, dataset=Cifar10()):
-    from utils.io_utils import get_output_time
-    if get_output_time(model.name) < get_evaluation_time(model.name) and not override:
-        return load_evaluation_json(model.name)
+
+    if not override:
+        from utils.io_utils import get_output_time
+        output_time = get_output_time(model.name)
+        evaluation_time = get_evaluation_time(model.name)
+
+        if output_time and evaluation_time and output_time < evaluation_time:
+            return load_evaluation_json(model.name)
 
     if isinstance(model, str):
         kwargs = load_json(model)
