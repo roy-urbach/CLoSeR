@@ -104,3 +104,9 @@ def legend(*args, facecolor='w', framealpha=0, **kwargs):
 def noticks():
     plt.xticks([])
     plt.yticks([])
+
+
+def calculate_square_rows_cols(n):
+    rows = int(np.ceil(np.sqrt(n)))
+    cols = np.ceil(n/rows)
+    return rows, cols
