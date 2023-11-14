@@ -107,6 +107,6 @@ def noticks():
 
 
 def calculate_square_rows_cols(n):
-    rows = int(np.ceil(np.sqrt(n)))
-    cols = int(np.ceil(n/rows))
+    cols = int(np.ceil(np.sqrt(n)))
+    rows = int(np.ceil(n/cols))
     return rows, cols
