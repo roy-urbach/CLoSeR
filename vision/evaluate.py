@@ -39,7 +39,7 @@ def main():
                     save_results=True, dataset=None, override=args.override)
 
 
-def evaluate(model, knn=False, linear=True, ensemble=True, ensemble_knn=False, save_results=False, override=False, dataset=Cifar10()):
+def evaluate(model, knn=False, linear=True, ensemble=True, ensemble_knn=False, save_results=False, override=False, dataset=Cifar10(), **kwargs):
 
     if not override:
         from utils.io_utils import get_output_time
@@ -51,11 +51,11 @@ def evaluate(model, knn=False, linear=True, ensemble=True, ensemble_knn=False, s
             return load_evaluation_json(model)
 
     if isinstance(model, str):
-        kwargs = load_json(model)
-        assert kwargs is not None
+        model_kwargs = load_json(model)
+        assert model_kwargs is not None
         model = load_model_from_json(model)
         if dataset is None:
-            dataset = get_class(kwargs.get('dataset', 'Cifar10'), data)()
+            dataset = get_class(model_kwargs.get('dataset', 'Cifar10'), data)()
 
     x_train_embd = model.predict(dataset.get_x_train())[0]
     x_test_embd = model.predict(dataset.get_x_test())[0]
@@ -73,27 +73,27 @@ def evaluate(model, knn=False, linear=True, ensemble=True, ensemble_knn=False, s
     if knn:
         for k in [1] + list(range(5, 50, 5)):
             print(f"k={k}:", end='\t')
-            results[f"k={k}"] = classify_head_eval(embd_dataset, linear=False, k=k)
+            results[f"k={k}"] = classify_head_eval(embd_dataset, linear=False, k=k, **kwargs)
             save_res()
 
     if linear:
-        results['logistic'] = classify_head_eval(embd_dataset, linear=True, svm=False)
+        results['logistic'] = classify_head_eval(embd_dataset, linear=True, svm=False, **kwargs)
         save_res()
 
     if ensemble:
         results.update(classify_head_eval_ensemble(embd_dataset, linear=True, svm=False,
-                                                   voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb]))
+                                                   voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb]), **kwargs)
         save_res()
 
         if not any([k.startswith("image_pathway") for k in results.keys()]):
             masked_ds = get_masked_ds(model, dataset=dataset)
             results.update(classify_head_eval_ensemble(masked_ds, base_name='image_', svm=False,
-                                                       voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb]))
+                                                       voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb]), **kwargs)
             save_res()
 
     if ensemble_knn:
         results.update(classify_head_eval_ensemble(embd_dataset, linear=False, svm=False, k=15,
-                                                   voting_methods=EnsembleVotingMethods))
+                                                   voting_methods=EnsembleVotingMethods), **kwargs)
         save_res()
     return results
 
