@@ -41,10 +41,10 @@ def classify_head_eval(dataset, m=lambda x: x.reshape(x.shape[0], -1), pca=False
 
 
 def classify_head_eval_ensemble(dataset, linear=True, k=10, base_name='',
-                                voting_methods=EnsembleVotingMethods, **kwargs):
+                                voting_methods=EnsembleVotingMethods, C=1, **kwargs):
     (x_train, y_train), (x_test, y_test) = dataset.get_all()
     if linear:
-        model = linear_head_eval(**kwargs)
+        model = linear_head_eval(C=C, **kwargs)
         name = 'linear'
     else:
         from sklearn.neighbors import KNeighborsClassifier
