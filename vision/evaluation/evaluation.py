@@ -5,13 +5,13 @@ from evaluation.ensemble import EnsembleModel, EnsembleVotingMethods
 from utils.utils import printd
 
 
-def linear_head_eval(svm=True):
+def linear_head_eval(svm=True, **kwargs):
     if svm:
         from sklearn.svm import SVC
-        model = SVC(kernel='linear', max_iter=int(1e7))
+        model = SVC(kernel='linear', max_iter=int(1e7), **kwargs)
     else:
         from sklearn.linear_model import LogisticRegression
-        model = LogisticRegression()
+        model = LogisticRegression(**kwargs)
     return model
 
 
