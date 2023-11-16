@@ -15,11 +15,13 @@ def basic_scatterplot(x, y, identity=True, fig=None, c='k', corr=False, t=False,
         min_, max_ = get_min_max(x, y)
         plt.plot([min_, max_], [min_, max_], c='k', linestyle=':')
     if regress:
-        reg = lambda p: correlation(x,y) * np.std(y) / np.std(x) * (p - np.mean(x)) + np.mean(y)
+        corr = correlation(x,y)
+        slope = corr * np.std(y) / np.std(x)
+        reg = lambda p: slope * (p - np.mean(x)) + np.mean(y)
         min_ = np.min(x)
         max_ = np.max(x)
         min_, max_ = min_ - 0.05 * (max_ - min_), max_ + 0.05 * (max_ - min_)
-        plt.plot([min_, max_], [reg(min_), reg(max_)], c='r')
+        plt.plot([min_, max_], [reg(min_), reg(max_)], c='r', label=label + r"$R^2=$" + f"{corr**2:.2f}" if label else None)
     return fig
 
 
