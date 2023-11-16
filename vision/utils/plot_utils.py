@@ -2,7 +2,7 @@ from matplotlib import pyplot as plt
 from utils.utils import *
 
 
-def basic_scatterplot(x, y, identity=True, fig=None, c='k', corr=False, t=False, regress=False, mean_diff=False, label=None):
+def basic_scatterplot(x, y, identity=True, fig=None, c='k', corr=False, t=False, regress=False, mean_diff=False, label=None, regress_color='r'):
     x = np.array(x)
     y = np.array(y)
     if fig is None: fig = plt.figure()
@@ -21,7 +21,7 @@ def basic_scatterplot(x, y, identity=True, fig=None, c='k', corr=False, t=False,
         min_ = np.min(x)
         max_ = np.max(x)
         min_, max_ = min_ - 0.05 * (max_ - min_), max_ + 0.05 * (max_ - min_)
-        plt.plot([min_, max_], [reg(min_), reg(max_)], c='r', label=label + r"$R^2=$" + f"{corr**2:.2f}" if label else None)
+        plt.plot([min_, max_], [reg(min_), reg(max_)], c=regress_color, label=label + r"$R^2=$" + f"{corr**2:.2f}" if label else None)
     return fig
 
 
