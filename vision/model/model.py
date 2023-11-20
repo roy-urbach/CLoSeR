@@ -89,6 +89,8 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={}, optimizer_
 def train(model_name, model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
           optimizer_kwargs={},
           classifier=False, dataset=Cifar10, batch_size=128, num_epochs=150):
+    print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+
     printd("Getting dataset...", end='\t')
     dataset = get_class(dataset, utils.data)()
     printd("Done!")
