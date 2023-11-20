@@ -47,7 +47,7 @@ def get_weights_fn(model_or_name):
     else:
         assert hasattr(model_or_name, 'name')
         model_name = model_or_name.name
-    fn = os.path.join('models', model_name, 'model_weights_{epoch:02d}')
+    fn = os.path.join('models', model_name, "checkpoints", 'model_weights_{epoch:02d}')
     return fn
 
 

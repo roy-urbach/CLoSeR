@@ -141,19 +141,19 @@ def load_or_create_model_complicated(model_name, *args, **kwargs):
 
     model = create_and_compile_model(model_name, *args, **kwargs)
     model_fn = None
-    possible_files = os.listdir(f'models/{model_name}/')
+    possible_files = os.listdir(f'models/{model_name}/checkpoints')
     max_epoch = -1
     for fn in possible_files:
         if fn.startswith("model_weights_"):
-            epoch = eval(re.match(r"model_weights_(\d+)\.[a-z0-9]+").group(1))
+            epoch = eval(re.match(r"model_weights_(\d+)\.[a-z0-9]+", fn).group(1))
             if epoch > max_epoch:
                 max_epoch = epoch
             model_fn = fn
     if model_fn:
         print(f"loaded checkpoint {model_fn}")
-        model.load_weights(os.path.join("models", model_name, model_fn))
+        model.load_weights(os.path.join("models", model_name, "checkpoints", model_fn))
         model._make_train_function()
-        with open(os.path.join("models", model_name, 'optimizer.pkl'), 'rb') as f:
+        with open(os.path.join("models", model_name, "checkpoints", 'optimizer.pkl'), 'rb') as f:
             weight_values = pickle.load(f)
         model.optimizer.set_weights(weight_values)
     else:
