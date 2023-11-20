@@ -150,9 +150,9 @@ def load_or_create_model_complicated(model_name, *args, **kwargs):
                 max_epoch = epoch
             model_fn = '.'.join(fn.split(".")[:-1])
     if model_fn:
-        print(f"loaded checkpoint {model_fn}")
-        model.load_weights(os.path.join("models", model_name, "checkpoints", model_fn))
+        print(f"loading checkpoint {model_fn}")
         load_optimizer(model)
+        model.load_weights(os.path.join("models", model_name, "checkpoints", model_fn))
     else:
         print("didn't find previous checkpoint")
     return model
