@@ -152,7 +152,7 @@ def load_or_create_model_complicated(model_name, *args, **kwargs):
     if model_fn:
         print(f"loaded checkpoint {model_fn}")
         model.load_weights(os.path.join("models", model_name, "checkpoints", model_fn))
-        model._make_train_function()
+        # model._make_train_function()
         with open(os.path.join("models", model_name, "checkpoints", 'optimizer.pkl'), 'rb') as f:
             weight_values = pickle.load(f)
         model.optimizer.set_weights(weight_values)
