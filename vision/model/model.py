@@ -152,10 +152,7 @@ def load_or_create_model_complicated(model_name, *args, **kwargs):
     if model_fn:
         print(f"loaded checkpoint {model_fn}")
         model.load_weights(os.path.join("models", model_name, "checkpoints", model_fn))
-        # model._make_train_function()
-        with open(os.path.join("models", model_name, "checkpoints", 'optimizer.pkl'), 'rb') as f:
-            weight_values = pickle.load(f)
-        model.optimizer.set_weights(weight_values)
+        load_optimizer(model)
     else:
         print("didn't find previous checkpoint")
     return model
@@ -181,3 +178,14 @@ class SaveOptimizerCallback(tf.keras.callbacks.Callback):
         weight_values = keras.backend.batch_get_value(symbolic_weights)
         with open(os.path.join("models", self.model.name, "checkpoints", 'optimizer.pkl'), 'wb') as f:
             pickle.dump(weight_values, f)
+
+
+def load_optimizer(model):
+    import os
+    import pickle
+    grad_vars = model.trainable_weights
+    zero_grads = [tf.zeros_like(w) for w in grad_vars]
+    model.optimizer.apply_gradients(zip(zero_grads, grad_vars))
+    with open(os.path.join("models", model.name, "checkpoints", 'optimizer.pkl'), 'rb') as f:
+        weight_values = pickle.load(f)
+    model.optimizer.set_weights(weight_values)
