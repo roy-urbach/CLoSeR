@@ -145,10 +145,10 @@ def load_or_create_model_complicated(model_name, *args, **kwargs):
     max_epoch = -1
     for fn in possible_files:
         if fn.startswith("model_weights_"):
-            epoch = eval(re.match(r"model_weights_(\d+)\.[a-z0-9]+", fn).group(1))
+            epoch = int(re.match(r"model_weights_(\d+)\.[a-z0-9]+", fn).group(1))
             if epoch > max_epoch:
                 max_epoch = epoch
-            model_fn = fn
+            model_fn = '.'.join(fn.split(".")[:-1])
     if model_fn:
         print(f"loaded checkpoint {model_fn}")
         model.load_weights(os.path.join("models", model_name, "checkpoints", model_fn))
