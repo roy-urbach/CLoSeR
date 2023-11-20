@@ -5,6 +5,8 @@ import os
 import random
 from utils.utils import printd
 
+CUSTOM_OBJECTS = {}
+
 
 def set_seed(s):
     os.environ['PYTHONHASHSEED'] = str(s)
@@ -15,7 +17,7 @@ def set_seed(s):
 
 
 def get_custom_objects():
-    return keras.saving.get_custom_objects()
+    return CUSTOM_OBJECTS# keras.saving.get_custom_objects()
 
 
 def serialize(c, package=''):
