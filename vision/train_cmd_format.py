@@ -42,7 +42,7 @@ def get_cmd():
     error_name = os.path.join(path, 'error')
 
     bsub_call = f'bsub -q {args.queue} -J {model_name} -o {output_name}.o -e {error_name}.e -C 1'
-    if args.queue.startwith('gpu'):
+    if args.queue.startswith('gpu'):
         bsub_call += "-gpu num=1"
     else:
         bsub_call += '-R rusage[mem={RUSAGE}]'
