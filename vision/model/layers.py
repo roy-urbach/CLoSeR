@@ -84,12 +84,12 @@ class PatchEncoder(layers.Layer):
 class ViTBlock(layers.Layer):
     def __init__(self, num_heads=4, projection_dim=64, dropout_rate=0.1, **kwargs):
         super(ViTBlock, self).__init__(**kwargs)
-        self.ln1 = layers.LayerNormalization(epsilon=1e-6, name=self.name + '_ln1')
+        self.ln1 = layers.BatchNormalization(name=self.name + '_bn1')
         self.mh_attn = layers.MultiHeadAttention(num_heads=num_heads,
                                                  key_dim=projection_dim,
                                                  dropout=dropout_rate, name=self.name + '_mhattn')
         self.add1 = layers.Add(name=self.name + '_add1')
-        self.ln2 = layers.LayerNormalization(epsilon=1e-6, name=self.name + '_ln2')
+        self.ln2 = layers.BatchNormalization(name=self.name + '_bn2')
         self.mlp = MLP([projection_dim * 2, projection_dim], dropout_rate=dropout_rate)
         self.add2 = layers.Add(name=self.name + '_add2')
 
@@ -108,7 +108,7 @@ class ViTOutBlock(layers.Layer):
     def __init__(self, dropout_rate=0.1, output_dim=512, mlp_head_units=(2048, 1024), reg=0, **kwargs):
         super(ViTOutBlock, self).__init__(**kwargs)
         # Create a [batch_size, projection_dim] tensor.
-        self.ln = layers.LayerNormalization(epsilon=1e-6)
+        self.bn = layers.BatchNormalization()
         self.fl = layers.Flatten()
         self.dropout = layers.Dropout(dropout_rate)
         self.output_dim = output_dim
