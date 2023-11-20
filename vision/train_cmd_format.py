@@ -41,7 +41,11 @@ def get_cmd():
     output_name = os.path.join(path, 'output')
     error_name = os.path.join(path, 'error')
 
-    bsub_call = f'bsub -q {args.queue} -J {model_name} -o {output_name}.o -e {error_name}.e -C 1 -R rusage[mem={RUSAGE}]'
+    bsub_call = f'bsub -q {args.queue} -J {model_name} -o {output_name}.o -e {error_name}.e -C 1'
+    if args.queue.startwith('gpu'):
+        bsub_call += "-gpu num=1"
+    else:
+        bsub_call += '-R rusage[mem={RUSAGE}]'
     train_call = f'python3 train.py -b {args.batch} -e {args.epochs} --json {args.json}'
     cmd = [*bsub_call.split(), *bsub_args, f'"{train_call}"']
     return ' '.join(cmd)
