@@ -2,7 +2,7 @@ from model.layers import *
 from model.losses import *
 from utils.data import *
 from utils.io_utils import load_json
-from utils.tf_utils import get_model_fn
+from utils.tf_utils import get_model_fn, get_weights_fn
 from utils.utils import *
 import utils.data
 from tensorflow.keras import layers
@@ -109,7 +109,7 @@ def train(model_name, model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
             batch_size=batch_size,
             epochs=num_epochs,
             validation_split=dataset.get_val_split(),
-            callbacks=[tf.keras.callbacks.ModelCheckpoint(filepath=get_model_fn(model),
+            callbacks=[tf.keras.callbacks.ModelCheckpoint(filepath=get_weights_fn(model),
                                                           save_weights_only=True,
                                                           save_best_only=False,
                                                           verbose=1),
