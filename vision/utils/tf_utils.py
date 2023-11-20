@@ -42,8 +42,9 @@ def get_model_fn(model_or_name):
 
 
 def load_model(fn):
-    with keras.saving.custom_object_scope(get_custom_objects()):
-        reconstructed_model = tf.keras.models.load_model(fn)
+    reconstructed_model = tf.keras.models.load_model(fn, custom_objects=get_custom_objects())
+    # with keras.saving.custom_object_scope(get_custom_objects()):
+    #     reconstructed_model = tf.keras.models.load_model(fn)
     return reconstructed_model
 
 
