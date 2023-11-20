@@ -1,4 +1,4 @@
-from train import parse
+import argparse
 import os
 
 BASE_PATH = 'models'
@@ -19,6 +19,17 @@ RUSAGE = 75000
 #     return result.stdout.decode('utf-8')
 
 
+def parse():
+    parser = argparse.ArgumentParser(description='Train a model')
+    parser.add_argument('-b', '--batch', type=int, default=128, help='batch size')
+    parser.add_argument('-e', '--epochs', type=int, default=100, help='number of epochs')
+    parser.add_argument('-j', '--json', type=str, help='name of the config json')
+    parser.add_argument('-q', '--queue', type=str, default=QUEUE_GPU, help='name of the queue')
+
+    args = parser.parse_known_args()
+    return args
+
+
 def get_cmd():
     args, bsub_args = parse()
     model_name = args.json.split('.json')[0]
@@ -28,7 +39,7 @@ def get_cmd():
     output_name = os.path.join(path, 'output')
     error_name = os.path.join(path, 'error')
 
-    bsub_call = f'bsub -q {QUEUE_GPU} -J {model_name} -o {output_name}.o -e {error_name}.e -C 1 -R rusage[mem={RUSAGE}]'
+    bsub_call = f'bsub -q {args.queue} -J {model_name} -o {output_name}.o -e {error_name}.e -C 1 -R rusage[mem={RUSAGE}]'
     train_call = f'python3 train.py -b {args.batch} -e {args.epochs} --json {args.json}'
     cmd = [*bsub_call.split(), *bsub_args, f'"{train_call}"']
     return ' '.join(cmd)
