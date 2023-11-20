@@ -50,6 +50,9 @@ class Patches(layers.Layer):
         patches = tf.reshape(patches, [batch_size, -1, patch_dims])
         return patches
 
+    def get_config(self):
+        return super().get_config().update({'patch_size': self.patch_size})
+
 
 @serialize
 class PatchEncoder(layers.Layer):
@@ -78,6 +81,11 @@ class PatchEncoder(layers.Layer):
         # add both embeddings
         encoded = patches_embed + positions_embed
         return encoded
+
+    def get_config(self):
+        return super().get_config().update(dict(num_patches=self.num_patches,
+                                                projection_dim=self.projection_dim,
+                                                num_class_tokens=self.num_class_tokens))
 
 
 @serialize
