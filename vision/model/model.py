@@ -174,7 +174,7 @@ def load_model_from_json(model_name):
 
 
 class SaveOptimizerCallback(tf.keras.callbacks.Callback):
-    def on_epoch_end(self, logs=None):
+    def on_epoch_end(self, *args, logs=None, **kwargs):
         import pickle
         import os
         symbolic_weights = getattr(self.model.optimizer, 'weights')
