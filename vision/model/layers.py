@@ -84,20 +84,20 @@ class PatchEncoder(layers.Layer):
 class ViTBlock(layers.Layer):
     def __init__(self, num_heads=4, projection_dim=64, dropout_rate=0.1, **kwargs):
         super(ViTBlock, self).__init__(**kwargs)
-        self.ln1 = layers.BatchNormalization(name=self.name + '_bn1')
+        self.bn1 = layers.BatchNormalization(name=self.name + '_bn1')
         self.mh_attn = layers.MultiHeadAttention(num_heads=num_heads,
                                                  key_dim=projection_dim,
                                                  dropout=dropout_rate, name=self.name + '_mhattn')
         self.add1 = layers.Add(name=self.name + '_add1')
-        self.ln2 = layers.BatchNormalization(name=self.name + '_bn2')
+        self.bn2 = layers.BatchNormalization(name=self.name + '_bn2')
         self.mlp = MLP([projection_dim * 2, projection_dim], dropout_rate=dropout_rate)
         self.add2 = layers.Add(name=self.name + '_add2')
 
     def call(self, encoded_patches):
-        x1 = self.ln1(encoded_patches)
+        x1 = self.bn1(encoded_patches)
         attention_output = self.mh_attn(x1, x1)
         x2 = self.add1([attention_output, encoded_patches])
-        x3 = self.ln2(x2)
+        x3 = self.bn2(x2)
         x3 = self.mlp(x3)
         out = self.add2([x2, x3])
         return out
@@ -118,7 +118,7 @@ class ViTOutBlock(layers.Layer):
         self.mlp_head_units = mlp_head_units
 
     def call(self, encoded_patches):
-        x = self.ln(encoded_patches)
+        x = self.bn(encoded_patches)
         x = self.fl(x)
         x = self.dropout(x)
         x = self.mlp(x)
