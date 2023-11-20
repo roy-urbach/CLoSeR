@@ -41,19 +41,21 @@ def get_model_fn(model_or_name):
     return fn
 
 
+def get_weights_fn(model_or_name):
+    if isinstance(model_or_name, str):
+        model_name = model_or_name
+    else:
+        assert hasattr(model_or_name, 'name')
+        model_name = model_or_name.name
+    fn = os.path.join('models', model_name, 'model_weights_{epoch:02d}')
+    return fn
+
+
 def load_model(fn):
     reconstructed_model = tf.keras.models.load_model(fn, custom_objects=get_custom_objects())
     # with keras.saving.custom_object_scope(get_custom_objects()):
     #     reconstructed_model = tf.keras.models.load_model(fn)
     return reconstructed_model
-
-
-def load_model_from_json(model_name):
-    fn = get_model_fn(model_name)
-    if os.path.exists(fn):
-        return load_model(fn)
-    else:
-        return None
 
 
 def load_checkpoint(model):

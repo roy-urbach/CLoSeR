@@ -1,7 +1,8 @@
 from model.layers import *
 from model.losses import *
 from utils.data import *
-from utils.tf_utils import get_model_fn, save_model, load_model_from_json
+from utils.io_utils import load_json
+from utils.tf_utils import get_model_fn
 from utils.utils import *
 import utils.data
 from tensorflow.keras import layers
@@ -87,29 +88,16 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={}, optimizer_
 
 
 def train(model_name, model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
-          optimizer_kwargs={},
-          classifier=False, dataset=Cifar10, batch_size=128, num_epochs=150):
+          optimizer_kwargs={}, classifier=False, dataset=Cifar10, batch_size=128, num_epochs=150):
     print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
     printd("Getting dataset...", end='\t')
     dataset = get_class(dataset, utils.data)()
     printd("Done!")
 
-    printd("Checking if model already trained...", end='\t')
-    model = load_model_from_json(model_name)
-    if model is not None:
-        printd("Loaded model!")
-    else:
-        printd("Model never trained before")
-        printd("Creating model...", end='\t')
-        model = create_model(model_name, input_shape=dataset.get_shape(), **model_kwargs)
-        printd("Done!")
-
-        loss = get_class(loss, model.losses)
-
-        printd("Compiling model...", end='\t')
-        compile_model(model, loss=loss, loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs, classifier=classifier)
-        printd("Done!")
+    model = load_or_create_model_complicated(model_name, dataset.get_shape(), model_kwargs, loss=loss,
+                                             loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
+                                             classifier=classifier)
 
     # TODO: regression callback?
 
@@ -122,11 +110,74 @@ def train(model_name, model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
             epochs=num_epochs,
             validation_split=dataset.get_val_split(),
             callbacks=[tf.keras.callbacks.ModelCheckpoint(filepath=get_model_fn(model),
-                                                          save_weights_only=False,
-                                                          verbose=1)]
+                                                          save_weights_only=True,
+                                                          save_best_only=False,
+                                                          verbose=1),
+                       SaveOptimizerCallback()]
         )
-
-        printd("saving the model!")
-        save_model(model)
         printd("Done!")
     return model
+
+
+def create_and_compile_model(model_name, input_shape, model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
+                             optimizer_kwargs={}, classifier=False, ):
+    printd("Creating model...", end='\t')
+    model = create_model(model_name, input_shape=input_shape, **model_kwargs)
+    printd("Done!")
+
+    loss = get_class(loss, model.losses)
+
+    printd("Compiling model...", end='\t')
+    compile_model(model, loss=loss, loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
+                  classifier=classifier)
+
+    return model
+
+
+def load_or_create_model_complicated(model_name, *args, **kwargs):
+    import os
+    import re
+    import pickle
+
+    model = create_and_compile_model(model_name, *args, **kwargs)
+    model_fn = None
+    possible_files = os.listdir(f'models/{model_name}/')
+    max_epoch = -1
+    for fn in possible_files:
+        if fn.startswith("model_weights_"):
+            epoch = eval(re.match(r"model_weights_(\d+)\.[a-z0-9]+").group(1))
+            if epoch > max_epoch:
+                max_epoch = epoch
+            model_fn = fn
+    if model_fn:
+        print(f"loaded checkpoint {model_fn}")
+        model.load_weights(os.path.join("models", model_name, model_fn))
+        model._make_train_function()
+        with open(os.path.join("models", model_name, 'optimizer.pkl'), 'rb') as f:
+            weight_values = pickle.load(f)
+        model.optimizer.set_weights(weight_values)
+    else:
+        print("didn't find previous checkpoint")
+    return model
+
+
+def load_model_from_json(model_name):
+    dct = load_json(model_name)
+    def call_complicated(model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
+                         optimizer_kwargs={}, classifier=False, dataset=Cifar10):
+        dataset = get_class(dataset, utils.data)()
+        model = load_or_create_model_complicated(model_name, dataset.get_shape(), model_kwargs, loss=loss,
+                                                 loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
+                                                 classifier=classifier)
+        return model
+    return call_complicated(**dct)
+
+
+class SaveOptimizerCallback(tf.keras.callbacks.Callback):
+    def on_epoch_end(self, logs=None):
+        import pickle
+        import os
+        symbolic_weights = getattr(self.model.optimizer, 'weights')
+        weight_values = keras.backend.batch_get_value(symbolic_weights)
+        with open(os.path.join("models", self.model.name, 'optimizer.pkl'), 'wb') as f:
+            pickle.dump(weight_values, f)

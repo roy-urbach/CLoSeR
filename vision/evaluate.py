@@ -1,9 +1,9 @@
 from evaluation.ensemble import EnsembleVotingMethods
 from evaluation.evaluation import classify_head_eval_ensemble
 from evaluation.utils import save_evaluation_json, load_evaluation_json, get_evaluation_time
+from model.model import load_model_from_json
 from utils.data import Cifar10, Data
 from utils.io_utils import load_json
-from utils.tf_utils import load_model_from_json
 from utils.utils import get_class
 from utils import data
 import numpy as np
