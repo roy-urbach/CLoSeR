@@ -36,6 +36,8 @@ def get_cmd():
     path = os.path.join(BASE_PATH, model_name)
     if not os.path.exists(path):
         os.mkdir(path)
+    if not os.path.exists(os.path.join(path, "checkpoints")):
+        os.mkdir(os.path.join(path, "checkpoints"))
     output_name = os.path.join(path, 'output')
     error_name = os.path.join(path, 'error')
 
