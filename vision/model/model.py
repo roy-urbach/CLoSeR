@@ -179,5 +179,5 @@ class SaveOptimizerCallback(tf.keras.callbacks.Callback):
         import os
         symbolic_weights = getattr(self.model.optimizer, 'weights')
         weight_values = keras.backend.batch_get_value(symbolic_weights)
-        with open(os.path.join("models", self.model.name, 'optimizer.pkl'), 'wb') as f:
+        with open(os.path.join("models", self.model.name, "checkpoints", 'optimizer.pkl'), 'wb') as f:
             pickle.dump(weight_values, f)
