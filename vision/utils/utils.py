@@ -21,6 +21,10 @@ def get_class(cls, file):
     return cls
 
 
+def flatten_but_batch(arr):
+    return arr.reshape(len(arr), -1)
+
+
 def cosine_sim(vec1, vec2, axis=-1):
     normalize = lambda vec: vec / np.linalg.norm(vec, axis=axis, keepdims=True)
     return (normalize(vec1) * normalize(vec2)).sum(axis=axis)
