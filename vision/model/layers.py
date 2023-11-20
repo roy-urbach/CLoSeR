@@ -103,6 +103,10 @@ class ViTBlock(layers.Layer):
         self.mlp = MLP([projection_dim * 2, projection_dim], dropout_rate=dropout_rate)
         self.add2 = layers.Add(name=self.name + '_add2')
 
+    def get_config(self):
+        return dict(super().get_config(), num_heads=self.num_heads,
+                    projection_dim=self.projection_dim, dropout_rate=self.dropout_rate)
+
     def call(self, encoded_patches):
         x1 = self.bn1(encoded_patches)
         attention_output = self.mh_attn(x1, x1)
