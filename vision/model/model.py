@@ -40,33 +40,38 @@ def create_model(name='model', only_classtoken=False, koleo_lambda=0, classifier
 
     # Encode patches.
     encoded_patches = PatchEncoder(num_patches, projection_dim, name=name + '_patchenc',
-                                   num_class_tokens=pathways_kwargs.get('n', 2) if pathways_kwargs.get('token_per_path', False) else 1)(patches)
+                                   num_class_tokens=pathways_kwargs.get('n', 2) if pathways_kwargs.get('token_per_path',
+                                                                                                       False) else 1)(
+        patches)
 
     # divide to different pathways
     if classifier:
-      pathways = [encoded_patches]
+        pathways = [encoded_patches]
     else:
-      pathways = SplitPathways(num_patches, name=name + '_pathways', **pathways_kwargs)(encoded_patches)
-      pathways = [tf.squeeze(path, axis=-2) for path in tf.split(pathways, pathways.shape[-2], axis=-2)]
+        pathways = SplitPathways(num_patches, name=name + '_pathways', **pathways_kwargs)(encoded_patches)
+        pathways = [tf.squeeze(path, axis=-2) for path in tf.split(pathways, pathways.shape[-2], axis=-2)]
 
     # process each pathway
     blocks = [ViTBlock(name=name + f'_block{l}', **block_kwargs) for l in range(transformer_layers)]
     for l in range(transformer_layers):
-      for i in range(len(pathways)):
-        pathways[i] = blocks[l](pathways[i])
+        for i in range(len(pathways)):
+            pathways[i] = blocks[l](pathways[i])
 
     # save only the class token
     if only_classtoken:
-      for i in range(len(pathways)):
-        pathways[i] = pathways[i][:, 0]
+        for i in range(len(pathways)):
+            pathways[i] = pathways[i][:, 0]
 
     # out block
     out_block = ViTOutBlock(name=name + '_outblock', **out_block_kwargs,
-                            activity_regularizer=KoLeoRegularizer(koleo_lambda) if koleo_lambda else (tf.keras.regularizers.L2(l2) if l2 else None))
-    embedding = tf.keras.layers.Concatenate(name=name + '_embedding', axis=-1)([out_block(enc)[..., None] for enc in pathways])
+                            activity_regularizer=KoLeoRegularizer(koleo_lambda) if koleo_lambda else (
+                                tf.keras.regularizers.L2(l2) if l2 else None))
+    embedding = tf.keras.layers.Concatenate(name=name + '_embedding', axis=-1)(
+        [out_block(enc)[..., None] for enc in pathways])
 
     # classification head
-    logits = layers.Dense(num_classes, activation=None, name=name + '_logits')(embedding[..., 0] if classifier else tf.stop_gradient(embedding[..., 0]))
+    logits = layers.Dense(num_classes, activation=None, name=name + '_logits')(
+        embedding[..., 0] if classifier else tf.stop_gradient(embedding[..., 0]))
 
     # Create the Keras model.
     model = keras.Model(inputs=inputs, outputs=[embedding, logits], name=name)
@@ -95,19 +100,19 @@ def train(model_name, model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
     dataset = get_class(dataset, utils.data)()
     printd("Done!")
 
-    model = load_or_create_model_complicated(model_name, dataset.get_shape(), model_kwargs, loss=loss,
-                                             loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
-                                             classifier=classifier)
+    model, max_epoch = load_or_create_model_complicated(model_name, dataset.get_shape(), model_kwargs, loss=loss,
+                                                        loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
+                                                        classifier=classifier)
 
     # TODO: regression callback?
 
-    if num_epochs:
+    if num_epochs > max_epoch:
         printd("Fitting the model!")
         history = model.fit(
             x=dataset.get_x_train(),
             y=dataset.get_y_train(),
             batch_size=batch_size,
-            epochs=num_epochs,
+            epochs=num_epochs - max_epoch,
             validation_split=dataset.get_val_split(),
             callbacks=[tf.keras.callbacks.ModelCheckpoint(filepath=get_weights_fn(model),
                                                           save_weights_only=True,
@@ -137,12 +142,11 @@ def create_and_compile_model(model_name, input_shape, model_kwargs, loss=Contras
 def load_or_create_model_complicated(model_name, *args, **kwargs):
     import os
     import re
-    import pickle
 
     model = create_and_compile_model(model_name, *args, **kwargs)
     model_fn = None
     possible_files = os.listdir(f'models/{model_name}/checkpoints')
-    max_epoch = -1
+    max_epoch = 0
     for fn in possible_files:
         if fn.startswith("model_weights_"):
             epoch = int(re.match(r"model_weights_(\d+)\.[a-z0-9]+", fn).group(1))
@@ -155,18 +159,20 @@ def load_or_create_model_complicated(model_name, *args, **kwargs):
         model.load_weights(os.path.join("models", model_name, "checkpoints", model_fn))
     else:
         print("didn't find previous checkpoint")
-    return model
+    return model, max_epoch
 
 
 def load_model_from_json(model_name):
     dct = load_json(model_name)
+
     def call_complicated(model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
                          optimizer_kwargs={}, classifier=False, dataset=Cifar10):
         dataset = get_class(dataset, utils.data)()
-        model = load_or_create_model_complicated(model_name, dataset.get_shape(), model_kwargs, loss=loss,
-                                                 loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
-                                                 classifier=classifier)
+        model, _ = load_or_create_model_complicated(model_name, dataset.get_shape(), model_kwargs, loss=loss,
+                                                    loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
+                                                    classifier=classifier)
         return model
+
     return call_complicated(**dct)
 
 
