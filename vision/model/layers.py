@@ -28,7 +28,7 @@ class MLP(layers.Layer):
         return x
 
     def get_config(self):
-        return dict(**super().get_config(),hidden_units=self.hidden_units)
+        return dict(**super().get_config(), hidden_units=self.hidden_units)
 
 
 @serialize
@@ -51,7 +51,7 @@ class Patches(layers.Layer):
         return patches
 
     def get_config(self):
-        return super().get_config().update({'patch_size': self.patch_size})
+        return dict(super().get_config(), patch_size=self.patch_size)
 
 
 @serialize
@@ -83,15 +83,17 @@ class PatchEncoder(layers.Layer):
         return encoded
 
     def get_config(self):
-        return super().get_config().update(dict(num_patches=self.num_patches,
-                                                projection_dim=self.projection_dim,
-                                                num_class_tokens=self.num_class_tokens))
+        return dict(**super().get_config(), num_patches=self.num_patches, projection_dim=self.projection_dim,
+                    num_class_tokens=self.num_class_tokens)
 
 
 @serialize
 class ViTBlock(layers.Layer):
     def __init__(self, num_heads=4, projection_dim=64, dropout_rate=0.1, **kwargs):
         super(ViTBlock, self).__init__(**kwargs)
+        self.num_heads = num_heads
+        self.projection_dim = projection_dim
+        self.dropout_rate = dropout_rate
         self.bn1 = layers.BatchNormalization(name=self.name + '_bn1')
         self.mh_attn = layers.MultiHeadAttention(num_heads=num_heads,
                                                  key_dim=projection_dim,
@@ -160,6 +162,10 @@ class SplitPathways(layers.Layer):
         if fixed:
             set_seed(self.seed)
             self.get_indices()
+
+    def get_config(self):
+        return dict(**super().get_config(), n=self.n, seed=self.seed, fixed=self.fixed,
+                    num_patches=self.num_patches, intersection=self.intersection, old=self.old)
 
     def get_indices(self):
         if self.indices is None:
