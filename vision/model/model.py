@@ -150,10 +150,10 @@ def load_or_create_model(model_name, *args, load=True, optimizer_state=True, **k
         if os.path.exists(f"models/{model_name}/checkpoints"):
             for fn in os.listdir(f'models/{model_name}/checkpoints'):
                 if fn.startswith("model_weights_"):
-                    epoch = int(re.match(r"model_weights_(\d+)\.[a-z0-9]+", fn).group(1))
+                    epoch = int(re.match(r"model_weights_(\d+)\.index", fn).group(1))
                     if epoch > max_epoch:
                         max_epoch = epoch
-                    model_fn = '.'.join(fn.split(".")[:-1])
+                        model_fn = f"model_weights_{max_epoch}"
             if model_fn:
                 print(f"loading checkpoint {model_fn}")
                 if optimizer_state:
