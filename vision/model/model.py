@@ -139,30 +139,31 @@ def create_and_compile_model(model_name, input_shape, model_kwargs, loss=Contras
     return model
 
 
-def load_or_create_model(model_name, *args, **kwargs):
+def load_or_create_model(model_name, *args, load=True, **kwargs):
     import os
     import re
 
     model = create_and_compile_model(model_name, *args, **kwargs)
     max_epoch = 0
-    if os.path.exists(f"models/{model_name}/checkpoints"):
+    if load:
         model_fn = None
-        for fn in os.listdir(f'models/{model_name}/checkpoints'):
-            if fn.startswith("model_weights_"):
-                epoch = int(re.match(r"model_weights_(\d+)\.[a-z0-9]+", fn).group(1))
-                if epoch > max_epoch:
-                    max_epoch = epoch
-                model_fn = '.'.join(fn.split(".")[:-1])
-        if model_fn:
-            print(f"loading checkpoint {model_fn}")
-            load_optimizer(model)
-            model.load_weights(os.path.join("models", model_name, "checkpoints", model_fn))
-    if not max_epoch:
-        print("didn't find previous checkpoint")
+        if os.path.exists(f"models/{model_name}/checkpoints"):
+            for fn in os.listdir(f'models/{model_name}/checkpoints'):
+                if fn.startswith("model_weights_"):
+                    epoch = int(re.match(r"model_weights_(\d+)\.[a-z0-9]+", fn).group(1))
+                    if epoch > max_epoch:
+                        max_epoch = epoch
+                    model_fn = '.'.join(fn.split(".")[:-1])
+            if model_fn:
+                print(f"loading checkpoint {model_fn}")
+                load_optimizer(model)
+                model.load_weights(os.path.join("models", model_name, "checkpoints", model_fn))
+        if not max_epoch:
+            print("didn't find previous checkpoint")
     return model, max_epoch
 
 
-def load_model_from_json(model_name):
+def load_model_from_json(model_name, load=True):
     dct = load_json(model_name)
 
     def call(model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={}, optimizer_kwargs={},
@@ -170,7 +171,7 @@ def load_model_from_json(model_name):
         dataset = get_class(dataset, utils.data)()
         model, _ = load_or_create_model(model_name, dataset.get_shape(), model_kwargs, loss=loss,
                                         loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
-                                        classifier=classifier)
+                                        classifier=classifier, load=load)
         return model
 
     return call(**dct)
