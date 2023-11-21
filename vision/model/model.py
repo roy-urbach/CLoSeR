@@ -164,7 +164,7 @@ def load_or_create_model(model_name, *args, load=True, optimizer_state=True, **k
     return model, max_epoch
 
 
-def load_model_from_json(model_name, load=True, optimizer_state=False):
+def load_model_from_json(model_name, load=True, optimizer_state=True):
     dct = load_json(model_name)
 
     def call(model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={}, optimizer_kwargs={},
