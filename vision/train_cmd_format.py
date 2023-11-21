@@ -3,10 +3,11 @@ import os
 
 BASE_PATH = 'models'
 # QUEUE_GPU = "gsla-gpu"    # TODO: change back when it works
-QUEUE_GPU = 'sch-gpu'
-QUEUE_CPU = 'gsla-cpu'
+# QUEUE_GPU = 'sch-gpu'
+QUEUE_GPU = 'gpu-short'
+QUEUE_CPU = "new-short"
+# QUEUE_CPU = 'gsla-cpu'
 CONDA_PATH = '~/miniconda3/etc/profile.d/conda.sh'
-VENV_NAME = 'tf-gpu'
 RUSAGE = 75000
 
 
