@@ -100,9 +100,9 @@ def train(model_name, model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
     dataset = get_class(dataset, utils.data)()
     printd("Done!")
 
-    model, max_epoch = load_or_create_model_complicated(model_name, dataset.get_shape(), model_kwargs, loss=loss,
-                                                        loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
-                                                        classifier=classifier)
+    model, max_epoch = load_or_create_model(model_name, dataset.get_shape(), model_kwargs, loss=loss,
+                                            loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
+                                            classifier=classifier)
 
     # TODO: regression callback?
 
@@ -139,25 +139,25 @@ def create_and_compile_model(model_name, input_shape, model_kwargs, loss=Contras
     return model
 
 
-def load_or_create_model_complicated(model_name, *args, **kwargs):
+def load_or_create_model(model_name, *args, **kwargs):
     import os
     import re
 
     model = create_and_compile_model(model_name, *args, **kwargs)
-    model_fn = None
-    possible_files = os.listdir(f'models/{model_name}/checkpoints')
     max_epoch = 0
-    for fn in possible_files:
-        if fn.startswith("model_weights_"):
-            epoch = int(re.match(r"model_weights_(\d+)\.[a-z0-9]+", fn).group(1))
-            if epoch > max_epoch:
-                max_epoch = epoch
-            model_fn = '.'.join(fn.split(".")[:-1])
-    if model_fn:
-        print(f"loading checkpoint {model_fn}")
-        load_optimizer(model)
-        model.load_weights(os.path.join("models", model_name, "checkpoints", model_fn))
-    else:
+    if os.path.exists(f"models/{model_name}/checkpoints"):
+        model_fn = None
+        for fn in os.listdir(f'models/{model_name}/checkpoints'):
+            if fn.startswith("model_weights_"):
+                epoch = int(re.match(r"model_weights_(\d+)\.[a-z0-9]+", fn).group(1))
+                if epoch > max_epoch:
+                    max_epoch = epoch
+                model_fn = '.'.join(fn.split(".")[:-1])
+        if model_fn:
+            print(f"loading checkpoint {model_fn}")
+            load_optimizer(model)
+            model.load_weights(os.path.join("models", model_name, "checkpoints", model_fn))
+    if not max_epoch:
         print("didn't find previous checkpoint")
     return model, max_epoch
 
@@ -165,15 +165,15 @@ def load_or_create_model_complicated(model_name, *args, **kwargs):
 def load_model_from_json(model_name):
     dct = load_json(model_name)
 
-    def call_complicated(model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
-                         optimizer_kwargs={}, classifier=False, dataset=Cifar10):
+    def call(model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={}, optimizer_kwargs={},
+             classifier=False, dataset=Cifar10):
         dataset = get_class(dataset, utils.data)()
-        model, _ = load_or_create_model_complicated(model_name, dataset.get_shape(), model_kwargs, loss=loss,
-                                                    loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
-                                                    classifier=classifier)
+        model, _ = load_or_create_model(model_name, dataset.get_shape(), model_kwargs, loss=loss,
+                                        loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
+                                        classifier=classifier)
         return model
 
-    return call_complicated(**dct)
+    return call(**dct)
 
 
 class SaveOptimizerCallback(tf.keras.callbacks.Callback):
