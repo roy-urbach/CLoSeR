@@ -54,11 +54,12 @@ class ContrastiveLossExpDecay(ContrastiveLoss):
 
 @serialize
 class ContrastiveSoftmaxLoss(Loss):
-    def __init__(self, *args, temperature=10, eps=0, stable=True, **kwargs):
+    def __init__(self, *args, temperature=10, eps=0, stable=True, minus_log=False, **kwargs):
         super(ContrastiveSoftmaxLoss, self).__init__(*args, **kwargs)
         self.temperature = temperature
         self.eps = eps
         self.stable = stable
+        self.minus_log = minus_log
 
     def call(self, y_true, y_pred):
         b = tf.shape(y_pred)[0]
@@ -79,7 +80,10 @@ class ContrastiveSoftmaxLoss(Loss):
             similarity = similarity - tf.reduce_max(similarity, axis=0, keepdims=True)
         similarity = tf.exp(similarity)
         softmaxed = similarity / tf.reduce_sum(similarity, axis=0, keepdims=True)
-        return 1 - tf.reduce_sum(tf.where(positive_mask, softmaxed / pos_n, 0))
+        if self.minus_log:
+            return -(tf.reduce_sum(tf.where(positive_mask, tf.math.log(softmaxed), 0)) / pos_n)
+        else:
+            return 1 - tf.reduce_sum(tf.where(positive_mask, softmaxed, 0)) / pos_n
         # out = -tf.reduce_sum(tf.where(positive_mask, tf.math.log(softmaxed) / pos_n, 0))
         # return out
 
