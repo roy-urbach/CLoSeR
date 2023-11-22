@@ -24,7 +24,7 @@ def get_custom_objects():
 
 def serialize(c, package=''):
     get_custom_objects()[package + '>' * bool(package) + c.__name__] = c
-    print(f"Added {c.__name__} to custom layers")
+    # print(f"Added {c.__name__} to custom layers")
     return c
 
 

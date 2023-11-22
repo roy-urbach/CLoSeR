@@ -121,7 +121,8 @@ def train(model_name, model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
     model, max_epoch = load_or_create_model(model_name, dataset.get_shape(), model_kwargs, loss=loss,
                                             loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
                                             classifier=classifier,
-                                            stop_grad_pathway=stop_grad_pathway, stop_grad_ensemble=stop_grad_ensemble)
+                                            stop_grad_pathway=stop_grad_pathway, stop_grad_ensemble=stop_grad_ensemble,
+                                            print_log=True)
 
     # TODO: regression callback?
 
@@ -145,14 +146,18 @@ def train(model_name, model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
 
 
 def create_and_compile_model(model_name, input_shape, model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
-                             optimizer_kwargs={}, classifier=False, stop_grad_pathway=True, stop_grad_ensemble=False):
-    printd("Creating model...", end='\t')
+                             optimizer_kwargs={}, classifier=False, stop_grad_pathway=True, stop_grad_ensemble=False,
+                             print_log=False):
+    if print_log:
+        printd("Creating model...", end='\t')
     model = create_model(model_name, input_shape=input_shape, **model_kwargs)
-    printd("Done!")
+    if print_log:
+        printd("Done!")
 
     loss = get_class(loss, model.losses)
 
-    printd("Compiling model...", end='\t')
+    if print_log:
+        printd("Compiling model...", end='\t')
     compile_model(model, loss=loss, loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
                   classifier=classifier, stop_grad_pathway=stop_grad_pathway, stop_grad_ensemble=stop_grad_ensemble)
 
