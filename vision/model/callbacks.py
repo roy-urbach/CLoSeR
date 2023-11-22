@@ -16,7 +16,7 @@ class ErasePreviousCallback(tf.keras.callbacks.Callback):
     def on_epoch_end(self, epoch, **kwargs):
         import os
         fns = [f"model_weights_{epoch-1}.data-00000-of-00001", f"model_weights_{epoch-1}.index"]
-        fns = [f"models/{self.mode.name}/checkpoints/" + fn for fn in fns]
+        fns = [f"models/{self.model.name}/checkpoints/" + fn for fn in fns]
         for fn in fns:
             if os.path.exists(fn):
                 os.remove(fn)
