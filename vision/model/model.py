@@ -30,7 +30,7 @@ def get_data_augmentation(image_size):
 def create_model(name='model', only_classtoken=False, koleo_lambda=0, classifier=False, l2=False,
                  input_shape=(32, 32, 3), num_classes=10, transformer_layers=3,
                  projection_dim=64, out_block_kwargs={}, block_kwargs={}, pathways_kwargs={},
-                 image_size=72, patch_size=8, stop_grad_classifiers=False):
+                 image_size=72, patch_size=8, stop_grad_ensemble=False, stop_grad_pathway=True):
     inputs = layers.Input(shape=input_shape)
     # Augment data.
     augmented = get_data_augmentation(image_size)(inputs)
@@ -72,13 +72,14 @@ def create_model(name='model', only_classtoken=False, koleo_lambda=0, classifier
 
     outputs = [embedding]
 
-    if classifier or stop_grad_classifiers:
+    if classifier or stop_grad_ensemble or stop_grad_pathway:
         # classification head
-        outputs.append(layers.Dense(num_classes, activation=None, name=name + '_logits')(
-            embedding[..., 0] if classifier else tf.stop_gradient(embedding[..., 0])))
-
-        outputs.append(layers.Dense(num_classes, activation=None, name=name + '_ensemble_logits')(
-            tf.reshape(embedding, (-1, np.multiply.reduce(embedding.shape[1:]))) if classifier else tf.reshape(tf.stop_gradient(embedding), (-1, np.multiply.reduce(embedding.shape[1:])))))
+        if stop_grad_pathway:
+            outputs.append(layers.Dense(num_classes, activation=None, name=name + '_logits')(
+                embedding[..., 0] if classifier else tf.stop_gradient(embedding[..., 0])))
+        if stop_grad_ensemble:
+            outputs.append(layers.Dense(num_classes, activation=None, name=name + '_ensemble_logits')(
+                tf.reshape(embedding, (-1, np.multiply.reduce(embedding.shape[1:]))) if classifier else tf.reshape(tf.stop_gradient(embedding), (-1, np.multiply.reduce(embedding.shape[1:])))))
 
     # Create the Keras model.
     model = keras.Model(inputs=inputs, outputs=outputs, name=name)
@@ -86,25 +87,31 @@ def create_model(name='model', only_classtoken=False, koleo_lambda=0, classifier
 
 
 def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={}, optimizer_cls=tf.optimizers.Nadam,
-                  optimizer_kwargs={}, classifier=False, stop_grad_classifiers=False):
+                  optimizer_kwargs={}, classifier=False, stop_grad_ensemble=False, stop_grad_pathway=True):
     optimizer = optimizer_cls(**optimizer_kwargs)
     serialize(optimizer.__class__, 'Custom')
 
-    model.compile(
-        optimizer=optimizer,
-        loss={model.name + '_embedding': loss(**loss_kwargs)} if not classifier and not stop_grad_classifiers else {
-            model.name + '_embedding': loss(**loss_kwargs) if not classifier else lambda *args: 0.,
-            model.name + '_logits': keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-            model.name + '_ensemble_logits': keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-        },
-        metrics={model.name + '_logits': keras.metrics.SparseCategoricalAccuracy(name="accuracy"),
-                 model.name + '_ensemble_logits': keras.metrics.SparseCategoricalAccuracy(name="accuracy"),
-                 } if classifier or stop_grad_classifiers else {}
-    )
+    losses = {}
+    metrics = {}
+    if classifier:
+        losses[model.name + '_embedding'] = lambda *args: 0.
+    else:
+        losses[model.name + '_embedding'] = loss(**loss_kwargs)
+
+    if classifier or stop_grad_pathway:
+        losses[model.name + '_logits'] = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+        metrics[model.name + '_logits'] = keras.metrics.SparseCategoricalAccuracy(name="accuracy")
+
+    if classifier or stop_grad_ensemble:
+        losses[model.name + '_ensemble_logits'] = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+        metrics[model.name + '_ensemble_logits'] = keras.metrics.SparseCategoricalAccuracy(name="accuracy")
+
+    model.compile(optimizer=optimizer, loss=losses, metrics=metrics)
 
 
 def train(model_name, model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
-          optimizer_kwargs={}, classifier=False, stop_grad_classifiers=False, dataset=Cifar10, batch_size=128, num_epochs=150):
+          optimizer_kwargs={}, classifier=False, stop_grad_pathway=True, stop_grad_ensemble=False,
+          dataset=Cifar10, batch_size=128, num_epochs=150):
     print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
     printd("Getting dataset...", end='\t')
@@ -113,7 +120,8 @@ def train(model_name, model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
 
     model, max_epoch = load_or_create_model(model_name, dataset.get_shape(), model_kwargs, loss=loss,
                                             loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
-                                            classifier=classifier, stop_grad_classifiers=stop_grad_classifiers)
+                                            classifier=classifier,
+                                            stop_grad_pathway=stop_grad_pathway, stop_grad_ensemble=stop_grad_ensemble)
 
     # TODO: regression callback?
 
@@ -137,7 +145,7 @@ def train(model_name, model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
 
 
 def create_and_compile_model(model_name, input_shape, model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
-                             optimizer_kwargs={}, classifier=False, stop_grad_classifiers=False):
+                             optimizer_kwargs={}, classifier=False, stop_grad_pathway=True, stop_grad_ensemble=False):
     printd("Creating model...", end='\t')
     model = create_model(model_name, input_shape=input_shape, **model_kwargs)
     printd("Done!")
@@ -146,7 +154,7 @@ def create_and_compile_model(model_name, input_shape, model_kwargs, loss=Contras
 
     printd("Compiling model...", end='\t')
     compile_model(model, loss=loss, loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
-                  classifier=classifier, stop_grad_classifiers=stop_grad_classifiers)
+                  classifier=classifier, stop_grad_pathway=stop_grad_pathway, stop_grad_ensemble=stop_grad_ensemble)
 
     return model
 
@@ -181,11 +189,12 @@ def load_model_from_json(model_name, load=True, optimizer_state=True):
     dct = load_json(model_name)
 
     def call(model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={}, optimizer_kwargs={},
-             classifier=False, stop_grad_classifiers=False, dataset=Cifar10):
+             classifier=False, stop_grad_pathway=True, stop_grad_ensemble=False, dataset=Cifar10):
         dataset = get_class(dataset, utils.data)()
         model, _ = load_or_create_model(model_name, dataset.get_shape(), model_kwargs, loss=loss,
                                         loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
-                                        classifier=classifier, stop_grad_classifiers=stop_grad_classifiers,
+                                        classifier=classifier, stop_grad_pathway=stop_grad_pathway,
+                                        stop_grad_ensemble=stop_grad_ensemble,
                                         load=load, optimizer_state=optimizer_state)
         return model
 
