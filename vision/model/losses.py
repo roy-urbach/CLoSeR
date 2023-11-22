@@ -63,7 +63,6 @@ class ContrastiveSoftmaxLoss(Loss):
     def call(self, y_true, y_pred):
         b = tf.shape(y_pred)[0]
         n = tf.shape(y_pred)[-1]
-        indices = [[[i, i, j] for j in range(n)] for i in range(b)]
         n_samples = float(b * n * (n-1))
 
         models_mask = (~tf.eye(n, dtype=tf.bool))[None]  # (loss over every pair)
@@ -76,8 +75,9 @@ class ContrastiveSoftmaxLoss(Loss):
         if self.stable:
             similarity = similarity - tf.reduce_max(similarity, axis=0, keepdims=True)
         similarity = tf.exp(similarity)
-        softmaxed = tf.gather_nd(similarity, indices=indices) / (tf.reduce_sum(similarity, axis=0) * n_samples)
-        loss = 1 - tf.reduce_sum(tf.where(models_mask, softmaxed, 0))
+        diagonal_over_batch = tf.gather_nd(similarity, indices=tf.stack([tf.range(b)]*2, axis=-1))
+        softmaxed = diagonal_over_batch / tf.reduce_sum(similarity, axis=1)
+        loss = 1 - tf.reduce_sum(tf.where(models_mask, softmaxed, 0)) / n_samples
         return loss
 
 
