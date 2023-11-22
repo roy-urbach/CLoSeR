@@ -1,3 +1,4 @@
+from model.callbacks import SaveOptimizerCallback, ErasePreviousCallback, SaveHistory
 from model.layers import *
 from model.losses import *
 from utils.data import *
@@ -185,44 +186,6 @@ def load_model_from_json(model_name, load=True, optimizer_state=True):
         return model
 
     return call(**dct)
-
-
-class SaveOptimizerCallback(tf.keras.callbacks.Callback):
-    def on_epoch_end(self, *args, logs=None, **kwargs):
-        import pickle
-        import os
-        symbolic_weights = getattr(self.model.optimizer, 'weights')
-        weight_values = keras.backend.batch_get_value(symbolic_weights)
-        with open(os.path.join("models", self.model.name, "checkpoints", 'optimizer.pkl'), 'wb') as f:
-            pickle.dump(weight_values, f)
-
-
-class ErasePreviousCallback(tf.keras.callback.Callback):
-    def on_epoch_end(self, *args, epoch=None, **kwargs):
-        import os
-        fns = [f"model_weights_{epoch-1}.data-00000-of-00001", f"model_weights_{epoch-1}.index"]
-        fns = [f"models/{self.mode.name}/checkpoints/" + fn for fn in fns]
-        for fn in fns:
-            if os.path.exists(fn):
-                os.remove(fn)
-                print(f"removed {fn}")
-
-
-class SaveHistory(tf.keras.callback.Callback):
-    def __init__(self):
-        super().__init__()
-        self.history = {}
-
-    def on_train_begin(self, logs=None):
-        self.epoch = []
-
-    def on_epoch_end(self, epoch, logs=None):
-        logs = logs or {}
-        self.epoch.append(epoch)
-        for k, v in logs.items():
-            self.history.setdefault(k, []).append(v)
-
-        save_json("history", self.history, base_path=f"models/{self.mode.name}/checkpoints/")
 
 
 def load_optimizer(model):
