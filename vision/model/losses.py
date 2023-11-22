@@ -68,8 +68,6 @@ class ContrastiveSoftmaxLoss(Loss):
         models_mask = (~tf.eye(n, dtype=tf.bool))[None, None]  # (loss over every pair)
 
         positive_mask = samples_mask & models_mask
-        pos_n = tf.cast(tf.reduce_sum(tf.cast(positive_mask, tf.int32)), y_pred.dtype)
-
         embedding = y_pred
         dist = tf.reduce_sum(tf.pow(embedding[:, None, ..., None, :] - embedding[None, :, ..., None], 2), axis=2)
         if self.eps:
