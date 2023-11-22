@@ -76,7 +76,7 @@ class ContrastiveSoftmaxLoss(Loss):
             similarity = similarity - tf.reduce_max(similarity, axis=0, keepdims=True)
         similarity = tf.exp(similarity)
         diagonal_over_batch = tf.gather_nd(similarity, indices=tf.stack([tf.range(b)]*2, axis=-1))
-        softmaxed = tf.minimum(diagonal_over_batch / tf.reduce_sum(similarity, axis=1), tf.cast(1-1/b, tf.float64))
+        softmaxed = tf.minimum(diagonal_over_batch / tf.reduce_sum(similarity, axis=1), tf.cast(1-1/b, diagonal_over_batch.dtype))
         loss = 1 - tf.reduce_sum(tf.where(models_mask, softmaxed, 0)) / n_samples
         return loss
 
