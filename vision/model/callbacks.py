@@ -36,4 +36,4 @@ class SaveHistory(tf.keras.callbacks.Callback):
         for k, v in logs.items():
             self.history.setdefault(k, []).append(v)
 
-        save_json("history", self.history, base_path=f"models/{self.mode.name}/checkpoints/")
+        save_json("history", self.history, base_path=f"models/{self.model.name}/checkpoints/")
