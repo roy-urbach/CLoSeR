@@ -3,7 +3,7 @@ from utils.io_utils import save_json
 
 
 class SaveOptimizerCallback(tf.keras.callbacks.Callback):
-    def on_epoch_end(self, *args, logs=None, **kwargs):
+    def on_epoch_end(self, epoch, logs=None):
         import pickle
         import os
         symbolic_weights = getattr(self.model.optimizer, 'weights')
@@ -13,7 +13,7 @@ class SaveOptimizerCallback(tf.keras.callbacks.Callback):
 
 
 class ErasePreviousCallback(tf.keras.callbacks.Callback):
-    def on_epoch_end(self, epoch, **kwargs):
+    def on_epoch_end(self, epoch, logs=None):
         import os
         fns = [f"model_weights_{epoch-1}.data-00000-of-00001", f"model_weights_{epoch-1}.index"]
         fns = [f"models/{self.model.name}/checkpoints/" + fn for fn in fns]
