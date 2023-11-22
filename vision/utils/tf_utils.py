@@ -3,6 +3,8 @@ import tensorflow as tf
 from tensorflow import keras
 import os
 import random
+
+from utils.io_utils import load_json
 from utils.utils import printd
 
 CUSTOM_OBJECTS = {}
@@ -66,3 +68,8 @@ def load_checkpoint(model):
         printd("done!")
     else:
         printd("no checkpoint found")
+
+
+def load_history(model):
+    return load_json(f"{model}/checkpoints/history.json", base_path="models")
+
