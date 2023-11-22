@@ -73,8 +73,11 @@ def create_model(name='model', only_classtoken=False, koleo_lambda=0, classifier
     logits = layers.Dense(num_classes, activation=None, name=name + '_logits')(
         embedding[..., 0] if classifier else tf.stop_gradient(embedding[..., 0]))
 
+    ens_logits = layers.Dense(num_classes, activation=None, name=name + '_ensemble_logits')(
+        tf.reshape(embedding, (-1, np.multiply.reduce(embedding.shape[1:]))) if classifier else tf.reshape(tf.stop_gradient(embedding), (-1, np.multiply.reduce(embedding.shape[1:])))
+
     # Create the Keras model.
-    model = keras.Model(inputs=inputs, outputs=[embedding, logits], name=name)
+    model = keras.Model(inputs=inputs, outputs=[embedding, logits, ens_logits], name=name)
     return model
 
 
@@ -87,8 +90,12 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={}, optimizer_
         optimizer=optimizer,
         loss={
             model.name + '_embedding': loss(**loss_kwargs) if not classifier else lambda *args: 0.,
-            model.name + '_logits': keras.losses.SparseCategoricalCrossentropy(from_logits=True)},
-        metrics={model.name + '_logits': keras.metrics.SparseCategoricalAccuracy(name="accuracy")}
+            model.name + '_logits': keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+            model.name + '_ensemble_logits': keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+        },
+        metrics={model.name + '_logits': keras.metrics.SparseCategoricalAccuracy(name="accuracy"),
+                 model.name + '_ensemble_logits': keras.metrics.SparseCategoricalAccuracy(name="accuracy"),
+                 }
     )
 
 
@@ -112,7 +119,8 @@ def train(model_name, model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
             x=dataset.get_x_train(),
             y=dataset.get_y_train(),
             batch_size=batch_size,
-            epochs=num_epochs - max_epoch,
+            epochs=num_epochs,
+            initial_epoch=max_epoch,
             validation_split=dataset.get_val_split(),
             callbacks=[tf.keras.callbacks.ModelCheckpoint(filepath=get_weights_fn(model),
                                                           save_weights_only=True,
