@@ -70,6 +70,10 @@ def load_checkpoint(model):
         printd("no checkpoint found")
 
 
+def history_fn_name(model):
+    return f"models/{model}/checkpoints/history.json"
+
+
 def load_history(model):
-    return load_json(f"{model}/checkpoints/history.json", base_path="models")
+    return load_json(history_fn_name(model), base_path="")
 

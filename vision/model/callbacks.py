@@ -1,5 +1,6 @@
 import tensorflow as tf
 from utils.io_utils import save_json
+from utils.tf_utils import history_fn_name
 
 
 class SaveOptimizerCallback(tf.keras.callbacks.Callback):
@@ -36,4 +37,4 @@ class SaveHistory(tf.keras.callbacks.Callback):
         for k, v in logs.items():
             self.history.setdefault(k, []).append(v)
 
-        save_json("history", self.history, base_path=f"models/{self.model.name}/checkpoints/")
+        save_json(history_fn_name(self.model.name), self.history, base_path="")
