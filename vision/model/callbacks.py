@@ -16,7 +16,7 @@ class SaveOptimizerCallback(tf.keras.callbacks.Callback):
 class ErasePreviousCallback(tf.keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
         import os
-        fns = [f"model_weights_{epoch-1}.data-00000-of-00001", f"model_weights_{epoch-1}.index"]
+        fns = [f"model_weights_{epoch}.data-00000-of-00001", f"model_weights_{epoch}.index"]
         fns = [f"models/{self.model.name}/checkpoints/" + fn for fn in fns]
         for fn in fns:
             if os.path.exists(fn):
