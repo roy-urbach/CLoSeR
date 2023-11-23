@@ -114,3 +114,11 @@ class KoLeoLoss(Loss):
             min_dist = tf.reduce_min(dist, axis=1)
             out += -self.lambda_ * tf.reduce_mean(tf.math.log(min_dist))
         return out
+
+
+class GeneralPullPushGraphLoss(Loss):
+    def __init__(self, *args, a_pull, a_push, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.a_pull = a_pull
+        self.a_push = a_push
+

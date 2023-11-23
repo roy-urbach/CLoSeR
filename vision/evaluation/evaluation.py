@@ -60,6 +60,7 @@ def classify_head_eval_ensemble(dataset, linear=True, k=10, base_name='',
         cur_ds = Data(x_train[..., i], y_train.flatten(), x_test[..., i], y_test.flatten())
         res[base_name + f'pathway{i}_{name}'] = (pathway.score(*cur_ds.get_train()),
                                                  pathway.score(*cur_ds.get_test()))
+    res[base_name + f'pathways_mean_{name}'] = np.mean(list(res.values()), axis=0)
 
     for voting_method in voting_methods:
         train_score = ensemble.score(x_train, y_train.flatten(), voting_method=voting_method)
