@@ -192,18 +192,21 @@ def load_or_create_model(model_name, *args, load=True, optimizer_state=True, **k
 
 def load_model_from_json(model_name, load=True, optimizer_state=True):
     dct = load_json(model_name)
+    if dct is None:
+        return None
+    else:
 
-    def call(model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={}, optimizer_kwargs={},
-             classifier=False, stop_grad_pathway=True, stop_grad_ensemble=False, dataset=Cifar10):
-        dataset = get_class(dataset, utils.data)()
-        model, _ = load_or_create_model(model_name, dataset.get_shape(), model_kwargs, loss=loss,
-                                        loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
-                                        classifier=classifier, stop_grad_pathway=stop_grad_pathway,
-                                        stop_grad_ensemble=stop_grad_ensemble,
-                                        load=load, optimizer_state=optimizer_state)
-        return model
+        def call(model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={}, optimizer_kwargs={},
+                 classifier=False, stop_grad_pathway=True, stop_grad_ensemble=False, dataset=Cifar10):
+            dataset = get_class(dataset, utils.data)()
+            model, _ = load_or_create_model(model_name, dataset.get_shape(), model_kwargs, loss=loss,
+                                            loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
+                                            classifier=classifier, stop_grad_pathway=stop_grad_pathway,
+                                            stop_grad_ensemble=stop_grad_ensemble,
+                                            load=load, optimizer_state=optimizer_state)
+            return model
 
-    return call(**dct)
+        return call(**dct)
 
 
 def load_optimizer(model):
