@@ -63,7 +63,7 @@ def evaluate(model, knn=False, linear=True, ensemble=True, ensemble_knn=False, s
 
     from evaluation.evaluation import classify_head_eval
 
-    results = load_evaluation_json(model.name)
+    results = load_evaluation_json(model.name) if not override else {}
 
     if results is None:
         results = {}
