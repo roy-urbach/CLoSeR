@@ -1,5 +1,5 @@
 import tensorflow as tf
-from utils.io_utils import save_json
+from utils.io_utils import save_json, load_json
 from utils.tf_utils import history_fn_name
 
 
@@ -26,7 +26,8 @@ class ErasePreviousCallback(tf.keras.callbacks.Callback):
 class SaveHistory(tf.keras.callbacks.Callback):
     def __init__(self):
         super().__init__()
-        self.history = {}
+        prev_history = load_json(history_fn_name(self.model.name), base_path='')
+        self.history = {} if prev_history is None else prev_history
 
     def on_train_begin(self, logs=None):
         self.epoch = []
