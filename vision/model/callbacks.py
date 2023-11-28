@@ -26,11 +26,12 @@ class ErasePreviousCallback(tf.keras.callbacks.Callback):
 class SaveHistory(tf.keras.callbacks.Callback):
     def __init__(self):
         super().__init__()
-        prev_history = load_json(history_fn_name(self.model.name), base_path='')
-        self.history = {} if prev_history is None else prev_history
+        self.history = None
 
     def on_train_begin(self, logs=None):
         self.epoch = []
+        prev_history = load_json(history_fn_name(self.model.name), base_path='')
+        self.history = {} if prev_history is None else prev_history
 
     def on_epoch_end(self, epoch, logs=None):
         logs = logs or {}
