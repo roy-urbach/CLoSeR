@@ -35,8 +35,22 @@ def main():
         return parser.parse_args()
 
     args = parse()
-    return evaluate(args.json, knn=args.knn, linear=args.linear, ensemble=args.ensemble, ensemble_knn=args.ensemble_knn,
-                    save_results=True, dataset=None, override=args.override)
+    evaluating_fn = f'models/{".".join(args.json.split(".")[:-1]) if args.json.endswith(".json") else args.json}/is_evaluating'
+
+    import os
+    if os.path.exists(evaluating_fn):
+        print("already evaluating!")
+        return
+    else:
+        with open(evaluating_fn, 'w') as f:
+            f.write("Yes!")
+
+    try:
+        res = evaluate(args.json, knn=args.knn, linear=args.linear, ensemble=args.ensemble, ensemble_knn=args.ensemble_knn,
+                        save_results=True, dataset=None, override=args.override)
+    finally:
+        os.remove(evaluating_fn)
+    return res
 
 
 def evaluate(model, knn=False, linear=True, ensemble=True, ensemble_knn=False, save_results=False, override=False, dataset=Cifar10(), **kwargs):
@@ -63,7 +77,7 @@ def evaluate(model, knn=False, linear=True, ensemble=True, ensemble_knn=False, s
 
     from evaluation.evaluation import classify_head_eval
 
-    results = load_evaluation_json(model.name)
+    results = load_evaluation_json(model.name) if not override else {}
 
     if results is None:
         results = {}

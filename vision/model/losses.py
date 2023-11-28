@@ -60,17 +60,7 @@ class ContrastiveSoftmaxLoss(Loss):
         self.eps = eps
         self.stable = stable
 
-    def call(self, y_true, y_pred):
-        b = tf.shape(y_pred)[0]
-        n = tf.shape(y_pred)[-1]
-
-        samples_mask = tf.eye(b, dtype=tf.bool)[..., None, None]  # (loss over diagonal)
-        models_mask = (~tf.eye(n, dtype=tf.bool))[None, None]  # (loss over every pair)
-
-        positive_mask = samples_mask & models_mask
-        pos_n = tf.cast(tf.reduce_sum(tf.cast(positive_mask, tf.int32)), y_pred.dtype)
-
-        embedding = y_pred
+    def calculate_probs(self, embedding):
         dist = tf.reduce_sum(tf.pow(embedding[:, None, ..., None, :] - embedding[None, :, ..., None], 2), axis=2)
         if self.eps:
             dist = tf.minimum(dist, self.eps)
@@ -79,9 +69,23 @@ class ContrastiveSoftmaxLoss(Loss):
             similarity = similarity - tf.reduce_max(similarity, axis=0, keepdims=True)
         similarity = tf.exp(similarity)
         softmaxed = similarity / tf.reduce_sum(similarity, axis=0, keepdims=True)
-        return 1 - tf.reduce_sum(tf.where(positive_mask, softmaxed, 0)) / pos_n
-        # out = -tf.reduce_sum(tf.where(positive_mask, tf.math.log(softmaxed) / pos_n, 0))
-        # return out
+        return softmaxed
+
+    def get_pos_mask(self, y_pred):
+        b = tf.shape(y_pred)[0]
+        n = tf.shape(y_pred)[-1]
+
+        samples_mask = tf.eye(b, dtype=tf.bool)[..., None, None]  # (loss over diagonal)
+        models_mask = (~tf.eye(n, dtype=tf.bool))[None, None]  # (loss over every pair)
+
+        positive_mask = samples_mask & models_mask
+        pos_n = tf.cast(tf.reduce_sum(tf.cast(positive_mask, tf.int32)), y_pred.dtype)
+        return positive_mask, pos_n
+
+    def call(self, y_true, y_pred):
+        probs = self.calculate_probs(y_pred)
+        positive_mask, pos_n = self.get_pos_mask(y_pred)
+        return 1 - tf.reduce_sum(tf.where(positive_mask, probs, 0)) / pos_n
 
 
 @serialize
