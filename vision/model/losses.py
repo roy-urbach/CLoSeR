@@ -60,14 +60,18 @@ class ContrastiveSoftmaxLoss(Loss):
         self.eps = eps
         self.stable = stable
 
-    def calculate_probs(self, embedding):
+    def calculate_logits(self, embedding):
         dist = tf.reduce_sum(tf.pow(embedding[:, None, ..., None, :] - embedding[None, :, ..., None], 2), axis=2)
         if self.eps:
             dist = tf.minimum(dist, self.eps)
         similarity = -dist / self.temperature
         if self.stable:
             similarity = similarity - tf.reduce_max(similarity, axis=0, keepdims=True)
-        similarity = tf.exp(similarity)
+        logits = tf.exp(similarity)
+        return logits
+
+    def calculate_probs(self, embedding, similarity=None):
+        similarity = self.calculate_logits(embedding) if similarity is None else similarity
         softmaxed = similarity / tf.reduce_sum(similarity, axis=0, keepdims=True)
         return softmaxed
 
@@ -86,6 +90,45 @@ class ContrastiveSoftmaxLoss(Loss):
         probs = self.calculate_probs(y_pred)
         positive_mask, pos_n = self.get_pos_mask(y_pred)
         return 1 - tf.reduce_sum(tf.where(positive_mask, probs, 0)) / pos_n
+
+
+class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
+    def __init__(self, *args, a_pull, a_push, log_eps=1e-10, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.a_pull = a_pull
+        self.a_push = a_push
+        self.is_pull = tf.reduce_any(a_pull)
+        self.is_push = tf.reduce_any(a_push)
+        self.log_eps = log_eps
+
+    def map_rep_dev(self, similarity):
+        b = tf.shape(similarity)[0]
+        n = tf.shape(similarity)[-1]
+        self_sim = tf.reshape(similarity[~tf.eye(b, dtype=tf.bool)[..., None, None] & tf.eye(n, dtype=tf.bool)[None, None]], (b-1, b, n))
+        map_rep = tf.transpose(self_sim / tf.reduce_sum(self_sim, axis=0, keepdims=True), [1,2,0])  # (b, n, b-1)
+        log_map_rep = tf.math.log2(tf.maximum(map_rep, self.log_eps))
+        cross_ent = tf.linalg.matmul(map_rep, log_map_rep, transpose_b=True)  # (b, n, n)
+        entropy = tf.reshape(cross_ent[tf.eye(n)[None]], (b, n, 1))
+        dkl = entropy - cross_ent   # (b, n, n)
+        return dkl
+
+    def call(self, y_true, y_pred):
+        logits = self.calculate_logits(y_pred)
+        loss = 0.
+
+        if self.is_pull:
+            probs = self.calculate_probs(None, logits)[tf.eye(tf.shape(logits)[0])]     # (b, n, n)
+            mean_probs = tf.reduce_mean(probs, axis=0)
+            pull_loss = tf.tensordot(self.a_pull, 1 - mean_probs, axes=(0, 1))
+            loss += pull_loss
+
+        if self.is_push:
+            mrdev = self.map_rep_dev(logits)   # (b, n, n)
+            mean_mrdev = tf.reduce_mean(mrdev, axis=0)
+            push_loss = tf.tensordot(self.a_push, -mean_mrdev, axes=(0, 1))
+            loss += push_loss
+
+        return loss
 
 
 @serialize
@@ -118,11 +161,3 @@ class KoLeoLoss(Loss):
             min_dist = tf.reduce_min(dist, axis=1)
             out += -self.lambda_ * tf.reduce_mean(tf.math.log(min_dist))
         return out
-
-
-class GeneralPullPushGraphLoss(Loss):
-    def __init__(self, *args, a_pull, a_push, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.a_pull = a_pull
-        self.a_push = a_push
-
