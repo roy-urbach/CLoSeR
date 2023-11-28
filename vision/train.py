@@ -24,8 +24,19 @@ def run():
     import sys
     sys.stdout.flush()
 
-    from model.model import train
-    train(model_name, **kwargs, batch_size=args.batch, num_epochs=args.epochs)
+    training_fn = f"models/{model_name}/is_training"
+    if os.path.exists(training_fn):
+        print("already training")
+        return
+    else:
+        with open(training_fn, 'w') as f:
+            f.write("Yes!")
+
+    try:
+        from model.model import train
+        train(model_name, **kwargs, batch_size=args.batch, num_epochs=args.epochs)
+    finally:
+        os.remove(training_fn)
 
 
 if __name__ == '__main__':
