@@ -35,7 +35,7 @@ def main():
         return parser.parse_args()
 
     args = parse()
-    evaluating_fn = f'model/{".".join(args.json.split(".")[:-1]) if args.json.endswith(".json") else args.json}/is_evaluating'
+    evaluating_fn = f'models/{".".join(args.json.split(".")[:-1]) if args.json.endswith(".json") else args.json}/is_evaluating'
 
     import os
     if os.path.exists(evaluating_fn):
