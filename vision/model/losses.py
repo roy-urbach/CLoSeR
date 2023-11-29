@@ -97,8 +97,8 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         super().__init__(*args, **kwargs)
         self.a_pull = tf.constant(a_pull)
         self.a_push = tf.constant(a_push)
-        self.is_pull = tf.reduce_any(a_pull)
-        self.is_push = tf.reduce_any(a_push)
+        self.is_pull = tf.reduce_any(a_pull).numpy()
+        self.is_push = tf.reduce_any(a_push).numpy()
         self.log_eps = log_eps
 
     def map_rep_dev(self, similarity):
