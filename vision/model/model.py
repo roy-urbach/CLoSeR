@@ -150,18 +150,19 @@ def create_and_compile_model(model_name, input_shape, model_kwargs, loss=Contras
                              print_log=False):
     if print_log:
         printd("Creating model...", end='\t')
-    model = create_model(model_name, input_shape=input_shape, **model_kwargs)
+    m = create_model(model_name, input_shape=input_shape, **model_kwargs)
     if print_log:
         printd("Done!")
 
+    import model.losses
     loss = get_class(loss, model.losses)
 
     if print_log:
         printd("Compiling model...", end='\t')
-    compile_model(model, loss=loss, loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
+    compile_model(m, loss=loss, loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
                   classifier=classifier, stop_grad_pathway=stop_grad_pathway, stop_grad_ensemble=stop_grad_ensemble)
 
-    return model
+    return m
 
 
 def load_or_create_model(model_name, *args, load=True, optimizer_state=True, **kwargs):
