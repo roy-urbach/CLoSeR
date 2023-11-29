@@ -106,7 +106,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         n = tf.shape(similarity)[-1]
         self_sim = tf.reshape(similarity[~tf.eye(b, dtype=tf.bool)[..., None, None] & tf.eye(n, dtype=tf.bool)[None, None]], (b-1, b, n))
         map_rep = tf.transpose(self_sim / tf.reduce_sum(self_sim, axis=0, keepdims=True), [1,2,0])  # (b, n, b-1)
-        log_map_rep = tf.math.log2(tf.maximum(map_rep, self.log_eps))
+        log_map_rep = tf.experimental.numpy.log2(tf.maximum(map_rep, self.log_eps))
         cross_ent = tf.linalg.matmul(map_rep, log_map_rep, transpose_b=True)  # (b, n, n)
         entropy = tf.reshape(cross_ent[tf.eye(n, dtype=tf.bool)[None]], (b, n, 1))
         dkl = entropy - cross_ent   # (b, n, n)
