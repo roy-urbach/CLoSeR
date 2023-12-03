@@ -201,8 +201,8 @@ def load_model_from_json(model_name, load=True, optimizer_state=True):
     else:
 
         def call(model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={}, optimizer_kwargs={},
-                 classifier=False, stop_grad_pathway=True, stop_grad_ensemble=False, dataset=Cifar10):
-            dataset = get_class(dataset, utils.data)()
+                 classifier=False, stop_grad_pathway=True, stop_grad_ensemble=False, dataset=Cifar10, data_kwargs={}):
+            dataset = get_class(dataset, utils.data)(**data_kwargs)
             model, _ = load_or_create_model(model_name, dataset.get_shape(), model_kwargs, loss=loss,
                                             loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
                                             classifier=classifier, stop_grad_pathway=stop_grad_pathway,
