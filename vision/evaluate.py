@@ -69,7 +69,7 @@ def evaluate(model, knn=False, linear=True, ensemble=True, ensemble_knn=False, s
         assert model_kwargs is not None
         model = load_model_from_json(model)
         if dataset is None:
-            dataset = get_class(model_kwargs.get('dataset', 'Cifar10'), data)()
+            dataset = get_class(model_kwargs.get('dataset', 'Cifar10'), data)(**model_kwargs.get('data_kwargs', {}))
 
     x_train_embd = model.predict(dataset.get_x_train())[0]
     x_test_embd = model.predict(dataset.get_x_test())[0]
