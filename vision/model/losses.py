@@ -105,9 +105,9 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         b = tf.shape(similarity)[0]
         n = tf.shape(similarity)[-1]
         self_sim = tf.reshape(similarity[~tf.eye(b, dtype=tf.bool)[..., None, None] & tf.eye(n, dtype=tf.bool)[None, None]], (b-1, b, n))
-        map_rep = tf.transpose(self_sim / tf.reduce_sum(self_sim, axis=0, keepdims=True), [1,2,0])  # (b, n, b-1)
+        map_rep = self_sim / tf.reduce_sum(self_sim, axis=0, keepdims=True)  # (b-1, b, n)
         log_map_rep = tf.experimental.numpy.log2(tf.maximum(map_rep, self.log_eps))
-        cross_ent = tf.linalg.matmul(map_rep, log_map_rep, transpose_b=True)  # (b, n, n)
+        cross_ent = tf.einsum('ibn,ibm->bnm', map_rep, log_map_rep)  # (b, n, n)
         entropy = tf.linalg.diag_part(cross_ent)[..., None]
         dkl = entropy - cross_ent   # (b, n, n)
         return dkl
@@ -119,13 +119,13 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         if self.is_pull:
             probs = self.calculate_probs(None, logits)[tf.eye(tf.shape(logits)[0], dtype=tf.bool)]     # (b, n, n)
             mean_probs = tf.reduce_mean(probs, axis=0)
-            pull_loss = tf.tensordot(self.a_pull, 1 - mean_probs, axes=(0, 1))
+            pull_loss = tf.tensordot(self.a_pull, 1 - mean_probs, axes=[[0, 1], [0, 1]])
             loss += pull_loss
 
         if self.is_push:
             mrdev = self.map_rep_dev(logits)   # (b, n, n)
             mean_mrdev = tf.reduce_mean(mrdev, axis=0)
-            push_loss = tf.tensordot(self.a_push, -mean_mrdev, axes=(0, 1))
+            push_loss = tf.tensordot(self.a_push, -mean_mrdev, axes=[[0, 1], [0, 1]])
             loss += push_loss
 
         return loss
