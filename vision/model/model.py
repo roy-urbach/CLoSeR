@@ -35,6 +35,9 @@ def create_model(name='model', only_classtoken=False, koleo_lambda=0, classifier
     # Augment data.
     augmented = get_data_augmentation(image_size)(inputs)
 
+    if tf.shape(augmented) == 3:
+        augmented = augmented[..., None]
+
     # Create patches.
     patches = Patches(patch_size, name=name + '_patch')(augmented)
     num_patches = (image_size // patch_size) ** 2
