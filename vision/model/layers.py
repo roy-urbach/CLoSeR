@@ -12,12 +12,12 @@ from utils.utils import *
 
 @serialize
 class MLP(tf_layers.Layer):
-    def __init__(self, hidden_units, dropout_rate=0.1, **kwargs):
+    def __init__(self, hidden_units, dropout_rate=0.1, kernel_regularizer='l1_l2', **kwargs):
         super(MLP, self).__init__(**kwargs)
         self.hidden_units = hidden_units
-        self.dense = [tf_layers.Dense(units, activation=tf.nn.gelu, name=self.name + f'_fc{i}')
+        self.dense = [tf_layers.Dense(units, activation=tf.nn.gelu, kernel_regularizer=kernel_regularizer, name=self.name + f'_fc{i}')
                       for i, units in enumerate(self.hidden_units)]
-        self.dropout = [tf_layers.Dropout(dropout_rate, name=self.name + f'_do{i}')
+        self.dropout = [tf_layers.Dropout(dropout_rate, kernel_regularizer=kernel_regularizer, name=self.name + f'_do{i}')
                         for i, _ in enumerate(self.hidden_units)]
         self.depth = len(hidden_units)
 
@@ -77,7 +77,7 @@ class PatchEncoder(tf_layers.Layer):
         patches_embed = tf.concat([class_token, patches_embed], 1)
         # calculate positional embeddings
         positions = tf.concat([tf.zeros(self.num_class_tokens, dtype=tf.int32),
-                               tf.range(start=1, limit=self.num_patches+1, delta=1)], axis=0)
+                               tf.range(start=1, limit=self.num_patches + 1, delta=1)], axis=0)
         positions_embed = self.position_embedding(positions)
         # add both embeddings
         encoded = patches_embed + positions_embed
@@ -90,18 +90,20 @@ class PatchEncoder(tf_layers.Layer):
 
 @serialize
 class ViTBlock(tf_layers.Layer):
-    def __init__(self, num_heads=4, projection_dim=64, dropout_rate=0.1, **kwargs):
+    def __init__(self, num_heads=4, projection_dim=64, dropout_rate=0.1, kernel_regularizer='l1_l2', **kwargs):
         super(ViTBlock, self).__init__(**kwargs)
         self.num_heads = num_heads
         self.projection_dim = projection_dim
         self.dropout_rate = dropout_rate
-        self.bn1 = tf_layers.BatchNormalization(name=self.name + '_bn1')
+        self.bn1 = tf_layers.BatchNormalization(name=self.name + '_bn1', kernel_regularizer=kernel_regularizer)
         self.mh_attn = tf_layers.MultiHeadAttention(num_heads=num_heads,
-                                                 key_dim=projection_dim,
-                                                 dropout=dropout_rate, name=self.name + '_mhattn')
+                                                    key_dim=projection_dim,
+                                                    dropout=dropout_rate,
+                                                    kernel_regularizer=kernel_regularizer,
+                                                    name=self.name + '_mhattn')
         self.add1 = tf_layers.Add(name=self.name + '_add1')
         self.bn2 = tf_layers.BatchNormalization(name=self.name + '_bn2')
-        self.mlp = MLP([projection_dim * 2, projection_dim], dropout_rate=dropout_rate)
+        self.mlp = MLP([projection_dim * 2, projection_dim], dropout_rate=dropout_rate, kernel_regularizer=kernel_regularizer)
         self.add2 = tf_layers.Add(name=self.name + '_add2')
 
     def get_config(self):
@@ -120,15 +122,15 @@ class ViTBlock(tf_layers.Layer):
 
 @serialize
 class ViTOutBlock(tf_layers.Layer):
-    def __init__(self, dropout_rate=0.1, output_dim=512, mlp_head_units=(2048, 1024), reg=0, **kwargs):
+    def __init__(self, dropout_rate=0.1, output_dim=512, mlp_head_units=(2048, 1024), reg=0, kernel_regularizer='l1_l2', **kwargs):
         super(ViTOutBlock, self).__init__(**kwargs)
         # Create a [batch_size, projection_dim] tensor.
         self.bn = tf_layers.BatchNormalization()
         self.fl = tf_layers.Flatten()
         self.dropout = tf_layers.Dropout(dropout_rate)
         self.output_dim = output_dim
-        self.mlp = MLP(mlp_head_units, dropout_rate=dropout_rate)
-        self.dense = tf_layers.Dense(self.output_dim)
+        self.mlp = MLP(mlp_head_units, dropout_rate=dropout_rate, kernel_regularizer=kernel_regularizer)
+        self.dense = tf_layers.Dense(self.output_dim, kernel_regularizer=kernel_regularizer)
         self.reg = reg
         self.mlp_head_units = mlp_head_units
 
@@ -178,12 +180,13 @@ class SplitPathways(tf_layers.Layer):
         if self.indices is None:
             if self.intersection:
                 indices = tf.stack(
-                    [tf.random.shuffle(tf.range(self.shift, self.num_patches+self.shift))[:self.num_patches_per_path]
+                    [tf.random.shuffle(tf.range(self.shift, self.num_patches + self.shift))[:self.num_patches_per_path]
                      for _ in range(self.n)],
                     axis=-1)
             else:
                 indices = tf.reshape(
-                    tf.random.shuffle(tf.range(self.shift, self.num_patches+self.shift))[:self.num_patches - (self.num_patches % self.n)],
+                    tf.random.shuffle(tf.range(self.shift, self.num_patches + self.shift))[
+                    :self.num_patches - (self.num_patches % self.n)],
                     (-1, self.n))
 
             if self.fixed:
@@ -193,9 +196,10 @@ class SplitPathways(tf_layers.Layer):
 
         # everyone gets the class token
         if self.class_token:
-            cls_tokens_to_add = tf.range(self.n, dtype=indices.dtype)[None] if self.token_per_path else tf.zeros((1, self.n),
-                                                                                                                 dtype=indices.dtype)
-            indices = tf.concat([cls_tokens_to_add , indices], axis=0)
+            cls_tokens_to_add = tf.range(self.n, dtype=indices.dtype)[None] if self.token_per_path else tf.zeros(
+                (1, self.n),
+                dtype=indices.dtype)
+            indices = tf.concat([cls_tokens_to_add, indices], axis=0)
         return indices
 
     def call(self, inputs, training=False):
@@ -210,7 +214,6 @@ class SplitPathways(tf_layers.Layer):
 
 @serialize
 class LayerNormalization(keras.layers.Layer):
-
     """
     Taken from:
     https://github.com/CyberZHG/keras-layer-normalization/blob/master/keras_layer_normalization/layer_normalization.py

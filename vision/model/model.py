@@ -28,7 +28,7 @@ def get_data_augmentation(image_size):
 
 
 def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
-                 input_shape=(32, 32, 3), num_classes=10,
+                 input_shape=(32, 32, 3), num_classes=10, kernel_regularizer='l1_l2',
                  projection_dim=64, encoder='ViTEncoder', encoder_per_path=False,
                  encoder_kwargs={}, pathways_kwargs={}, image_size=72, patch_size=8,
                  stop_grad_ensemble=False, stop_grad_pathway=True):
@@ -44,7 +44,7 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
     num_patches = (image_size // patch_size) ** 2
 
     # Encode patches.
-    encoded_patches = PatchEncoder(num_patches, projection_dim, name=name + '_patchenc',
+    encoded_patches = PatchEncoder(num_patches, projection_dim, name=name + '_patchenc', kernel_regularizer=kernel_regularizer,
                                    num_class_tokens=pathways_kwargs.get('n', 2) if pathways_kwargs.get('token_per_path',
                                                                                                        False) else 1)(
         patches)
@@ -59,7 +59,8 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
     import model.encoders
     Encoder = get_class(encoder, model.encoders)
     out_reg = KoLeoRegularizer(koleo_lambda) if koleo_lambda else (tf.keras.regularizers.L2(l2) if l2 else None)
-    enc_init = lambda i: Encoder(name=name+f'_enc{i if i is not None else ""}', **encoder_kwargs, out_regularizer=out_reg)
+    enc_init = lambda i: Encoder(name=name+f'_enc{i if i is not None else ""}',
+                                 kernel_regularizer=kernel_regularizer, out_regularizer=out_reg, **encoder_kwargs)
     encoders = [enc_init(i) for i in range(len(pathways))] if encoder_per_path else [enc_init(None)] * len(pathways)
 
     embedding = tf.keras.layers.Concatenate(name=name + '_embedding', axis=-1)([encoder(pathway)[..., None]
