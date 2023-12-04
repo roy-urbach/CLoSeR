@@ -17,7 +17,7 @@ class MLP(tf_layers.Layer):
         self.hidden_units = hidden_units
         self.dense = [tf_layers.Dense(units, activation=tf.nn.gelu, kernel_regularizer=kernel_regularizer, name=self.name + f'_fc{i}')
                       for i, units in enumerate(self.hidden_units)]
-        self.dropout = [tf_layers.Dropout(dropout_rate, kernel_regularizer=kernel_regularizer, name=self.name + f'_do{i}')
+        self.dropout = [tf_layers.Dropout(dropout_rate, name=self.name + f'_do{i}')
                         for i, _ in enumerate(self.hidden_units)]
         self.depth = len(hidden_units)
 
@@ -95,7 +95,7 @@ class ViTBlock(tf_layers.Layer):
         self.num_heads = num_heads
         self.projection_dim = projection_dim
         self.dropout_rate = dropout_rate
-        self.bn1 = tf_layers.BatchNormalization(name=self.name + '_bn1', kernel_regularizer=kernel_regularizer)
+        self.bn1 = tf_layers.BatchNormalization(name=self.name + '_bn1')
         self.mh_attn = tf_layers.MultiHeadAttention(num_heads=num_heads,
                                                     key_dim=projection_dim,
                                                     dropout=dropout_rate,
