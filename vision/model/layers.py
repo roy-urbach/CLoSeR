@@ -57,15 +57,17 @@ class Patches(tf_layers.Layer):
 
 @serialize
 class PatchEncoder(tf_layers.Layer):
-    def __init__(self, num_patches=196, projection_dim=768, num_class_tokens=1, **kwargs):
+    def __init__(self, num_patches=196, projection_dim=768, num_class_tokens=1, kernel_regularizer='l1_l2', **kwargs):
         super(PatchEncoder, self).__init__(**kwargs)
         self.num_patches = num_patches
         self.projection_dim = projection_dim
         self.num_class_tokens = num_class_tokens
         class_token = tf.random_normal_initializer()(shape=(self.num_class_tokens, projection_dim), dtype="float32")
         self.class_token = tf.Variable(initial_value=class_token, trainable=True)
-        self.projection = tf_layers.Dense(units=projection_dim)
-        self.position_embedding = tf_layers.Embedding(input_dim=num_patches + 1, output_dim=projection_dim)
+        self.projection = tf_layers.Dense(units=projection_dim, kernel_regularizer=kernel_regularizer)
+        self.position_embedding = tf_layers.Embedding(input_dim=num_patches + 1,
+                                                      embeddings_regularizer=kernel_regularizer,
+                                                      output_dim=projection_dim)
 
     def call(self, patch):
         batch = tf.shape(patch)[0]
