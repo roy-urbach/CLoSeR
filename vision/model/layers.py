@@ -152,7 +152,7 @@ class ViTOutBlock(tf_layers.Layer):
 @serialize
 class SplitPathways(tf_layers.Layer):
     def __init__(self, num_patches, token_per_path=False, n=2, d=0.5, intersection=True, fixed=False,
-                 seed=0, old=False, **kwargs):
+                 seed=0, class_token=True, **kwargs):
         super(SplitPathways, self).__init__(**kwargs)
         assert intersection or n == 2
         self.n = n
@@ -162,7 +162,8 @@ class SplitPathways(tf_layers.Layer):
         self.token_per_path = token_per_path
         self.num_patches_per_path = int(num_patches * d)
         self.intersection = intersection
-        self.old = old
+        self.class_token = class_token
+        self.shift = (self.n if token_per_path else 1) if class_token else 0
         self.indices = None
         if fixed:
             set_seed(self.seed)
@@ -170,19 +171,19 @@ class SplitPathways(tf_layers.Layer):
 
     def get_config(self):
         return dict(**super().get_config(), n=self.n, seed=self.seed, fixed=self.fixed,
-                    num_patches=self.num_patches, intersection=self.intersection, old=self.old)
+                    num_patches=self.num_patches, intersection=self.intersection,
+                    shift=self.shift, class_token=self.class_token)
 
     def get_indices(self):
         if self.indices is None:
-            shift = (1 - self.old) * (self.n if self.token_per_path else 1)
             if self.intersection:
                 indices = tf.stack(
-                    [tf.random.shuffle(tf.range(shift, self.num_patches+shift))[:self.num_patches_per_path]
+                    [tf.random.shuffle(tf.range(self.shift, self.num_patches+self.shift))[:self.num_patches_per_path]
                      for _ in range(self.n)],
                     axis=-1)
             else:
                 indices = tf.reshape(
-                    tf.random.shuffle(tf.range(shift, self.num_patches+shift))[:self.num_patches - (self.num_patches % self.n)],
+                    tf.random.shuffle(tf.range(self.shift, self.num_patches+self.shift))[:self.num_patches - (self.num_patches % self.n)],
                     (-1, self.n))
 
             if self.fixed:
@@ -191,7 +192,7 @@ class SplitPathways(tf_layers.Layer):
             indices = self.indices
 
         # everyone gets the class token
-        if not self.old:
+        if self.class_token:
             cls_tokens_to_add = tf.range(self.n, dtype=indices.dtype)[None] if self.token_per_path else tf.zeros((1, self.n),
                                                                                                                  dtype=indices.dtype)
             indices = tf.concat([cls_tokens_to_add , indices], axis=0)
