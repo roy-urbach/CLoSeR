@@ -60,7 +60,22 @@ class ContrastiveSoftmaxLoss(Loss):
         self.eps = eps
         self.stable = stable
 
-    def call(self, y_true, y_pred):
+    def calculate_logits(self, embedding):
+        dist = tf.reduce_sum(tf.pow(embedding[:, None, ..., None, :] - embedding[None, :, ..., None], 2), axis=2)
+        if self.eps:
+            dist = tf.minimum(dist, self.eps)
+        similarity = -dist / self.temperature
+        if self.stable:
+            similarity = similarity - tf.reduce_max(similarity, axis=0, keepdims=True)
+        logits = tf.exp(similarity)
+        return logits
+
+    def calculate_probs(self, embedding, similarity=None):
+        similarity = self.calculate_logits(embedding) if similarity is None else similarity
+        softmaxed = similarity / tf.reduce_sum(similarity, axis=0, keepdims=True)
+        return softmaxed
+
+    def get_pos_mask(self, y_pred):
         b = tf.shape(y_pred)[0]
         n = tf.shape(y_pred)[-1]
 
@@ -69,19 +84,51 @@ class ContrastiveSoftmaxLoss(Loss):
 
         positive_mask = samples_mask & models_mask
         pos_n = tf.cast(tf.reduce_sum(tf.cast(positive_mask, tf.int32)), y_pred.dtype)
+        return positive_mask, pos_n
 
-        embedding = y_pred
-        dist = tf.reduce_sum(tf.pow(embedding[:, None, ..., None, :] - embedding[None, :, ..., None], 2), axis=2)
-        if self.eps:
-            dist = tf.minimum(dist, self.eps)
-        similarity = -dist / self.temperature
-        if self.stable:
-            similarity = similarity - tf.reduce_max(similarity, axis=0, keepdims=True)
-        similarity = tf.exp(similarity)
-        softmaxed = similarity / tf.reduce_sum(similarity, axis=0, keepdims=True)
-        return 1 - tf.reduce_sum(tf.where(positive_mask, softmaxed / pos_n, 0))
-        # out = -tf.reduce_sum(tf.where(positive_mask, tf.math.log(softmaxed) / pos_n, 0))
-        # return out
+    def call(self, y_true, y_pred):
+        probs = self.calculate_probs(y_pred)
+        positive_mask, pos_n = self.get_pos_mask(y_pred)
+        return 1 - tf.reduce_sum(tf.where(positive_mask, probs, 0)) / pos_n
+
+
+class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
+    def __init__(self, *args, a_pull, a_push, log_eps=1e-10, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.a_pull = tf.constant(a_pull)
+        self.a_push = tf.constant(a_push)
+        self.is_pull = tf.reduce_any(a_pull).numpy()
+        self.is_push = tf.reduce_any(a_push).numpy()
+        self.log_eps = log_eps
+
+    def map_rep_dev(self, similarity):
+        b = tf.shape(similarity)[0]
+        n = tf.shape(similarity)[-1]
+        self_sim = tf.reshape(similarity[~tf.eye(b, dtype=tf.bool)[..., None, None] & tf.eye(n, dtype=tf.bool)[None, None]], (b-1, b, n))
+        map_rep = self_sim / tf.reduce_sum(self_sim, axis=0, keepdims=True)  # (b-1, b, n)
+        log_map_rep = tf.experimental.numpy.log2(tf.maximum(map_rep, self.log_eps))
+        cross_ent = tf.einsum('ibn,ibm->bnm', map_rep, log_map_rep)  # (b, n, n)
+        entropy = tf.linalg.diag_part(cross_ent)[..., None]
+        dkl = entropy - cross_ent   # (b, n, n)
+        return dkl
+
+    def call(self, y_true, y_pred):
+        logits = self.calculate_logits(y_pred)
+        loss = 0.
+
+        if self.is_pull:
+            probs = self.calculate_probs(None, logits)[tf.eye(tf.shape(logits)[0], dtype=tf.bool)]     # (b, n, n)
+            mean_probs = tf.reduce_mean(probs, axis=0)
+            pull_loss = tf.tensordot(self.a_pull, 1 - mean_probs, axes=[[0, 1], [0, 1]])
+            loss += pull_loss
+
+        if self.is_push:
+            mrdev = self.map_rep_dev(logits)   # (b, n, n)
+            mean_mrdev = tf.reduce_mean(mrdev, axis=0)
+            push_loss = tf.tensordot(self.a_push, -mean_mrdev, axes=[[0, 1], [0, 1]])
+            loss += push_loss
+
+        return loss
 
 
 @serialize

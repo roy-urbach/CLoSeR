@@ -2,7 +2,9 @@ from matplotlib import pyplot as plt
 from utils.utils import *
 
 
-def basic_scatterplot(x, y, identity=True, fig=None, c='k', corr=False, t=False, regress=False, mean_diff=False, label=None):
+def basic_scatterplot(x, y, identity=True, fig=None, c='k', corr=False, t=False,
+                      regress=False, mean_diff=False, label=None, regress_color='r',
+                      regress_label=None, add_r_squared_to_regress_label=True):
     x = np.array(x)
     y = np.array(y)
     if fig is None: fig = plt.figure()
@@ -15,11 +17,14 @@ def basic_scatterplot(x, y, identity=True, fig=None, c='k', corr=False, t=False,
         min_, max_ = get_min_max(x, y)
         plt.plot([min_, max_], [min_, max_], c='k', linestyle=':')
     if regress:
-        reg = lambda p: correlation(x,y) * np.std(y) / np.std(x) * (p - np.mean(x)) + np.mean(y)
+        corr = correlation(x,y)
+        slope = corr * np.std(y) / np.std(x)
+        reg = lambda p: slope * (p - np.mean(x)) + np.mean(y)
         min_ = np.min(x)
         max_ = np.max(x)
         min_, max_ = min_ - 0.05 * (max_ - min_), max_ + 0.05 * (max_ - min_)
-        plt.plot([min_, max_], [reg(min_), reg(max_)], c='r')
+        plt.plot([min_, max_], [reg(min_), reg(max_)], c=regress_color,
+                 label=(regress_label + (r"$R^2=$" + f"{corr**2:.2f}") if add_r_squared_to_regress_label else "") if regress_label else None)
     return fig
 
 
@@ -104,3 +109,9 @@ def legend(*args, facecolor='w', framealpha=0, **kwargs):
 def noticks():
     plt.xticks([])
     plt.yticks([])
+
+
+def calculate_square_rows_cols(n):
+    cols = int(np.ceil(np.sqrt(n)))
+    rows = int(np.ceil(n/cols))
+    return rows, cols
