@@ -3,7 +3,8 @@ from tensorflow.keras import layers as tf_layers
 
 
 class ViTEncoder:
-    def __init__(self, block_kwargs={}, out_block_kwargs={}, layers=3, kernel_regularizer='l1_l2', out_regularizer=None, only_classtoken=False, name='ViTEncoder'):
+    def __init__(self, block_kwargs={}, out_block_kwargs={}, layers=3, kernel_regularizer='l1_l2',
+                 out_regularizer=None, only_classtoken=False, name='ViTEncoder'):
         self.blocks = [ViTBlock(name=name + f'_block{l}', kernel_regularizer=kernel_regularizer, **block_kwargs) for l in range(layers)]
         self.only_classtoken = only_classtoken
         self.out_block = ViTOutBlock(name=name + '_outblock', **out_block_kwargs,

@@ -28,7 +28,7 @@ def get_data_augmentation(image_size):
 
 
 def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
-                 input_shape=(32, 32, 3), num_classes=10, kernel_regularizer='l1_l2',
+                 input_shape=(32, 32, 3), num_classes=10, kernel_regularizer=None,
                  projection_dim=64, encoder='ViTEncoder', encoder_per_path=False,
                  encoder_kwargs={}, pathways_kwargs={}, image_size=72, patch_size=8,
                  stop_grad_ensemble=False, stop_grad_pathway=True):
