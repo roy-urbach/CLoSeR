@@ -93,13 +93,14 @@ class ContrastiveSoftmaxLoss(Loss):
 
 
 class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
-    def __init__(self, *args, a_pull, a_push, log_eps=1e-10, **kwargs):
+    def __init__(self, *args, a_pull, a_push, log_eps=1e-10, log_pull=False, **kwargs):
         super().__init__(*args, **kwargs)
         self.a_pull = tf.constant(a_pull)
         self.a_push = tf.constant(a_push)
         self.is_pull = tf.reduce_any(a_pull).numpy()
         self.is_push = tf.reduce_any(a_push).numpy()
         self.log_eps = log_eps
+        self.log_pull = log_pull
 
     def map_rep_dev(self, similarity):
         b = tf.shape(similarity)[0]
@@ -118,6 +119,8 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
 
         if self.is_pull:
             probs = self.calculate_probs(None, logits)[tf.eye(tf.shape(logits)[0], dtype=tf.bool)]     # (b, n, n)
+            if self.log_pull:
+                probs = tf.experimental.numpy.log2(tf.maximum(probs, self.log_eps))
             mean_probs = tf.reduce_mean(probs, axis=0)
             pull_loss = tf.tensordot(self.a_pull, 1 - mean_probs, axes=[[0, 1], [0, 1]])
             loss += pull_loss
