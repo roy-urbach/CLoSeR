@@ -99,8 +99,8 @@ class ContrastiveSoftmaxLoss(Loss):
 class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
     def __init__(self, *args, a_pull, a_push, log_eps=1e-10, log_pull=False, **kwargs):
         super().__init__(*args, **kwargs)
-        self.a_pull = tf.constant(eval(a_pull) if isinstance(a_pull, str) else a_pull)
-        self.a_push = tf.constant(eval(a_push) if isinstance(a_push, str) else a_push)
+        self.a_pull = tf.constant(eval(a_pull) if isinstance(a_pull, str) else a_pull, dtype=tf.float64)
+        self.a_push = tf.constant(eval(a_push) if isinstance(a_push, str) else a_push, dtype=tf.float64)
         self.is_pull = tf.reduce_any(self.a_pull != 0).numpy()
         self.is_push = tf.reduce_any(self.a_push != 0).numpy()
         self.log_eps = log_eps
