@@ -64,15 +64,18 @@ class ContrastiveSoftmaxLoss(Loss):
         dist = tf.reduce_sum(tf.pow(embedding[:, None, ..., None, :] - embedding[None, :, ..., None], 2), axis=2)
         if self.eps:
             dist = tf.minimum(dist, self.eps)
-        similarity = -dist / self.temperature
-        if self.stable:
-            similarity = similarity - tf.reduce_max(similarity, axis=0, keepdims=True)
-        logits = tf.exp(similarity)
+        logits = -dist / self.temperature
         return logits
 
-    def calculate_probs(self, embedding, similarity=None):
-        similarity = self.calculate_logits(embedding) if similarity is None else similarity
-        softmaxed = similarity / tf.reduce_sum(similarity, axis=0, keepdims=True)
+    def calculate_exp_logits(self, embedding, logits=None):
+        logits = self.calculate_logits(embedding) if logits is None else logits
+        if self.stable:
+            logits = logits - tf.reduce_max(logits, axis=0, keepdims=True)
+        return tf.exp(logits)
+
+    def calculate_likelihood(self, embedding, exp_logits=None, logits=None):
+        exp_logits = self.calculate_exp_logits(embedding, logits=logits) if exp_logits is None else exp_logits
+        softmaxed = exp_logits / tf.reduce_sum(exp_logits, axis=0, keepdims=True)
         return softmaxed
 
     def get_pos_mask(self, y_pred):
@@ -87,7 +90,7 @@ class ContrastiveSoftmaxLoss(Loss):
         return positive_mask, pos_n
 
     def call(self, y_true, y_pred):
-        probs = self.calculate_probs(y_pred)
+        probs = self.calculate_likelihood(y_pred)
         positive_mask, pos_n = self.get_pos_mask(y_pred)
         return 1 - tf.reduce_sum(tf.where(positive_mask, probs, 0)) / pos_n
 
@@ -95,17 +98,18 @@ class ContrastiveSoftmaxLoss(Loss):
 class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
     def __init__(self, *args, a_pull, a_push, log_eps=1e-10, log_pull=False, **kwargs):
         super().__init__(*args, **kwargs)
-        self.a_pull = tf.constant(a_pull)
-        self.a_push = tf.constant(a_push)
+        self.a_pull = tf.constant(eval(a_pull) if isinstance(a_pull, str) else a_pull)
+        self.a_push = tf.constant(eval(a_push) if isinstance(a_push, str) else a_push)
         self.is_pull = tf.reduce_any(a_pull).numpy()
         self.is_push = tf.reduce_any(a_push).numpy()
         self.log_eps = log_eps
         self.log_pull = log_pull
 
-    def map_rep_dev(self, similarity):
-        b = tf.shape(similarity)[0]
-        n = tf.shape(similarity)[-1]
-        self_sim = tf.reshape(similarity[~tf.eye(b, dtype=tf.bool)[..., None, None] & tf.eye(n, dtype=tf.bool)[None, None]], (b-1, b, n))
+    def map_rep_dev(self, exp_logits=None, logits=None):
+        assert (logits is not None) or (exp_logits is not None)
+        b = tf.shape(exp_logits)[0]
+        n = tf.shape(exp_logits)[-1]
+        self_sim = (tf.reshape(exp_logits[~tf.eye(b, dtype=tf.bool)[..., None, None] & tf.eye(n, dtype=tf.bool)[None, None]], (b-1, b, n)))
         map_rep = self_sim / tf.reduce_sum(self_sim, axis=0, keepdims=True)  # (b-1, b, n)
         log_map_rep = tf.experimental.numpy.log2(tf.maximum(map_rep, self.log_eps))
         cross_ent = tf.einsum('ibn,ibm->bnm', map_rep, log_map_rep)  # (b, n, n)
@@ -115,18 +119,24 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
 
     def call(self, y_true, y_pred):
         logits = self.calculate_logits(y_pred)
+        if self.is_stable and (self.is_pull and not self.log_pull) and self.is_push:
+            exp_logits = self.calculate_exp_logits(None, logits=logits)
+        else:
+            exp_logits = None
         loss = 0.
 
         if self.is_pull:
-            probs = self.calculate_probs(None, logits)[tf.eye(tf.shape(logits)[0], dtype=tf.bool)]     # (b, n, n)
             if self.log_pull:
-                probs = tf.experimental.numpy.log2(tf.maximum(probs, self.log_eps))
-            mean_probs = tf.reduce_mean(probs, axis=0)
-            pull_loss = tf.tensordot(self.a_pull, 1 - mean_probs, axes=[[0, 1], [0, 1]])
+                log_likelihood = logits - tf.math.reduce_logsumexp(logits, axis=1, keepdims=True)
+            else:
+                # (b, n, n)
+                likelihood = self.calculate_likelihood(None, exp_logits=exp_logits, logits=logits)[tf.eye(tf.shape(logits)[0], dtype=tf.bool)]
+            mean_gain = tf.reduce_mean(log_likelihood if self.log_pull else likelihood, axis=0)
+            pull_loss = tf.tensordot(self.a_pull, (0 if self.log_pull else 1) - mean_gain, axes=[[0, 1], [0, 1]])
             loss += pull_loss
 
         if self.is_push:
-            mrdev = self.map_rep_dev(logits)   # (b, n, n)
+            mrdev = self.map_rep_dev(exp_logits=exp_logits, logits=logits)   # (b, n, n)
             mean_mrdev = tf.reduce_mean(mrdev, axis=0)
             push_loss = tf.tensordot(self.a_push, -mean_mrdev, axes=[[0, 1], [0, 1]])
             loss += push_loss
