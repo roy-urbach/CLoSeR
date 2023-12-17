@@ -120,7 +120,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
 
     def call(self, y_true, y_pred):
         logits = self.calculate_logits(y_pred)
-        if self.is_stable and (self.is_pull and not self.log_pull) and self.is_push:
+        if self.stable and (self.is_pull and not self.log_pull) and self.is_push:
             exp_logits = self.calculate_exp_logits(None, logits=logits)
         else:
             exp_logits = None
