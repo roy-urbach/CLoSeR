@@ -1,6 +1,7 @@
 from utils.tf_utils import serialize
 import tensorflow as tf
 from tensorflow.keras.losses import Loss
+import numpy as np
 
 serialize(tf.keras.regularizers.L2)
 
