@@ -2,6 +2,7 @@ from utils.tf_utils import serialize
 import tensorflow as tf
 from tensorflow.keras.losses import Loss
 import numpy as np
+import scipy
 
 A_PULL = None
 A_PUSH = None
