@@ -143,7 +143,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
 
         if self.is_pull:
             if self.log_pull:
-                log_likelihood = logits - tf.math.reduce_logsumexp(logits, axis=1, keepdims=True)
+                log_likelihood = logits[tf.eye(tf.shape(logits)[0], dtype=tf.bool)] - tf.math.reduce_logsumexp(logits, axis=0)
             else:
                 # (b, n, n)
                 likelihood = self.calculate_likelihood(None, exp_logits=exp_logits, logits=logits)[tf.eye(tf.shape(logits)[0], dtype=tf.bool)]
