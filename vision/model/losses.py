@@ -59,17 +59,23 @@ class ContrastiveLossExpDecay(ContrastiveLoss):
 
 @serialize
 class ContrastiveSoftmaxLoss(Loss):
-    def __init__(self, *args, temperature=10, eps=0, stable=True, **kwargs):
+    def __init__(self, *args, temperature=10, eps=0, stable=True, cosine=False, **kwargs):
         super(ContrastiveSoftmaxLoss, self).__init__(*args, **kwargs)
         self.temperature = temperature
         self.eps = eps
         self.stable = stable
+        self.cosine = cosine
 
     def calculate_logits(self, embedding):
-        dist = tf.reduce_sum(tf.pow(embedding[:, None, ..., None, :] - embedding[None, :, ..., None], 2), axis=2)
-        if self.eps:
-            dist = tf.minimum(dist, self.eps)
-        logits = -dist / self.temperature
+        if self.cosine:
+            normed_embedding = embedding / tf.linalg.norm(embedding, axis=1, keepdims=True)
+            cosine_sim = tf.einsum('bdn,BdN->bBnN', normed_embedding, normed_embedding)
+            logits = cosine_sim / self.temperature
+        else:
+            dist = tf.reduce_sum(tf.pow(embedding[:, None, ..., None, :] - embedding[None, :, ..., None], 2), axis=2)
+            if self.eps:
+                dist = tf.minimum(dist, self.eps)
+            logits = -dist / self.temperature
         return logits
 
     def calculate_exp_logits(self, embedding, logits=None):
