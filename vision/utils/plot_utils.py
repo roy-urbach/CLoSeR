@@ -1,5 +1,7 @@
 from matplotlib import pyplot as plt
 from utils.utils import *
+import matplotlib as mpl
+mpl.rc('image', cmap='gray')
 
 
 def basic_scatterplot(x, y, identity=True, fig=None, c='k', corr=False, t=False,
