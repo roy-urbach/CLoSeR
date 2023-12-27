@@ -205,9 +205,8 @@ class SplitPathways(tf_layers.Layer):
         return indices
 
     def call(self, inputs, training=False):
-        if not training or self.fixed:
+        if not training:
             set_seed(self.seed)
-            tf.keras.utils.set_random_seed(self.seed)
 
         indices = self.get_indices()
 
