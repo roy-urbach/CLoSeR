@@ -15,7 +15,6 @@ def set_seed(s):
     tf.random.set_seed(s)
     np.random.seed(s)
     random.seed(s)
-    tf.keras.utils.set_random_seed(s)
 
 
 def get_custom_objects():
