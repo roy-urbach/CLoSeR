@@ -105,7 +105,7 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={}, optimizer_
 
 
 def train(model_name, model_kwargs, loss=ContrastiveSoftmaxLoss, data_kwargs={}, loss_kwargs={},
-          optimizer_kwargs={}, classifier=False, stop_grad_pathway=True, stop_grad_ensemble=False,
+          optimizer_kwargs={}, classifier=False, pathway_classification=True, ensemble_classification=False,
           dataset=Cifar10, batch_size=128, num_epochs=150):
     print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
@@ -116,7 +116,8 @@ def train(model_name, model_kwargs, loss=ContrastiveSoftmaxLoss, data_kwargs={},
     model, max_epoch = load_or_create_model(model_name, dataset.get_shape(), model_kwargs, loss=loss,
                                             loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
                                             classifier=classifier,
-                                            stop_grad_pathway=stop_grad_pathway, stop_grad_ensemble=stop_grad_ensemble,
+                                            pathway_classification=pathway_classification,
+                                            ensemble_classification=ensemble_classification,
                                             print_log=True)
 
     # TODO: regression callback?
@@ -196,12 +197,12 @@ def load_model_from_json(model_name, load=True, optimizer_state=True):
     else:
 
         def call(model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={}, optimizer_kwargs={},
-                 classifier=False, stop_grad_pathway=True, stop_grad_ensemble=False, dataset=Cifar10, data_kwargs={}):
+                 classifier=False, pathway_classification=True, ensemble_classification=False, dataset=Cifar10, data_kwargs={}):
             dataset = get_class(dataset, utils.data)(**data_kwargs)
             model, _ = load_or_create_model(model_name, dataset.get_shape(), model_kwargs, loss=loss,
                                             loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
-                                            classifier=classifier, stop_grad_pathway=stop_grad_pathway,
-                                            stop_grad_ensemble=stop_grad_ensemble,
+                                            classifier=classifier, pathway_classification=pathway_classification,
+                                            ensemble_classification=ensemble_classification,
                                             load=load, optimizer_state=optimizer_state)
             return model
 
