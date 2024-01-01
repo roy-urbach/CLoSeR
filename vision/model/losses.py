@@ -190,3 +190,11 @@ class KoLeoLoss(Loss):
             min_dist = tf.reduce_min(dist, axis=1)
             out += -self.lambda_ * tf.reduce_mean(tf.math.log(min_dist))
         return out
+
+
+class NullLoss(Loss):
+    def __init__(self, *args, name='NullLoss', **kwargs):
+        super(NullLoss, self).__init__(*args, name=name, **kwargs)
+
+    def call(self, y_true, y_pred):
+        return 0.

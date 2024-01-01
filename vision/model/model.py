@@ -90,7 +90,7 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={}, optimizer_
     losses = {}
     metrics = {}
     if classifier:
-        losses[model.name + '_embedding'] = lambda *args: 0.
+        losses[model.name + '_embedding'] = NullLoss()
     else:
         losses[model.name + '_embedding'] = loss(**loss_kwargs)
 
