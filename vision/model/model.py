@@ -31,7 +31,7 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
                  input_shape=(32, 32, 3), num_classes=10, kernel_regularizer=None,
                  projection_dim=64, encoder='ViTEncoder', encoder_per_path=False,
                  encoder_kwargs={}, pathways_kwargs={}, image_size=72, patch_size=8,
-                 pathway_classification=True, ensemble_classification=False):
+                 pathway_classification=True, ensemble_classification=False, classifier_pathways=True):
     inputs = layers.Input(shape=input_shape)
     # Augment data.
     augmented = get_data_augmentation(image_size)(inputs)
@@ -50,7 +50,7 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
         patches)
 
     # divide to different pathways
-    if classifier:
+    if classifier and not classifier_pathways:
         pathways = [encoded_patches]
     else:
         pathways = SplitPathways(num_patches, name=name + '_pathways', **pathways_kwargs)(encoded_patches)
@@ -83,7 +83,10 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
 
 def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={}, optimizer_cls=tf.optimizers.Nadam,
                   optimizer_kwargs={}, classifier=False, pathway_classification=True,
-                  ensemble_classification=False):
+                  ensemble_classification=False, **kwargs):
+    if kwargs:
+        print(f"WARNING: compile_model got spare kwargs that won't be used: {kwargs}")
+
     optimizer = optimizer_cls(**optimizer_kwargs)
     serialize(optimizer.__class__, 'Custom')
 
@@ -105,8 +108,7 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={}, optimizer_
 
 
 def train(model_name, model_kwargs, loss=ContrastiveSoftmaxLoss, data_kwargs={}, loss_kwargs={},
-          optimizer_kwargs={}, classifier=False, pathway_classification=True, ensemble_classification=False,
-          dataset=Cifar10, batch_size=128, num_epochs=150):
+          optimizer_kwargs={}, dataset=Cifar10, batch_size=128, num_epochs=150, **kwargs):
     print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
     printd("Getting dataset...", end='\t')
@@ -115,10 +117,7 @@ def train(model_name, model_kwargs, loss=ContrastiveSoftmaxLoss, data_kwargs={},
 
     model, max_epoch = load_or_create_model(model_name, dataset.get_shape(), model_kwargs, loss=loss,
                                             loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
-                                            classifier=classifier,
-                                            pathway_classification=pathway_classification,
-                                            ensemble_classification=ensemble_classification,
-                                            print_log=True)
+                                            print_log=True, **kwargs)
 
     # TODO: regression callback?
 
@@ -142,14 +141,10 @@ def train(model_name, model_kwargs, loss=ContrastiveSoftmaxLoss, data_kwargs={},
 
 
 def create_and_compile_model(model_name, input_shape, model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
-                             optimizer_kwargs={}, classifier=False, pathway_classification=True, ensemble_classification=False,
-                             print_log=False):
+                             optimizer_kwargs={}, print_log=False, **kwargs):
     if print_log:
         printd("Creating model...", end='\t')
-    m = create_model(model_name, input_shape=input_shape,
-                     classifier=classifier, pathway_classification=pathway_classification,
-                     ensemble_classification=ensemble_classification,
-                     **model_kwargs)
+    m = create_model(model_name, input_shape=input_shape, **model_kwargs, **kwargs)
     if print_log:
         printd("Done!")
 
@@ -158,9 +153,7 @@ def create_and_compile_model(model_name, input_shape, model_kwargs, loss=Contras
 
     if print_log:
         printd("Compiling model...", end='\t')
-    compile_model(m, loss=loss, loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
-                  classifier=classifier, pathway_classification=pathway_classification,
-                  ensemble_classification=ensemble_classification)
+    compile_model(m, loss=loss, loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs, **kwargs)
 
     return m
 
@@ -198,13 +191,11 @@ def load_model_from_json(model_name, load=True, optimizer_state=True):
     else:
 
         def call(model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={}, optimizer_kwargs={},
-                 classifier=False, pathway_classification=True, ensemble_classification=False, dataset=Cifar10, data_kwargs={}):
+                 dataset=Cifar10, data_kwargs={}, **kwargs):
             dataset = get_class(dataset, utils.data)(**data_kwargs)
             model, _ = load_or_create_model(model_name, dataset.get_shape(), model_kwargs, loss=loss,
                                             loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
-                                            classifier=classifier, pathway_classification=pathway_classification,
-                                            ensemble_classification=ensemble_classification,
-                                            load=load, optimizer_state=optimizer_state)
+                                            load=load, optimizer_state=optimizer_state, **kwargs)
             return model
 
         return call(**dct)
