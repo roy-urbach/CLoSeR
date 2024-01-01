@@ -71,10 +71,10 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
     # classification heads, with stop_grad unless classifier=True
     if pathway_classification:
         outputs.append(layers.Dense(num_classes, activation=None, name=name + '_logits')(
-            embedding[..., 0] if classifier else tf.stop_gradient(embedding[..., 0])))
+            (embedding if classifier else tf.stop_gradient(embedding))[..., 0]))
     if ensemble_classification:
         outputs.append(layers.Dense(num_classes, activation=None, name=name + '_ensemble_logits')(
-            tf.reshape(embedding, (-1, np.multiply.reduce(embedding.shape[1:]))) if classifier else tf.reshape(tf.stop_gradient(embedding), (-1, np.multiply.reduce(embedding.shape[1:])))))
+            tf.reshape(embedding if classifier else tf.stop_gradient(embedding), (-1, np.multiply.reduce(embedding.shape[1:])))))
 
     # Create the Keras model.
     model = keras.Model(inputs=inputs, outputs=outputs, name=name)
@@ -147,7 +147,8 @@ def create_and_compile_model(model_name, input_shape, model_kwargs, loss=Contras
     if print_log:
         printd("Creating model...", end='\t')
     m = create_model(model_name, input_shape=input_shape,
-                     pathway_classification=pathway_classification, ensemble_classification=ensemble_classification,
+                     classifier=classifier, pathway_classification=pathway_classification,
+                     ensemble_classification=ensemble_classification,
                      **model_kwargs)
     if print_log:
         printd("Done!")
