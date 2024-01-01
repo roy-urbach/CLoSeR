@@ -31,7 +31,7 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
                  input_shape=(32, 32, 3), num_classes=10, kernel_regularizer=None,
                  projection_dim=64, encoder='ViTEncoder', encoder_per_path=False,
                  encoder_kwargs={}, pathways_kwargs={}, image_size=72, patch_size=8,
-                 stop_grad_ensemble=False, stop_grad_pathway=True):
+                 pathway_classification=True, ensemble_classification=False):
     inputs = layers.Input(shape=input_shape)
     # Augment data.
     augmented = get_data_augmentation(image_size)(inputs)
@@ -68,14 +68,13 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
 
     outputs = [embedding]
 
-    if classifier or stop_grad_ensemble or stop_grad_pathway:
-        # classification head
-        if stop_grad_pathway:
-            outputs.append(layers.Dense(num_classes, activation=None, name=name + '_logits')(
-                embedding[..., 0] if classifier else tf.stop_gradient(embedding[..., 0])))
-        if stop_grad_ensemble:
-            outputs.append(layers.Dense(num_classes, activation=None, name=name + '_ensemble_logits')(
-                tf.reshape(embedding, (-1, np.multiply.reduce(embedding.shape[1:]))) if classifier else tf.reshape(tf.stop_gradient(embedding), (-1, np.multiply.reduce(embedding.shape[1:])))))
+    # classification heads, with stop_grad unless classifier=True
+    if pathway_classification:
+        outputs.append(layers.Dense(num_classes, activation=None, name=name + '_logits')(
+            embedding[..., 0] if classifier else tf.stop_gradient(embedding[..., 0])))
+    if ensemble_classification:
+        outputs.append(layers.Dense(num_classes, activation=None, name=name + '_ensemble_logits')(
+            tf.reshape(embedding, (-1, np.multiply.reduce(embedding.shape[1:]))) if classifier else tf.reshape(tf.stop_gradient(embedding), (-1, np.multiply.reduce(embedding.shape[1:])))))
 
     # Create the Keras model.
     model = keras.Model(inputs=inputs, outputs=outputs, name=name)
@@ -83,7 +82,8 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
 
 
 def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={}, optimizer_cls=tf.optimizers.Nadam,
-                  optimizer_kwargs={}, classifier=False, stop_grad_ensemble=False, stop_grad_pathway=True):
+                  optimizer_kwargs={}, classifier=False, pathway_classification=True,
+                  ensemble_classification=False):
     optimizer = optimizer_cls(**optimizer_kwargs)
     serialize(optimizer.__class__, 'Custom')
 
@@ -94,11 +94,11 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={}, optimizer_
     else:
         losses[model.name + '_embedding'] = loss(**loss_kwargs)
 
-    if classifier or stop_grad_pathway:
+    if pathway_classification:
         losses[model.name + '_logits'] = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         metrics[model.name + '_logits'] = keras.metrics.SparseCategoricalAccuracy(name="accuracy")
 
-    if classifier or stop_grad_ensemble:
+    if ensemble_classification:
         losses[model.name + '_ensemble_logits'] = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         metrics[model.name + '_ensemble_logits'] = keras.metrics.SparseCategoricalAccuracy(name="accuracy")
     model.compile(optimizer=optimizer, loss=losses, metrics=metrics)
@@ -141,11 +141,13 @@ def train(model_name, model_kwargs, loss=ContrastiveSoftmaxLoss, data_kwargs={},
 
 
 def create_and_compile_model(model_name, input_shape, model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
-                             optimizer_kwargs={}, classifier=False, stop_grad_pathway=True, stop_grad_ensemble=False,
+                             optimizer_kwargs={}, classifier=False, pathway_classification=True, ensemble_classification=False,
                              print_log=False):
     if print_log:
         printd("Creating model...", end='\t')
-    m = create_model(model_name, input_shape=input_shape, **model_kwargs)
+    m = create_model(model_name, input_shape=input_shape,
+                     pathway_classification=pathway_classification, ensemble_classification=ensemble_classification,
+                     **model_kwargs)
     if print_log:
         printd("Done!")
 
@@ -155,7 +157,8 @@ def create_and_compile_model(model_name, input_shape, model_kwargs, loss=Contras
     if print_log:
         printd("Compiling model...", end='\t')
     compile_model(m, loss=loss, loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
-                  classifier=classifier, stop_grad_pathway=stop_grad_pathway, stop_grad_ensemble=stop_grad_ensemble)
+                  classifier=classifier, pathway_classification=pathway_classification,
+                  ensemble_classification=ensemble_classification)
 
     return m
 
