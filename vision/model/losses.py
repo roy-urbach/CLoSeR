@@ -123,9 +123,12 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
 
     def map_rep_dev(self, exp_logits=None, logits=None):
         assert (logits is not None) or (exp_logits is not None)
-        b = tf.shape(exp_logits)[0]
-        n = tf.shape(exp_logits)[-1]
-        self_sim = (tf.reshape(exp_logits[~tf.eye(b, dtype=tf.bool)[..., None, None] & tf.eye(n, dtype=tf.bool)[None, None]], (b-1, b, n)))
+        cur = exp_logits if exp_logits is not None else logits
+        b = tf.shape(cur)[0]
+        n = tf.shape(cur)[-1]
+        self_sim = (tf.reshape(cur[~tf.eye(b, dtype=tf.bool)[..., None, None] & tf.eye(n, dtype=tf.bool)[None, None]], (b-1, b, n)))
+        if exp_logits is None:
+            self_sim = self.calculate_exp_logits(None, self_sim)
         map_rep = self_sim / tf.reduce_sum(self_sim, axis=0, keepdims=True)  # (b-1, b, n)
         log_map_rep = tf.experimental.numpy.log2(tf.maximum(map_rep, self.log_eps))
         cross_ent = tf.einsum('ibn,ibm->bnm', map_rep, log_map_rep)  # (b, n, n)
