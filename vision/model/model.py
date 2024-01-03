@@ -10,6 +10,8 @@ from tensorflow.keras import layers
 from tensorflow import keras
 import tensorflow as tf
 
+PATHWAY_TO_CLS = None
+
 
 def get_data_augmentation(image_size):
     data_augmentation = keras.Sequential(
@@ -44,10 +46,10 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
     num_patches = (image_size // patch_size) ** 2
 
     # Encode patches.
-    encoded_patches = PatchEncoder(num_patches, projection_dim, name=name + '_patchenc', kernel_regularizer=kernel_regularizer,
-                                   num_class_tokens=pathways_kwargs.get('n', 2) if pathways_kwargs.get('token_per_path',
-                                                                                                       False) else 1)(
-        patches)
+    num_class_tokens = pathways_kwargs.get('n', 2) if pathways_kwargs.get('token_per_path', False) else (max(eval(pathways_kwargs.get('pathway_to_cls', '[0]'))) + 1)
+    encoded_patches = PatchEncoder(num_patches, projection_dim, name=name + '_patchenc',
+                                   kernel_regularizer=kernel_regularizer,
+                                   num_class_tokens=num_class_tokens(patches))
 
     # divide to different pathways
     if classifier and not classifier_pathways:

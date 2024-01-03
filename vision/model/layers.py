@@ -156,7 +156,7 @@ class ViTOutBlock(tf_layers.Layer):
 @serialize
 class SplitPathways(tf_layers.Layer):
     def __init__(self, num_patches, token_per_path=False, n=2, d=0.5, intersection=True, fixed=False,
-                 seed=0, class_token=True, **kwargs):
+                 seed=0, class_token=True, pathway_to_cls=None, **kwargs):
         super(SplitPathways, self).__init__(**kwargs)
         assert intersection or (n*d) <= 1
         self.n = n
@@ -164,10 +164,20 @@ class SplitPathways(tf_layers.Layer):
         self.fixed = fixed
         self.num_patches = num_patches
         self.token_per_path = token_per_path
+        # self.pathway_to_cls = pathway_to_cls
+        if pathway_to_cls is not None:
+            if isinstance(pathway_to_cls, str):
+                pathway_to_cls = eval(pathway_to_cls)
+            self.pathway_to_cls = tf.constant(pathway_to_cls)
+        if class_token and pathway_to_cls is None:
+            if not token_per_path:
+                self.pathway_to_cls = tf.zeros(n, dtype=tf.int32)
+            else:
+                self.pathway_to_cls = tf.range(n, dtype=tf.int32)
         self.num_patches_per_path = int(num_patches * d)
         self.intersection = intersection
         self.class_token = class_token
-        self.shift = (self.n if token_per_path else 1) if class_token else 0
+        self.shift = (tf.reduce_max(self.pathway_to_cls) + 1) if class_token else 0
         self.indices = None
         if fixed:
             set_seed(self.seed)
@@ -176,7 +186,7 @@ class SplitPathways(tf_layers.Layer):
     def get_config(self):
         return dict(**super().get_config(), n=self.n, seed=self.seed, fixed=self.fixed,
                     num_patches=self.num_patches, intersection=self.intersection,
-                    shift=self.shift, class_token=self.class_token)
+                    shift=self.shift, class_token=self.class_token, pathway_to_cls=self.pathway_to_cls)
 
     def get_indices(self):
         if self.indices is None:
@@ -198,10 +208,10 @@ class SplitPathways(tf_layers.Layer):
 
         # everyone gets the class token
         if self.class_token:
-            cls_tokens_to_add = tf.range(self.n, dtype=indices.dtype)[None] if self.token_per_path else tf.zeros(
-                (1, self.n),
-                dtype=indices.dtype)
-            indices = tf.concat([cls_tokens_to_add, indices], axis=0)
+            # cls_tokens_to_add = tf.range(self.n, dtype=indices.dtype)[None] if self.token_per_path else tf.zeros(
+            #     (1, self.n),
+            #     dtype=indices.dtype)
+            indices = tf.concat([self.pathway_to_cls[None], indices], axis=0)
         return indices
 
     def call(self, inputs, training=False):
