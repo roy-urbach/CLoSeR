@@ -196,8 +196,8 @@ class SplitPathways(tf_layers.Layer):
                     axis=-1)
             else:
                 indices = tf.reshape(
-                    tf.random.shuffle(tf.range(self.shift, self.num_patches + self.shift))[
-                    :self.num_patches - (self.num_patches % self.n)],
+                    tf.random.shuffle(tf.range(self.shift,
+                                               self.num_patches + self.shift))[:self.num_patches_per_path * self.n],
                     (-1, self.n))
 
             if self.fixed:
