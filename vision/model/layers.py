@@ -164,7 +164,6 @@ class SplitPathways(tf_layers.Layer):
         self.fixed = fixed
         self.num_patches = num_patches
         self.token_per_path = token_per_path
-        # self.pathway_to_cls = pathway_to_cls
         if pathway_to_cls is not None:
             if isinstance(pathway_to_cls, str):
                 pathway_to_cls = eval(pathway_to_cls)

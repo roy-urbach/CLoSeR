@@ -49,7 +49,7 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
     num_class_tokens = pathways_kwargs.get('n', 2) if pathways_kwargs.get('token_per_path', False) else (max(eval(pathways_kwargs.get('pathway_to_cls', '[0]'))) + 1)
     encoded_patches = PatchEncoder(num_patches, projection_dim, name=name + '_patchenc',
                                    kernel_regularizer=kernel_regularizer,
-                                   num_class_tokens=num_class_tokens(patches))
+                                   num_class_tokens=num_class_tokens)(patches)
 
     # divide to different pathways
     if classifier and not classifier_pathways:
