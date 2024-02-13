@@ -158,7 +158,7 @@ class SplitPathways(tf_layers.Layer):
     def __init__(self, num_patches, token_per_path=False, n=2, d=0.5, intersection=True, fixed=False,
                  seed=0, class_token=True, pathway_to_cls=None, **kwargs):
         super(SplitPathways, self).__init__(**kwargs)
-        assert intersection or (n*d) <= 1
+        assert intersection or (n*int(num_patches * d)) <= 1
         self.n = n
         self.seed = seed
         self.fixed = fixed
