@@ -12,9 +12,10 @@ import numpy as np
 def get_masked_ds(model, dataset=Cifar10()):
     if isinstance(model, str):
         model = load_model_from_json(model)
+    aug_layer = model.get_layer("data_augmentation")
     patch_layer = model.get_layer(model.name + '_patch')
     pathway_indices = model.get_layer(model.name + '_pathways').indices.numpy()
-    setup_func = lambda x: np.transpose(patch_layer(x).numpy()[:, pathway_indices - model.get_layer(model.name + '_pathways').shift], [0, 1, 3, 2]).reshape(
+    setup_func = lambda x: np.transpose(patch_layer(aug_layer(x)).numpy()[:, pathway_indices - model.get_layer(model.name + '_pathways').shift], [0, 1, 3, 2]).reshape(
         x.shape[0], -1, pathway_indices.shape[-1])
     ds = Data(setup_func(dataset.get_x_train()), dataset.get_y_train(),
               setup_func(dataset.get_x_test()), dataset.get_y_test())
