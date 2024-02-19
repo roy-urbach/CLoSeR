@@ -159,7 +159,8 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
                 mean_gain = tf.reduce_mean(log_likelihood if self.log_pull else likelihood, axis=0)
                 pull_loss = tf.tensordot(self.a_pull, (0 if self.log_pull else 1) - mean_gain, axes=[[0, 1], [0, 1]])
             else:
-                pull_loss = tf.tensordot(self.a_pull, tf.reduce_mean(self.distance(embedding=y_pred), axis=0), axes=[[0, 1], [0, 1]])
+                mean_dist = tf.reduce_mean(self.distance(embedding=y_pred), axis=0)
+                pull_loss = tf.tensordot(self.a_pull, mean_dist, axes=[[0, 1], [0, 1]])
             loss += pull_loss
 
         if self.is_push:
