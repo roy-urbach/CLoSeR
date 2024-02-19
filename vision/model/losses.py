@@ -107,7 +107,7 @@ class ContrastiveSoftmaxLoss(Loss):
 
 
 class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
-    def __init__(self, *args, a_pull, a_push, w_push=1, log_eps=1e-10, log_pull=False, **kwargs):
+    def __init__(self, *args, a_pull, a_push, w_push=1, log_eps=1e-10, log_pull=False, contrastive=True, **kwargs):
         super().__init__(*args, **kwargs)
         global A_PULL
         global A_PUSH
@@ -120,6 +120,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         self.is_push = tf.reduce_any(self.a_push != 0).numpy()
         self.log_eps = log_eps
         self.log_pull = log_pull
+        self.contrastive = contrastive
 
     def map_rep_dev(self, exp_logits=None, logits=None):
         assert (logits is not None) or (exp_logits is not None)
@@ -136,6 +137,10 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         dkl = entropy - cross_ent   # (b, n, n)
         return dkl
 
+    def distance(self, embedding):
+        dist = tf.reduce_sum(tf.pow(embedding[..., None, :] - embedding[..., None], 2), axis=-3)
+        return dist
+
     def call(self, y_true, y_pred):
         logits = self.calculate_logits(y_pred)
         if self.stable and (self.is_pull and not self.log_pull) and self.is_push:
@@ -145,13 +150,16 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         loss = 0.
 
         if self.is_pull:
-            if self.log_pull:
-                log_likelihood = logits[tf.eye(tf.shape(logits)[0], dtype=tf.bool)] - tf.math.reduce_logsumexp(logits, axis=0)
+            if self.contrastive:
+                if self.log_pull:
+                    log_likelihood = logits[tf.eye(tf.shape(logits)[0], dtype=tf.bool)] - tf.math.reduce_logsumexp(logits, axis=0)
+                else:
+                    # (b, n, n)
+                    likelihood = self.calculate_likelihood(None, exp_logits=exp_logits, logits=logits)[tf.eye(tf.shape(logits)[0], dtype=tf.bool)]
+                mean_gain = tf.reduce_mean(log_likelihood if self.log_pull else likelihood, axis=0)
+                pull_loss = tf.tensordot(self.a_pull, (0 if self.log_pull else 1) - mean_gain, axes=[[0, 1], [0, 1]])
             else:
-                # (b, n, n)
-                likelihood = self.calculate_likelihood(None, exp_logits=exp_logits, logits=logits)[tf.eye(tf.shape(logits)[0], dtype=tf.bool)]
-            mean_gain = tf.reduce_mean(log_likelihood if self.log_pull else likelihood, axis=0)
-            pull_loss = tf.tensordot(self.a_pull, (0 if self.log_pull else 1) - mean_gain, axes=[[0, 1], [0, 1]])
+                pull_loss = tf.tensordot(self.a_pull, tf.reduce_mean(self.distance(embedding=y_pred), axis=0), axes=[[0, 1], [0, 1]])
             loss += pull_loss
 
         if self.is_push:
