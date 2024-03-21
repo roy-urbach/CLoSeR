@@ -8,7 +8,7 @@ QUEUE_GPU = 'gpu-short'
 QUEUE_CPU = "new-short"
 # QUEUE_CPU = 'gsla-cpu'
 CONDA_PATH = '~/miniconda3/etc/profile.d/conda.sh'
-RUSAGE = 75000
+RUSAGE = 6000
 
 
 # def run_command(cmd):
@@ -46,7 +46,7 @@ def get_cmd():
     if args.queue.startswith('gpu'):
         bsub_call += " -gpu num=1:j_exclusive=no:gmem=32GB"
     else:
-        bsub_call += ' -R rusage[mem={RUSAGE}]'
+        bsub_call += f' -R rusage[mem={RUSAGE}]'
     train_call = f'python3 train.py -b {args.batch} -e {args.epochs} --json {args.json}'
     cmd = [*bsub_call.split(), *bsub_args, f'"{train_call}"']
     return ' '.join(cmd)
