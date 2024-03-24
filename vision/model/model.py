@@ -186,7 +186,7 @@ def load_or_create_model(model_name, *args, load=True, optimizer_state=True, ski
     return model, max_epoch
 
 
-def load_model_from_json(model_name, load=True, optimizer_state=True):
+def load_model_from_json(model_name, load=True, optimizer_state=True, skip_mismatch=False):
     dct = load_json(model_name)
     if dct is None:
         return None
@@ -197,7 +197,7 @@ def load_model_from_json(model_name, load=True, optimizer_state=True):
             dataset = get_class(dataset, utils.data)(**data_kwargs)
             model, _ = load_or_create_model(model_name, dataset.get_shape(), model_kwargs, loss=loss,
                                             loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
-                                            load=load, optimizer_state=optimizer_state, **kwargs)
+                                            load=load, optimizer_state=optimizer_state, skip_mismatch=skip_mismatch, **kwargs)
             return model
 
         return call(**dct)
