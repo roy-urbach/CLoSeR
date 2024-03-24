@@ -160,7 +160,7 @@ def create_and_compile_model(model_name, input_shape, model_kwargs, loss=Contras
     return m
 
 
-def load_or_create_model(model_name, *args, load=True, optimizer_state=True, **kwargs):
+def load_or_create_model(model_name, *args, load=True, optimizer_state=True, skip_mismatch=False, **kwargs):
     import os
     import re
 
@@ -180,7 +180,7 @@ def load_or_create_model(model_name, *args, load=True, optimizer_state=True, **k
                 print(f"loading checkpoint {model_fn}")
                 if optimizer_state:
                     load_optimizer(model)
-                model.load_weights(os.path.join("models", model_name, "checkpoints", model_fn))
+                model.load_weights(os.path.join("models", model_name, "checkpoints", model_fn), skip_mismatch=skip_mismatch)
         if not max_epoch:
             print("didn't find previous checkpoint")
     return model, max_epoch
