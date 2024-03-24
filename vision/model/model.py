@@ -180,7 +180,8 @@ def load_or_create_model(model_name, *args, load=True, optimizer_state=True, ski
                 print(f"loading checkpoint {model_fn}")
                 if optimizer_state:
                     load_optimizer(model)
-                model.load_weights(os.path.join("models", model_name, "checkpoints", model_fn), skip_mismatch=skip_mismatch)
+                model.load_weights(os.path.join("models", model_name, "checkpoints", model_fn),
+                                   skip_mismatch=skip_mismatch, by_name=True)
         if not max_epoch:
             print("didn't find previous checkpoint")
     return model, max_epoch
