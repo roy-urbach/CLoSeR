@@ -44,7 +44,7 @@ def violinplot_with_CI(arr, x, c='C0'):
     mean = arr.mean()
     std = arr.std(ddof=1)
     n = arr.size
-    CI = scipy.stats.t.ppf(0.025, n - 1) * std / np.sqrt(n)
+    CI = np.abs(scipy.stats.t.ppf(0.025, n - 1) * std / np.sqrt(n))
     plt.errorbar([x], mean, yerr=CI, marker='o', capsize=10, c=c)
 
 
