@@ -178,7 +178,7 @@ class ProbabilisticPullPushGraphLoss(GeneralPullPushGraphLoss):
         a_push = (np.random.rand(num_pathways, num_pathways) <= p_push) & ~np.eye(num_pathways, dtype=np.bool)
         if depend:
             a_push = a_push & ~a_pull
-        super(ProbabilisticPullPushGraphLoss, self).__init__(*args, a_pull, a_push, **kwargs)
+        super(ProbabilisticPullPushGraphLoss, self).__init__(*args, a_pull=a_pull, a_push=a_push, **kwargs)
 
 
 @serialize
