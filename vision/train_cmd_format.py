@@ -26,6 +26,8 @@ def parse():
     parser.add_argument('-e', '--epochs', type=int, default=100, help='number of epochs')
     parser.add_argument('-j', '--json', type=str, help='name of the config json')
     parser.add_argument('-q', '--queue', type=str, default=QUEUE_GPU, help='name of the queue')
+    parser.add_argument('--rusage', type=int, default=RUSAGE, help='CPU mem')
+    parser.add_argument('--mem', type=int, default=32, help='GPU mem')
 
     args = parser.parse_known_args()
     return args
@@ -44,7 +46,7 @@ def get_cmd():
 
     bsub_call = f'bsub -q {args.queue} -J {model_name} -o {output_name}.o -e {error_name}.e -C 1'
     if args.queue.startswith('gpu'):
-        bsub_call += " -gpu num=1:j_exclusive=no:gmem=32GB"
+        bsub_call += f" -gpu num=1:j_exclusive=no:gmem={args.mem}GB"
     else:
         bsub_call += f' -R rusage[mem={RUSAGE}]'
     train_call = f'python3 train.py -b {args.batch} -e {args.epochs} --json {args.json}'
