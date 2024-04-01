@@ -23,9 +23,9 @@ RUSAGE = 6000
 
 def parse():
     parser = argparse.ArgumentParser(description='Train a model')
+    parser.add_argument('-j', '--json', type=str, help='name of the config json', required=True)
     parser.add_argument('-b', '--batch', type=int, default=128, help='batch size')
     parser.add_argument('-e', '--epochs', type=int, default=100, help='number of epochs')
-    parser.add_argument('-j', '--json', type=str, help='name of the config json')
     parser.add_argument('-q', '--queue', type=str, default=QUEUE_GPU, help='name of the queue')
     parser.add_argument('--rusage', type=int, default=RUSAGE, help='CPU mem')
     parser.add_argument('--mem', type=int, default=32, help='GPU mem')
@@ -36,7 +36,10 @@ def parse():
 
 def get_cmd():
     args, bsub_args = parse()
-    model_name = args.json.split('.json')[0]
+    if args.json.endswith('.json'):
+        model_name = args.json[:-len('.json')]
+    else:
+        model_name = args.json
     path = os.path.join(BASE_PATH, model_name)
     if not os.path.exists(path):
         os.mkdir(path)
