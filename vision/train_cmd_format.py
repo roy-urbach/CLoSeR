@@ -25,7 +25,7 @@ def parse():
     parser = argparse.ArgumentParser(description='Train a model')
     parser.add_argument('-j', '--json', type=str, help='name of the config json', required=True)
     parser.add_argument('-b', '--batch', type=int, default=128, help='batch size')
-    parser.add_argument('-e', '--epochs', type=int, default=100, help='number of epochs')
+    parser.add_argument('-e', '--epochs', type=int, default=200, help='number of epochs')
     parser.add_argument('-q', '--queue', type=str, default=QUEUE_GPU, help='name of the queue')
     parser.add_argument('--rusage', type=int, default=RUSAGE, help='CPU mem')
     parser.add_argument('--mem', type=int, default=10, help='GPU mem')
