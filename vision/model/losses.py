@@ -172,11 +172,12 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
 
         if self.is_push:
             if self.is_pull:
-                mask = tf.eye(tf.shape(logits)[-1], dtype=tf.bool)[None, None]
+                n = tf.shape(logits)[-1]
+                # mask = tf.eye(tf.shape(logits)[-1], dtype=tf.bool)[None, None]
                 if exp_logits is None:
-                    logits = logits[mask]
+                    logits = logits[..., tf.range(n), tf.range(n)]
                 else:
-                    exp_logits = exp_logits[mask]
+                    exp_logits = exp_logits[..., tf.range(n), tf.range(n)]
             mrdev = self.map_rep_dev(exp_logits=exp_logits, logits=logits)   # (b, n)
             mean_mrdev = tf.reduce_mean(mrdev, axis=0)
             push_loss = tf.tensordot(self.a_push, -mean_mrdev, axes=[[0, 1], [0, 1]])
