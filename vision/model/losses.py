@@ -134,7 +134,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         if self.remove_diag:
             self_sim = tf.reshape(cur[~tf.eye(b, dtype=tf.bool)[..., None, None]], (b-1, b, n))
         else:
-            self_sim = tf.reshape(cur[tf.eye(n, dtype=tf.bool)[None, None]], (b, b, n))
+            self_sim = cur  # (b, b, n)
         if exp_logits is None:
             self_sim = self.calculate_exp_logits(None, self_sim)
         map_rep = self_sim / tf.reduce_sum(self_sim, axis=0, keepdims=True)  # (b-remove_diag, b, n)
