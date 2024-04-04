@@ -66,13 +66,16 @@ class ContrastiveSoftmaxLoss(Loss):
         self.stable = stable
         self.cosine = cosine
 
-    def calculate_logits(self, embedding):
+    def calculate_logits(self, embedding, self_only=False):
         if self.cosine:
             normed_embedding = embedding / tf.linalg.norm(tf.stop_gradient(embedding), axis=1, keepdims=True)
             cosine_sim = tf.einsum('bdn,BdN->bBnN', normed_embedding, normed_embedding)
             logits = cosine_sim / self.temperature
         else:
-            dist = tf.reduce_sum(tf.pow(embedding[:, None, ..., None, :] - embedding[None, :, ..., None], 2), axis=2)
+            if self_only:
+                dist = tf.reduce_sum(tf.pow(embedding[:, None] - embedding[None, :], 2), axis=2)
+            else:
+                dist = tf.reduce_sum(tf.pow(embedding[:, None, ..., None, :] - embedding[None, :, ..., None], 2), axis=2)
             if self.eps:
                 dist = tf.minimum(dist, self.eps)
             logits = -dist / self.temperature
@@ -129,7 +132,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         b = tf.shape(cur)[0]
         n = tf.shape(cur)[-1]
         if self.remove_diag:
-            self_sim = tf.reshape(cur[~tf.eye(b, dtype=tf.bool)[..., None, None] & tf.eye(n, dtype=tf.bool)[None, None]], (b-1, b, n))
+            self_sim = tf.reshape(cur[~tf.eye(b, dtype=tf.bool)[..., None, None]], (b-1, b, n))
         else:
             self_sim = tf.reshape(cur[tf.eye(n, dtype=tf.bool)[None, None]], (b, b, n))
         if exp_logits is None:
@@ -146,7 +149,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         return dist
 
     def call(self, y_true, y_pred):
-        logits = self.calculate_logits(y_pred)
+        logits = self.calculate_logits(y_pred, self_only=not self.is_pull)
         if self.stable and (self.is_pull and not self.log_pull) and self.is_push:
             exp_logits = self.calculate_exp_logits(None, logits=logits)
         else:
@@ -168,7 +171,13 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
             loss += pull_loss
 
         if self.is_push:
-            mrdev = self.map_rep_dev(exp_logits=exp_logits, logits=logits)   # (b, n, n)
+            if self.is_pull:
+                mask = tf.eye(tf.shape(logits)[-1], dtype=tf.bool)[None, None]
+                if exp_logits is None:
+                    logits = logits[mask]
+                else:
+                    exp_logits = exp_logits[mask]
+            mrdev = self.map_rep_dev(exp_logits=exp_logits, logits=logits)   # (b, n)
             mean_mrdev = tf.reduce_mean(mrdev, axis=0)
             push_loss = tf.tensordot(self.a_push, -mean_mrdev, axes=[[0, 1], [0, 1]])
             loss += push_loss
