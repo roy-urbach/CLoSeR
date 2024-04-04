@@ -69,7 +69,7 @@ class ContrastiveSoftmaxLoss(Loss):
     def calculate_logits(self, embedding, self_only=False):
         if self.cosine:
             normed_embedding = embedding / tf.linalg.norm(tf.stop_gradient(embedding), axis=1, keepdims=True)
-            cosine_sim = tf.einsum('bdn,BdN->bBnN', normed_embedding, normed_embedding)
+            cosine_sim = tf.einsum('bdn,Bdn->bBn' if self_only else 'bdn,BdN->bBnN', normed_embedding, normed_embedding)
             logits = cosine_sim / self.temperature
         else:
             if self_only:
