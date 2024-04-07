@@ -159,7 +159,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
             self_sim = self.calculate_exp_logits(None, self_sim)
 
         size = float(b * (b-self.remove_diag))
-        _mean_mult_size = size * tf.math.reduce_mean(tf.stop_gradient(self_sim), axis=(0, 1))    # (n, )
+        _mean_mult_size = np.sqrt(size) * tf.math.reduce_mean(tf.stop_gradient(self_sim), axis=(0, 1))    # (n, )
         _std = tf.math.reduce_std(tf.stop_gradient(self_sim), axis=(0, 1))      # (n, )
         mult = tf.einsum('ijn,ijm->nm', self_sim, self_sim)                     # (n, n)
 
