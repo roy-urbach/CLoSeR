@@ -158,11 +158,12 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         if exp_logits is None:
             self_sim = self.calculate_exp_logits(None, self_sim)
 
-        _mean = tf.math.reduce_mean(tf.stop_gradient(self_sim), axis=(0, 1))    # (n, )
+        size = float(b * (b-self.remove_diag))
+        _mean_mult_size = size * tf.math.reduce_mean(tf.stop_gradient(self_sim), axis=(0, 1))    # (n, )
         _std = tf.math.reduce_std(tf.stop_gradient(self_sim), axis=(0, 1))      # (n, )
         mult = tf.einsum('ijn,ijm->nm', self_sim, self_sim)                     # (n, n)
 
-        correlation = (mult - _mean[None] * _mean[:, None]) / (_std[None] * _std[:, None])
+        correlation = (mult - _mean_mult_size[None] * _mean_mult_size[:, None]) / (_std[None] * _std[:, None] * size)
 
         return correlation
 
