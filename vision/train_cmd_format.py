@@ -48,6 +48,11 @@ def get_cmd():
     output_name = os.path.join(path, 'output')
     error_name = os.path.join(path, 'error')
 
+    training_fn = f"{path}/is_training"
+    if os.path.exists(training_fn):
+        print("already training")
+        return f'echo "{model_name} already trained"'
+
     bsub_call = f'bsub -q {args.queue} -J {model_name} -o {output_name}.o -e {error_name}.e -C 1'
     if 'gpu' in args.queue:
         bsub_call += f" -gpu num=1:j_exclusive=no:gmem={args.mem}GB"
