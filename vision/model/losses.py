@@ -66,16 +66,20 @@ class ContrastiveSoftmaxLoss(Loss):
         self.stable = stable
         self.cosine = cosine
 
-    def calculate_logits(self, embedding, self_only=False):
+    def calculate_dists(self, embedding, self_only=False):
+        if self_only:
+            dist = tf.reduce_sum(tf.pow(embedding[:, None] - embedding[None, :], 2), axis=2)
+        else:
+            dist = tf.reduce_sum(tf.pow(embedding[:, None, ..., None, :] - embedding[None, :, ..., None], 2), axis=2)
+        return dist
+
+    def calculate_logits(self, embedding, dist=None, self_only=False):
         if self.cosine:
             normed_embedding = embedding / tf.linalg.norm(tf.stop_gradient(embedding), axis=1, keepdims=True)
             cosine_sim = tf.einsum('bdn,Bdn->bBn' if self_only else 'bdn,BdN->bBnN', normed_embedding, normed_embedding)
             logits = cosine_sim / self.temperature
         else:
-            if self_only:
-                dist = tf.reduce_sum(tf.pow(embedding[:, None] - embedding[None, :], 2), axis=2)
-            else:
-                dist = tf.reduce_sum(tf.pow(embedding[:, None, ..., None, :] - embedding[None, :, ..., None], 2), axis=2)
+            dist = dist if dist is not None else self.calculate_dists(embedding, self_only=self_only)
             if self.eps:
                 dist = tf.minimum(dist, self.eps)
             logits = -dist / self.temperature
@@ -111,7 +115,7 @@ class ContrastiveSoftmaxLoss(Loss):
 
 class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
     def __init__(self, *args, a_pull, a_push, w_push=1, log_eps=1e-10, log_pull=False, contrastive=True,
-                 remove_diag=True, corr=False, **kwargs):
+                 remove_diag=True, corr=False, use_dists=False, **kwargs):
         super().__init__(*args, **kwargs)
         global A_PULL
         global A_PUSH
@@ -127,6 +131,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         self.contrastive = contrastive
         self.remove_diag = remove_diag
         self.corr = corr
+        self.use_dists = use_dists
 
     def map_rep_dev(self, exp_logits=None, logits=None):
         assert (logits is not None) or (exp_logits is not None)
@@ -146,22 +151,21 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         dkl = entropy - cross_ent   # (b, n, n)
         return dkl
 
-    def calculate_correlation(self, exp_logits=None, logits=None):
-        assert (logits is not None) or (exp_logits is not None)
-        cur = exp_logits if exp_logits is not None else logits # Will be converted to exp_logits later
+    def calculate_correlation(self, exp_logits=None, logits=None, dists=None):
+        using_dist = self.use_dists and dists is not None
+        assert (logits is not None) or (exp_logits is not None) or using_dist
+        cur = dists if using_dist else (exp_logits if exp_logits is not None else logits)  # Will be converted to exp_logits later
         b = tf.shape(cur)[0]
         n = tf.shape(cur)[-1]
         if self.remove_diag:
-            self_sim = tf.reshape(cur[tf.tile(~tf.eye(b, dtype=tf.bool)[..., None], [1, 1, n])], (b-1, b, n))
-        else:
-            self_sim = cur  # (b, b, n)
-        if exp_logits is None:
-            self_sim = self.calculate_exp_logits(None, self_sim)
+            cur = tf.reshape(cur[tf.tile(~tf.eye(b, dtype=tf.bool)[..., None], [1, 1, n])], (b-1, b, n))
+        if exp_logits is None and not using_dist:
+            cur = self.calculate_exp_logits(None, cur)
 
         size = float(b * (b-self.remove_diag))
-        _mean = tf.math.reduce_mean(tf.stop_gradient(self_sim), axis=(0, 1))    # (n, )
-        _std = tf.math.reduce_std(tf.stop_gradient(self_sim), axis=(0, 1))      # (n, )
-        mult = tf.einsum('ijn,ijm->nm', self_sim, self_sim)                     # (n, n)
+        _mean = tf.math.reduce_mean(tf.stop_gradient(cur), axis=(0, 1))    # (n, )
+        _std = tf.math.reduce_std(tf.stop_gradient(cur), axis=(0, 1))      # (n, )
+        mult = tf.einsum('ijn,ijm->nm', cur, cur)                     # (n, n)
 
         correlation = (mult / size - _mean[None] * _mean[:, None]) / (_std[None] * _std[:, None])
 
@@ -172,11 +176,13 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         return dist
 
     def call(self, y_true, y_pred):
-        logits = self.calculate_logits(y_pred, self_only=not self.is_pull)
-        if self.stable and (self.is_pull and not self.log_pull) and self.is_push:
-            exp_logits = self.calculate_exp_logits(None, logits=logits)
+        dists = self.calculate_dists(y_pred, self_only=not self.is_pull)
+        if self.is_pull or not self.use_dists:
+            logits = self.calculate_logits(y_pred, dist=dists, self_only=not self.is_pull)
+            if self.stable and (self.is_pull and not self.log_pull) and self.is_push:
+                exp_logits = self.calculate_exp_logits(None, logits=logits)
         else:
-            exp_logits = None
+            logits = exp_logits = None
         loss = 0.
 
         if self.is_pull:
@@ -195,13 +201,18 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
 
         if self.is_push:
             if self.is_pull:
-                if exp_logits is None:
-                    logits = tf.linalg.diag_part(logits)
+                if self.use_dists:
+                    dists = tf.linalg.diag_part(dists)
                 else:
-                    exp_logits = tf.linalg.diag_part(exp_logits)
+                    if exp_logits is None:
+                        logits = tf.linalg.diag_part(logits)
+                    else:
+                        exp_logits = tf.linalg.diag_part(exp_logits)
 
             if self.corr:
-                R_squared = tf.pow(self.calculate_correlation(exp_logits=exp_logits, logits=logits), 2)
+                R_squared = tf.pow(self.calculate_correlation(exp_logits=None if self.use_dists else exp_logits,
+                                                              logits=None if self.use_dists else logits,
+                                                              dists=dists if self.use_dists else None), 2)
                 push_loss = tf.tensordot(self.a_push, R_squared, axes=[[0, 1], [0, 1]])
             else:
                 mrdev = self.map_rep_dev(exp_logits=exp_logits, logits=logits)   # (b, n)
