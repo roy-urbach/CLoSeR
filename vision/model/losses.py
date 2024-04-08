@@ -177,12 +177,11 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
 
     def call(self, y_true, y_pred):
         dists = self.calculate_dists(y_pred, self_only=not self.is_pull)
+        logits = exp_logits = None
         if self.is_pull or not self.use_dists:
             logits = self.calculate_logits(y_pred, dist=dists, self_only=not self.is_pull)
             if self.stable and (self.is_pull and not self.log_pull) and self.is_push:
                 exp_logits = self.calculate_exp_logits(None, logits=logits)
-        else:
-            logits = exp_logits = None
         loss = 0.
 
         if self.is_pull:
