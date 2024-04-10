@@ -205,7 +205,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
                     dists = dists[tf.eye(tf.shape(dists)[0], dtype='bool')]                                 # (b, n, n)
                 else:
                     dists = tf.reduce_sum(tf.pow(y_pred[..., None, :] - y_pred[..., None], 2), axis=2)      # (b, n, n)
-                normalized_dists = dists / tf.shape(y_pred)[1]
+                normalized_dists = dists / float(tf.shape(y_pred)[1])
                 paths_loss = tf.reduce_mean(-normalized_dists, axis=0)
             else:
                 if self.is_pull:
