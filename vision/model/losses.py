@@ -115,7 +115,7 @@ class ContrastiveSoftmaxLoss(Loss):
 
 class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
     def __init__(self, *args, a_pull, a_push, w_push=1, log_eps=1e-10, log_pull=False, contrastive=True,
-                 remove_diag=True, corr=False, use_dists=False, **kwargs):
+                 remove_diag=True, corr=False, use_dists=False, naive_push=False, **kwargs):
         super().__init__(*args, **kwargs)
         global A_PULL
         global A_PUSH
@@ -128,6 +128,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         self.is_push = tf.reduce_any(self.a_push != 0).numpy()
         self.log_eps = log_eps
         self.log_pull = log_pull
+        self.naive_push = naive_push
         self.contrastive = contrastive
         self.remove_diag = remove_diag
         self.corr = corr
@@ -165,7 +166,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         size = float(b * (b-self.remove_diag))
         _mean = tf.math.reduce_mean(tf.stop_gradient(cur), axis=(0, 1))    # (n, )
         _std = tf.math.reduce_std(tf.stop_gradient(cur), axis=(0, 1))      # (n, )
-        mult = tf.einsum('ijn,ijm->nm', cur, cur)                     # (n, n)
+        mult = tf.einsum('ijn,ijm->nm', cur, cur)                          # (n, n)
 
         correlation = (mult / size - _mean[None] * _mean[:, None]) / (_std[None] * _std[:, None])
 
@@ -199,24 +200,31 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
             loss += pull_loss
 
         if self.is_push:
-            if self.is_pull:
-                if self.use_dists:
-                    dists = tf.linalg.diag_part(dists)
+            if self.naive_push:
+                if self.is_pull:
+                    dists = dists[tf.eye(tf.shape(dists)[0], dtype='bool')]                                 # (b, n, n)
                 else:
-                    if exp_logits is None:
-                        logits = tf.linalg.diag_part(logits)
-                    else:
-                        exp_logits = tf.linalg.diag_part(exp_logits)
-
-            if self.corr:
-                R_squared = tf.pow(self.calculate_correlation(exp_logits=None if self.use_dists else exp_logits,
-                                                              logits=None if self.use_dists else logits,
-                                                              dists=dists if self.use_dists else None), 2)
-                push_loss = tf.tensordot(self.a_push, R_squared, axes=[[0, 1], [0, 1]])
+                    dists = tf.reduce_sum(tf.pow(y_pred[..., None, :] - y_pred[..., None], 2), axis=2)      # (b, n, n)
+                normalized_dists = dists / tf.shape(y_pred)[1]
+                paths_loss = tf.reduce_mean(-normalized_dists, axis=0)
             else:
-                mrdev = self.map_rep_dev(exp_logits=exp_logits, logits=logits)   # (b, n)
-                mean_mrdev = tf.reduce_mean(mrdev, axis=0)
-                push_loss = tf.tensordot(self.a_push, -mean_mrdev, axes=[[0, 1], [0, 1]])
+                if self.is_pull:
+                    if self.use_dists:
+                        dists = tf.linalg.diag_part(dists)  # (b, b, n)
+                    else:
+                        if exp_logits is None:
+                            logits = tf.linalg.diag_part(logits)
+                        else:
+                            exp_logits = tf.linalg.diag_part(exp_logits)
+
+                if self.corr:
+                    paths_loss = tf.pow(self.calculate_correlation(exp_logits=None if self.use_dists else exp_logits,
+                                                                   logits=None if self.use_dists else logits,
+                                                                   dists=dists if self.use_dists else None), 2)  # R^2
+                else:
+                    mrdev = self.map_rep_dev(exp_logits=exp_logits, logits=logits)   # (b, n)
+                    paths_loss = -tf.reduce_mean(mrdev, axis=0)
+            push_loss = tf.tensordot(self.a_push, paths_loss, axes=[[0, 1], [0, 1]])
             loss += push_loss
 
         return loss
