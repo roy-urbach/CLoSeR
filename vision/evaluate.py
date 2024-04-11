@@ -4,7 +4,7 @@ from evaluation.utils import save_evaluation_json, load_evaluation_json, get_eva
 from model.model import load_model_from_json
 from utils.data import Cifar10, Data
 from utils.io_utils import load_json
-from utils.utils import get_class
+from utils.utils import get_class, printd
 from utils import data
 import numpy as np
 
@@ -88,13 +88,15 @@ def evaluate(model, knn=False, linear=True, ensemble=True, ensemble_knn=False, s
 
     if knn:
         for k in [1] + list(range(5, 50, 5)):
-            print(f"k={k}:", end='\t')
-            results[f"k={k}"] = classify_head_eval(embd_dataset, linear=False, k=k, **kwargs)
-            save_res()
+            if f'k={k}' not in results:
+                printd(f"k={k}:", end='\t')
+                results[f"k={k}"] = classify_head_eval(embd_dataset, linear=False, k=k, **kwargs)
+                save_res()
 
     if linear:
-        results['logistic'] = classify_head_eval(embd_dataset, linear=True, svm=False, **kwargs)
-        save_res()
+        if 'logistic' not in results:
+            results['logistic'] = classify_head_eval(embd_dataset, linear=True, svm=False, **kwargs)
+            save_res()
 
     if ensemble:
         results.update(classify_head_eval_ensemble(embd_dataset, linear=True, svm=False,

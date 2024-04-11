@@ -115,7 +115,7 @@ class ContrastiveSoftmaxLoss(Loss):
 
 class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
     def __init__(self, *args, a_pull, a_push, w_push=1, log_eps=1e-10, log_pull=False, contrastive=True,
-                 remove_diag=True, corr=False, use_dists=False, naive_push=False, **kwargs):
+                 remove_diag=True, corr=False, use_dists=False, naive_push=False, naive_push_max=None, **kwargs):
         super().__init__(*args, **kwargs)
         global A_PULL
         global A_PUSH
@@ -129,6 +129,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         self.log_eps = log_eps
         self.log_pull = log_pull
         self.naive_push = naive_push
+        self.naive_push_max = naive_push_max
         self.contrastive = contrastive
         self.remove_diag = remove_diag
         self.corr = corr
@@ -206,6 +207,8 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
                 else:
                     dists = tf.reduce_sum(tf.pow(y_pred[..., None, :] - y_pred[..., None], 2), axis=2)      # (b, n, n)
                 normalized_dists = dists / float(tf.shape(y_pred)[1])
+                if self.naive_push_max is not None:
+                    normalized_dists = tf.minimum(normalized_dists, self.naive_push_max)
                 paths_loss = tf.reduce_mean(-normalized_dists, axis=0)
             else:
                 if self.is_pull:
