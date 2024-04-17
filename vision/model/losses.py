@@ -197,7 +197,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
                     gain = self.calculate_likelihood(None, exp_logits=exp_logits, logits=logits)[tf.eye(tf.shape(logits)[0], dtype=tf.bool)]
 
                 if self.neg_in_pull:
-                    gain = tf.where(self.a_pull_neg_mask, tf.maximum(gain, 1/b), gain)
+                    gain = tf.where(self.a_pull_neg_mask, tf.maximum(gain, tf.cast(1/b, tf.float32)), gain)
                 mean_gain = tf.reduce_mean(gain, axis=0)
                 pull_loss = tf.tensordot(self.a_pull, (0 if self.log_pull else 1) - mean_gain, axes=[[0, 1], [0, 1]])
             else:
