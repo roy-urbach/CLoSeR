@@ -123,6 +123,8 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         A_PUSH = tf.constant(eval(a_push) if isinstance(a_push, str) else a_push, dtype=tf.float32)
         self.a_pull = A_PULL
         self.a_push = A_PUSH * w_push
+        self.neg_in_pull = tf.reduce_any(self.a_pull < 0)
+        self.a_pull_neg_mask = self.a_pull < 0
         self.w_push = w_push
         self.is_pull = tf.reduce_any(self.a_pull != 0).numpy()
         self.is_push = tf.reduce_any(self.a_push != 0).numpy()
@@ -185,15 +187,18 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
             if self.stable and (self.is_pull and not self.log_pull) and self.is_push:
                 exp_logits = self.calculate_exp_logits(None, logits=logits)
         loss = 0.
-
+        b = tf.shape(y_pred)[0]
         if self.is_pull:
             if self.contrastive:
                 if self.log_pull:
-                    log_likelihood = logits[tf.eye(tf.shape(logits)[0], dtype=tf.bool)] - tf.math.reduce_logsumexp(logits, axis=0)
+                    gain = logits[tf.eye(tf.shape(logits)[0], dtype=tf.bool)] - tf.math.reduce_logsumexp(logits, axis=0)
                 else:
                     # (b, n, n)
-                    likelihood = self.calculate_likelihood(None, exp_logits=exp_logits, logits=logits)[tf.eye(tf.shape(logits)[0], dtype=tf.bool)]
-                mean_gain = tf.reduce_mean(log_likelihood if self.log_pull else likelihood, axis=0)
+                    gain = self.calculate_likelihood(None, exp_logits=exp_logits, logits=logits)[tf.eye(tf.shape(logits)[0], dtype=tf.bool)]
+
+                if self.neg_in_pull:
+                    gain = tf.where(self.a_pull_neg_mask, tf.maximum(gain, 1/b), gain)
+                mean_gain = tf.reduce_mean(gain, axis=0)
                 pull_loss = tf.tensordot(self.a_pull, (0 if self.log_pull else 1) - mean_gain, axes=[[0, 1], [0, 1]])
             else:
                 mean_dist = tf.reduce_mean(self.distance(embedding=y_pred), axis=0)
