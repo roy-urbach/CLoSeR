@@ -34,6 +34,10 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
                  projection_dim=64, encoder='ViTEncoder', encoder_per_path=False,
                  encoder_kwargs={}, pathways_kwargs={}, image_size=72, patch_size=8,
                  pathway_classification=True, ensemble_classification=False, classifier_pathways=True):
+    if isinstance(kernel_regularizer, str) and kernel_regularizer.startswith("tf."):
+        kernel_regularizer = eval(kernel_regularizer)
+
+
     inputs = layers.Input(shape=input_shape)
     # Augment data.
     augmented = get_data_augmentation(image_size)(inputs)
@@ -72,10 +76,10 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
 
     # classification heads, with stop_grad unless classifier=True
     if pathway_classification:
-        outputs.append(layers.Dense(num_classes, activation=None, name=name + '_logits')(
+        outputs.append(layers.Dense(num_classes, activation=None, kernel_regularizer=kernel_regularizer, name=name + '_logits')(
             (embedding if classifier else tf.stop_gradient(embedding))[..., 0]))
     if ensemble_classification:
-        outputs.append(layers.Dense(num_classes, activation=None, name=name + '_ensemble_logits')(
+        outputs.append(layers.Dense(num_classes, activation=None, kernel_regularizer=kernel_regularizer, name=name + '_ensemble_logits')(
             tf.reshape(embedding if classifier else tf.stop_gradient(embedding), (-1, np.multiply.reduce(embedding.shape[1:])))))
 
     # Create the Keras model.
