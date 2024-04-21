@@ -254,7 +254,7 @@ class CommunitiesLoss(GeneralPullPushGraphLoss):
         a_pull = scipy.linalg.block_diag(*[1-np.eye(pathways_per_community).astype(np.float32)]*num_communities) / (num_communities * pathways_per_community **2 - num_pathways)
         a_push = ((np.eye(num_pathways) == 0) & (a_pull == 0)).astype(np.float32)
         a_push /= a_push.sum()
-        super(GeneralPullPushGraphLoss, self).__init__(*args, a_pull=a_pull, a_push=a_push, **kwargs)
+        super(CommunitiesLoss, self).__init__(*args, a_pull=a_pull, a_push=a_push, **kwargs)
 
 
 @serialize
