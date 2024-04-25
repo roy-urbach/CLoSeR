@@ -76,6 +76,7 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
 
     # classification heads, with stop_grad unless classifier=True
     if pathway_classification:
+        # Only for the first pathway
         outputs.append(layers.Dense(num_classes, activation=None, kernel_regularizer=kernel_regularizer, name=name + '_logits')(
             (embedding if classifier else tf.stop_gradient(embedding))[..., 0]))
     if ensemble_classification:

@@ -251,9 +251,12 @@ class CommunitiesLoss(GeneralPullPushGraphLoss):
     def __init__(self, num_pathways, num_communities, *args, **kwargs):
         assert not (num_pathways % num_communities)
         pathways_per_community = int(num_pathways / num_communities)
-        a_pull = scipy.linalg.block_diag(*[1-np.eye(pathways_per_community).astype(np.float32)]*num_communities) / (num_communities * pathways_per_community **2 - num_pathways)
+        a_pull = scipy.linalg.block_diag(*[1-np.eye(pathways_per_community).astype(np.float32)]*num_communities)
+        if (a_pull != 0).any():
+            a_pull /= num_communities * pathways_per_community **2 - num_pathways
         a_push = ((np.eye(num_pathways) == 0) & (a_pull == 0)).astype(np.float32)
-        a_push /= a_push.sum()
+        if (a_push != 0).any():
+            a_push /= a_push.sum()
         super(CommunitiesLoss, self).__init__(*args, a_pull=a_pull, a_push=a_push, **kwargs)
 
 
