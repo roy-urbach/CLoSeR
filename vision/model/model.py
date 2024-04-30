@@ -33,7 +33,7 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
                  input_shape=(32, 32, 3), num_classes=10, kernel_regularizer=None,
                  projection_dim=64, encoder='ViTEncoder', encoder_per_path=False,
                  encoder_kwargs={}, pathways_kwargs={}, image_size=72, patch_size=8,
-                 pathway_classification=True, ensemble_classification=False, classifier_pathways=True):
+                 pathway_classification=True, pathway_classification_allpaths=False, ensemble_classification=False, classifier_pathways=True):
     if isinstance(kernel_regularizer, str) and kernel_regularizer.startswith("tf."):
         kernel_regularizer = eval(kernel_regularizer)
 
@@ -77,8 +77,14 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
     # classification heads, with stop_grad unless classifier=True
     if pathway_classification:
         # Only for the first pathway
-        outputs.append(layers.Dense(num_classes, activation=None, kernel_regularizer=kernel_regularizer, name=name + '_logits')(
-            (embedding if classifier else tf.stop_gradient(embedding))[..., 0]))
+        embedding_for_classification = embedding if classifier else tf.stop_gradient(embedding)
+        pathways_to_classify = list(range(len(pathways))) if pathway_classification_allpaths else [0]
+        for path in pathways_to_classify:
+            cur_embd = embedding_for_classification[..., path]
+            cur_name = name + '_logits' + (str(path) if pathway_classification_allpaths else '')
+            pathway_logits = layers.Dense(num_classes, activation=None,
+                                          kernel_regularizer=kernel_regularizer, name=cur_name)(cur_embd)
+            outputs.append(pathway_logits)
     if ensemble_classification:
         outputs.append(layers.Dense(num_classes, activation=None, kernel_regularizer=kernel_regularizer, name=name + '_ensemble_logits')(
             tf.reshape(embedding if classifier else tf.stop_gradient(embedding), (-1, np.multiply.reduce(embedding.shape[1:])))))
@@ -88,9 +94,10 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
     return model
 
 
-def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={}, optimizer_cls=tf.optimizers.legacy.Nadam if tf.__version__ == '2.12.0' else tf.optimizers.Nadam,
+def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
+                  optimizer_cls=tf.optimizers.legacy.Nadam if tf.__version__ == '2.12.0' else tf.optimizers.Nadam,
                   optimizer_kwargs={}, classifier=False, pathway_classification=True,
-                  ensemble_classification=False, **kwargs):
+                  ensemble_classification=False, pathway_classification_allpaths=False, **kwargs):
     if kwargs:
         print(f"WARNING: compile_model got spare kwargs that won't be used: {kwargs}")
 
@@ -105,8 +112,13 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={}, optimizer_
         losses[model.name + '_embedding'] = loss(**loss_kwargs)
 
     if pathway_classification:
-        losses[model.name + '_logits'] = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-        metrics[model.name + '_logits'] = keras.metrics.SparseCategoricalAccuracy(name="accuracy")
+        if pathway_classification_allpaths:
+            for path in range(model.get_layer(model.name + "_pathways").n):
+                losses[model.name + f'_logits{path}'] = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+                metrics[model.name + f'_logits{path}'] = keras.metrics.SparseCategoricalAccuracy(name="accuracy")
+        else:
+            losses[model.name + '_logits'] = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+            metrics[model.name + '_logits'] = keras.metrics.SparseCategoricalAccuracy(name="accuracy")
 
     if ensemble_classification:
         losses[model.name + '_ensemble_logits'] = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
