@@ -115,7 +115,8 @@ class ContrastiveSoftmaxLoss(Loss):
 
 class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
     def __init__(self, *args, a_pull, a_push, w_push=1, log_eps=1e-10, log_pull=False, contrastive=True,
-                 remove_diag=True, corr=False, use_dists=False, naive_push=False, naive_push_max=None, **kwargs):
+                 remove_diag=True, corr=False, use_dists=False, naive_push=False, naive_push_max=None, top_k=0,
+                 **kwargs):
         super().__init__(*args, **kwargs)
         global A_PULL
         global A_PUSH
@@ -136,6 +137,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         self.remove_diag = remove_diag
         self.corr = corr
         self.use_dists = use_dists
+        self.top_k = top_k
 
     def map_rep_dev(self, exp_logits=None, logits=None):
         assert (logits is not None) or (exp_logits is not None)
@@ -198,6 +200,13 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
 
                 if self.neg_in_pull:
                     gain = tf.where(self.a_pull_neg_mask, tf.maximum(gain, tf.cast(1/b, tf.float32)), gain)
+
+                if self.top_k:
+                    top_k_vals = tf.reduce_min(tf.math.top_k(gain, k=self.top_k, sorted=False).values(),
+                                               axis=-1, keepdims=True)
+                    top_k_mask = gain >= top_k_vals
+                    gain = tf.where(top_k_mask, gain, 0.)
+
                 mean_gain = tf.reduce_mean(gain, axis=0)
                 pull_loss = tf.tensordot(self.a_pull, (0 if self.log_pull else 1) - mean_gain, axes=[[0, 1], [0, 1]])
             else:

@@ -100,7 +100,7 @@ def evaluate(model, knn=False, linear=True, ensemble=True, ensemble_knn=False, s
 
     if ensemble:
         results.update(classify_head_eval_ensemble(embd_dataset, linear=True, svm=False,
-                                                   voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb]), **kwargs)
+                                                   voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb], **kwargs))
         save_res()
 
         if not any([k.startswith("image_pathway") for k in results.keys()]):
