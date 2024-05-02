@@ -202,7 +202,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
                     gain = tf.where(self.a_pull_neg_mask, tf.maximum(gain, tf.cast(1/b, tf.float32)), gain)
 
                 if self.top_k:
-                    top_k_vals = tf.reduce_min(tf.math.top_k(gain, k=self.top_k, sorted=False).values(),
+                    top_k_vals = tf.reduce_min(tf.math.top_k(gain, k=self.top_k, sorted=False).values,
                                                axis=-1, keepdims=True)
                     top_k_mask = gain >= top_k_vals
                     gain = tf.where(top_k_mask, gain, 0.)
