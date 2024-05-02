@@ -66,11 +66,19 @@ class ContrastiveSoftmaxLoss(Loss):
         self.stable = stable
         self.cosine = cosine
 
-    def calculate_dists(self, embedding, self_only=False):
-        if self_only:
-            dist = tf.reduce_sum(tf.pow(embedding[:, None] - embedding[None, :], 2), axis=2)
+    def calculate_dists(self, embedding, self_only=False, stop_grad=False):
+        # TODO: try to figure if the gradient flow in this case with top_k != 0 is correct
+        if stop_grad:
+            if self_only:
+                dist = tf.reduce_sum(tf.pow(embedding[:, None] - tf.stop_gradient(embedding)[None, :], 2), axis=2)
+            else:
+                dist = tf.reduce_sum(tf.pow(embedding[:, None, ..., :, None] - tf.stop_gradient(embedding)[None, :, ..., None, :], 2),
+                                     axis=2)
         else:
-            dist = tf.reduce_sum(tf.pow(embedding[:, None, ..., None, :] - embedding[None, :, ..., None], 2), axis=2)
+            if self_only:
+                dist = tf.reduce_sum(tf.pow(embedding[:, None] - embedding[None, :], 2), axis=2)
+            else:
+                dist = tf.reduce_sum(tf.pow(embedding[:, None, ..., None, :] - embedding[None, :, ..., None], 2), axis=2)
         return dist
 
     def calculate_logits(self, embedding, dist=None, self_only=False):
@@ -116,7 +124,7 @@ class ContrastiveSoftmaxLoss(Loss):
 class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
     def __init__(self, *args, a_pull, a_push, w_push=1, log_eps=1e-10, log_pull=False, contrastive=True,
                  remove_diag=True, corr=False, use_dists=False, naive_push=False, naive_push_max=None, top_k=0,
-                 **kwargs):
+                 stop_grad_dist=False, **kwargs):
         super().__init__(*args, **kwargs)
         global A_PULL
         global A_PUSH
@@ -138,6 +146,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         self.corr = corr
         self.use_dists = use_dists
         self.top_k = top_k
+        self.stop_grad_dist = stop_grad_dist
 
     def map_rep_dev(self, exp_logits=None, logits=None):
         assert (logits is not None) or (exp_logits is not None)
@@ -182,7 +191,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         return dist
 
     def call(self, y_true, y_pred):
-        dists = self.calculate_dists(y_pred, self_only=not self.is_pull)
+        dists = self.calculate_dists(y_pred, self_only=not self.is_pull, stop_grad=self.stop_grad_dist)
         logits = exp_logits = None
         if self.is_pull or not self.use_dists:
             logits = self.calculate_logits(y_pred, dist=dists, self_only=not self.is_pull)
