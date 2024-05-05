@@ -341,8 +341,8 @@ class PredictiveEmbedding(tf.keras.layers.Layer):
         for i in range(self.n):
             for j in range(self.n):
                 if i == j:
-                    pred_embd[i] = embedding[..., i]
+                    pred_embd[str(i)] = embedding[..., i]
                 elif self.pred_graph[i][j]:
                     pred_embd_ij = self.dense[i][j](embedding[..., i])
-                    pred_embd[(i, j)]= pred_embd_ij
+                    pred_embd[f"{i},{j}"]= pred_embd_ij
         return pred_embd
