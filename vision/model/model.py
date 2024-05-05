@@ -35,7 +35,7 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
                  encoder_kwargs={}, pathways_kwargs={}, image_size=72, patch_size=8,
                  pathway_classification=True, pathway_classification_allpaths=False,
                  ensemble_classification=False, classifier_pathways=True,
-                 predictive_embedding=None):
+                 predictive_embedding=None, predictive_embedding_kwargs={}):
     if isinstance(kernel_regularizer, str) and kernel_regularizer.startswith("tf."):
         kernel_regularizer = eval(kernel_regularizer)
 
@@ -79,7 +79,8 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
     if predictive_embedding is not None:
         outputs.append(PredictiveEmbedding(predictive_embedding, name=name + "_predembd",
                                            dim=embedding.shape[1],
-                                           regularization=kernel_regularizer)(embedding))
+                                           regularization=predictive_embedding_kwargs.pop("regularization", kernel_regularizer),
+                                           **predictive_embedding_kwargs)(embedding))
 
     # classification heads, with stop_grad unless classifier=True
     if pathway_classification:
