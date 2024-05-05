@@ -333,3 +333,19 @@ class BasicBatchContrastiveLoss(tf.keras.losses.Loss):
         gain = tf.linalg.diag_part(logits) - tf.math.log(partition)
         mean_loss = -tf.reduce_mean(gain)
         return mean_loss
+
+
+class LateralPredictiveLoss(tf.keras.losses.Loss):
+    def __init__(self, graph, name='lateral_pred_loss', **kwargs):
+        super(LateralPredictiveLoss, self).__init__(name=name)
+        self.graph = eval(graph) if isinstance(graph, str) else graph
+        self.basic_loss = BasicBatchContrastiveLoss(**kwargs)
+
+    def call(self, y_true, y_pred):
+        loss = 0.
+        for j in range(self.n):
+            target = y_pred[j]
+            for i in range(self.n):
+                if self.pred_graph[i][j]:
+                    loss += self.pred_graph[i][j] * self.basic_loss(target, y_pred[(i,j)])
+        return loss
