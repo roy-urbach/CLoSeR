@@ -326,7 +326,7 @@ class BasicBatchContrastiveLoss(tf.keras.losses.Loss):
 
     def call(self, y_true, y_pred):
         # embd shape: (B, dim)
-        dists_sqr = tf.reduce_sum(tf.pow(y_true[:, None] - y_pred[None]), axis=-1)  # (B1, B2)
+        dists_sqr = tf.reduce_sum(tf.pow(y_true[:, None] - y_pred[None], 2), axis=-1)  # (B1, B2)
         logits = -dists_sqr / self.temperature
         exps = np.exp(logits)
         partition = tf.reduce_sum(exps, axis=self.partition_along_axis)
