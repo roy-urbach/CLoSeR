@@ -96,7 +96,7 @@ class ContrastiveSoftmaxLoss(Loss):
     def calculate_exp_logits(self, embedding, logits=None):
         logits = self.calculate_logits(embedding) if logits is None else logits
         if self.stable:
-            logits = logits - tf.reduce_max(logits, axis=0, keepdims=True)
+            logits = logits - tf.reduce_max(tf.stop_gradient(logits), axis=0, keepdims=True)
         return tf.exp(logits)
 
     def calculate_likelihood(self, embedding, exp_logits=None, logits=None):
@@ -347,6 +347,7 @@ class LateralPredictiveLoss(tf.keras.losses.Loss):
     def basic_batch_contrastive_loss(self, y_true, y_pred):
         dists_sqr = tf.reduce_sum(tf.pow(y_true[:, None] - y_pred[None], 2), axis=-1)  # (B1, B2)
         logits = -dists_sqr / self.temperature
+        logits = logits - tf.reduce_max(tf.stop_gradient(logits), axis=self.partition_along_axis, keepdims=True)
         exps = tf.math.exp(logits)
         partition = tf.reduce_sum(exps, axis=self.partition_along_axis)
         gain = tf.linalg.diag_part(logits) - tf.math.log(partition)
