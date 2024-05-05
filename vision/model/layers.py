@@ -330,7 +330,7 @@ class PredictiveEmbedding(tf.keras.layers.Layer):
         self.pred_graph = eval(pred_graph) if isinstance(pred_graph, str) else pred_graph
         self.loss_kwargs = loss_kwargs
         self.n = len(self.pred_graph)
-        self.dense = [[tf.keras.layers.Dense(dim, kernel_regularization=regularization, name=self.name + f"_{i}to{j}")
+        self.dense = [[tf.keras.layers.Dense(dim, kernel_regularizer=regularization, name=self.name + f"_{i}to{j}")
                        if self.pred_graph[i][j] else None
                        for j in range(self.n)] for i in range(self.n)]
         self.loss_obj = BasicBatchContrastiveLoss()

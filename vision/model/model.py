@@ -77,7 +77,8 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
     outputs = [embedding]
 
     if predictive_embedding is not None:
-        outputs.append(PredictiveEmbedding(predictive_embedding, name=name + "_predembd")(embedding))
+        outputs.append(PredictiveEmbedding(predictive_embedding, name=name + "_predembd",
+                                           regularization=kernel_regularizer)(embedding))
 
     # classification heads, with stop_grad unless classifier=True
     if pathway_classification:
