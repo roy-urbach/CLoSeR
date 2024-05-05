@@ -120,8 +120,8 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
         losses[model.name + '_embedding'] = loss(**loss_kwargs)
 
     # TODO: check if it's needed
-    # if predictive_embedding is not None:
-    #     losses[model.name + "_predembd"] = NullLoss()
+    if predictive_embedding is not None:
+        losses[model.name + "_predembd"] = NullLoss()
 
     if pathway_classification:
         if pathway_classification_allpaths:
