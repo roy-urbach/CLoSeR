@@ -336,13 +336,13 @@ class PredictiveEmbedding(tf.keras.layers.Layer):
         self.loss_obj = BasicBatchContrastiveLoss()
 
     def call(self, embedding):
-        pred_embd = []
+        pred_embd = {}
         pred_embd_loss = 0.
         for i in range(self.n):
             for j in range(self.n):
                 if self.pred_graph[i][j]:
                     pred_embd_ij = self.dense[i][j](embedding[..., i])
-                    pred_embd.append(pred_embd_ij)
+                    pred_embd[(i, j)]= pred_embd_ij
                     pred_embd_loss += self.loss_obj(embedding[..., j], pred_embd_ij)
         self.add_loss(pred_embd_loss)
         return pred_embd
