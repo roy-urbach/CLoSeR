@@ -114,7 +114,7 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
 
     losses = {}
     metrics = {}
-    if classifier or (model.name + "_predembd") in [l.name for l in model.layers]:
+    if classifier:
         losses[model.name + '_embedding'] = NullLoss()
     else:
         losses[model.name + '_embedding'] = loss(**loss_kwargs)
