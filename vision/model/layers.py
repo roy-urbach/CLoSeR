@@ -343,5 +343,6 @@ class PredictiveEmbedding(tf.keras.layers.Layer):
                 elif self.pred_graph[i][j]:
                     pred_embd[-1].append(self.dense[i][j](embedding[..., i]))
                 else:
-                    pred_embd[-1].append(None)
-        return pred_embd
+                    pred_embd[-1].append(tf.zeros_like(embedding[..., i]))
+            pred_embd[-1] = tf.stack(pred_embd[-1], axis=-1)
+        return tf.stack(pred_embd, axis=-1)
