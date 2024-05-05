@@ -33,7 +33,9 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
                  input_shape=(32, 32, 3), num_classes=10, kernel_regularizer=None,
                  projection_dim=64, encoder='ViTEncoder', encoder_per_path=False,
                  encoder_kwargs={}, pathways_kwargs={}, image_size=72, patch_size=8,
-                 pathway_classification=True, pathway_classification_allpaths=False, ensemble_classification=False, classifier_pathways=True):
+                 pathway_classification=True, pathway_classification_allpaths=False,
+                 ensemble_classification=False, classifier_pathways=True,
+                 predictive_embedding=None):
     if isinstance(kernel_regularizer, str) and kernel_regularizer.startswith("tf."):
         kernel_regularizer = eval(kernel_regularizer)
 
@@ -74,6 +76,9 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
 
     outputs = [embedding]
 
+    if predictive_embedding is not None:
+        outputs.append(PredictiveEmbedding(predictive_embedding, name=name + "_predembd")(embedding))
+
     # classification heads, with stop_grad unless classifier=True
     if pathway_classification:
         # Only for the first pathway
@@ -97,7 +102,8 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
 def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
                   optimizer_cls=tf.optimizers.legacy.Nadam if tf.__version__ == '2.12.0' else tf.optimizers.Nadam,
                   optimizer_kwargs={}, classifier=False, pathway_classification=True,
-                  ensemble_classification=False, pathway_classification_allpaths=False, **kwargs):
+                  ensemble_classification=False, pathway_classification_allpaths=False,
+                  predictive_embedding=None, **kwargs):
     if kwargs:
         print(f"WARNING: compile_model got spare kwargs that won't be used: {kwargs}")
 
@@ -106,10 +112,14 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
 
     losses = {}
     metrics = {}
-    if classifier:
+    if classifier or predictive_embedding is not None:
         losses[model.name + '_embedding'] = NullLoss()
     else:
         losses[model.name + '_embedding'] = loss(**loss_kwargs)
+
+    # TODO: check if it's needed
+    # if predictive_embedding is not None:
+    #     losses[model.name + "_predembd"] = NullLoss()
 
     if pathway_classification:
         if pathway_classification_allpaths:

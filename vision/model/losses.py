@@ -316,3 +316,20 @@ class NullLoss(Loss):
 
     def call(self, y_true, y_pred):
         return 0.
+
+
+class BasicBatchContrastiveLoss(tf.keras.losses.Loss):
+    def __init__(self, temperature=10, partition_along_axis=1):
+        super(BasicBatchContrastiveLoss, self).__init__()
+        self.temperature = temperature
+        self.partition_along_axis = partition_along_axis
+
+    def call(self, y_true, y_pred):
+        # embd shape: (B, dim)
+        dists_sqr = tf.reduce_sum(tf.pow(y_true[:, None] - y_pred[None]), axis=-1)  # (B1, B2)
+        logits = -dists_sqr / self.temperature
+        exps = np.exp(logits)
+        partition = tf.reduce_sum(exps, axis=self.partition_along_axis)
+        gain = tf.linalg.diag_part(logits) - tf.math.log(partition)
+        mean_loss = -tf.reduce_mean(gain)
+        return mean_loss
