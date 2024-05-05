@@ -318,14 +318,33 @@ class NullLoss(Loss):
         return 0.
 
 
-class BasicBatchContrastiveLoss(tf.keras.losses.Loss):
-    def __init__(self, temperature=10, partition_along_axis=1):
-        super(BasicBatchContrastiveLoss, self).__init__()
+# class BasicBatchContrastiveLoss(tf.keras.losses.Loss):
+#     def __init__(self, temperature=10, partition_along_axis=1):
+#         super(BasicBatchContrastiveLoss, self).__init__()
+#         self.temperature = temperature
+#         self.partition_along_axis = partition_along_axis
+#
+#     def call(self, y_true, y_pred):
+#         # embd shape: (B, dim)
+#         dists_sqr = tf.reduce_sum(tf.pow(y_true[:, None] - y_pred[None], 2), axis=-1)  # (B1, B2)
+#         logits = -dists_sqr / self.temperature
+#         exps = tf.math.exp(logits)
+#         partition = tf.reduce_sum(exps, axis=self.partition_along_axis)
+#         gain = tf.linalg.diag_part(logits) - tf.math.log(partition)
+#         mean_loss = -tf.reduce_mean(gain)
+#         return mean_loss
+
+
+class LateralPredictiveLoss(tf.keras.losses.Loss):
+    def __init__(self, graph, name='lateral_pred_loss', temperature=10, partition_along_axis=1, **kwargs):
+        super(LateralPredictiveLoss, self).__init__(name=name)
+        self.graph = eval(graph) if isinstance(graph, str) else graph
+        # self.basic_loss = BasicBatchContrastiveLoss(**kwargs)
         self.temperature = temperature
         self.partition_along_axis = partition_along_axis
+        self.n = len(self.graph)
 
-    def call(self, y_true, y_pred):
-        # embd shape: (B, dim)
+    def basic_batch_contrastive_loss(self, y_true, y_pred):
         dists_sqr = tf.reduce_sum(tf.pow(y_true[:, None] - y_pred[None], 2), axis=-1)  # (B1, B2)
         logits = -dists_sqr / self.temperature
         exps = tf.math.exp(logits)
@@ -334,19 +353,12 @@ class BasicBatchContrastiveLoss(tf.keras.losses.Loss):
         mean_loss = -tf.reduce_mean(gain)
         return mean_loss
 
-
-class LateralPredictiveLoss(tf.keras.losses.Loss):
-    def __init__(self, graph, name='lateral_pred_loss', **kwargs):
-        super(LateralPredictiveLoss, self).__init__(name=name)
-        self.graph = eval(graph) if isinstance(graph, str) else graph
-        self.basic_loss = BasicBatchContrastiveLoss(**kwargs)
-        self.n = len(self.graph)
-
     def call(self, y_true, y_pred):
         loss = 0.
         for j in range(self.n):
             target = y_pred[j][j]
             for i in range(self.n):
                 if self.graph[i][j]:
-                    loss += self.graph[i][j] * self.basic_loss(target, y_pred[i][j])
+                    pred = y_pred[i][j]
+                    loss += self.graph[i][j] * self.basic_batch_contrastive_loss(target, pred)
         return loss
