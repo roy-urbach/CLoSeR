@@ -340,6 +340,7 @@ class LateralPredictiveLoss(tf.keras.losses.Loss):
         super(LateralPredictiveLoss, self).__init__(name=name)
         self.graph = eval(graph) if isinstance(graph, str) else graph
         self.basic_loss = BasicBatchContrastiveLoss(**kwargs)
+        self.n = len(self.graph)
 
     def call(self, y_true, y_pred):
         loss = 0.
