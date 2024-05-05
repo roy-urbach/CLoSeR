@@ -119,7 +119,6 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
     else:
         losses[model.name + '_embedding'] = loss(**loss_kwargs)
 
-    # TODO: check if it's needed
     if (model.name + "_predembd") in [l.name for l in model.layers]:
         losses[model.name + "_predembd"] = LateralPredictiveLoss(graph=model.get_layer(model.name + "_predembd").pred_graph)
 
