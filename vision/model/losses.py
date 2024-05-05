@@ -348,5 +348,5 @@ class LateralPredictiveLoss(tf.keras.losses.Loss):
             target = y_pred[j][j]
             for i in range(self.n):
                 if self.pred_graph[i][j]:
-                    loss += self.pred_graph[i][j] * self.basic_loss(target, y_pred[i][j]])
+                    loss += self.pred_graph[i][j] * self.basic_loss(target, y_pred[i][j])
         return loss
