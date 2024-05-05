@@ -4,7 +4,6 @@ from tensorflow import keras
 from tensorflow.keras import layers as tf_layers
 from tensorflow.keras import backend as K
 
-from model.losses import BasicBatchContrastiveLoss
 from utils.tf_utils import set_seed, serialize
 from utils.utils import *
 
@@ -333,7 +332,6 @@ class PredictiveEmbedding(tf.keras.layers.Layer):
         self.dense = [[tf.keras.layers.Dense(dim, kernel_regularizer=regularization, name=self.name + f"_{i}to{j}")
                        if self.pred_graph[i][j] else None
                        for j in range(self.n)] for i in range(self.n)]
-        self.loss_obj = BasicBatchContrastiveLoss()
 
     def call(self, embedding):
         pred_embd = []
