@@ -78,7 +78,7 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
 
     if predictive_embedding is not None:
         pred_embd = PredictiveEmbedding(predictive_embedding, name=name + "_predembd",
-                                        dim=tf.shape(embedding)[1],
+                                        dim=embedding.shape[1],
                                         regularization=kernel_regularizer)(embedding)
 
     # classification heads, with stop_grad unless classifier=True
