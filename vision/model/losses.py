@@ -339,7 +339,6 @@ class LateralPredictiveLoss(tf.keras.losses.Loss):
     def __init__(self, graph, name='lateral_pred_loss', temperature=10, partition_along_axis=1, **kwargs):
         super(LateralPredictiveLoss, self).__init__(name=name)
         self.graph = eval(graph) if isinstance(graph, str) else graph
-        # self.basic_loss = BasicBatchContrastiveLoss(**kwargs)
         self.temperature = temperature
         self.partition_along_axis = partition_along_axis
         self.n = len(self.graph)
@@ -362,4 +361,36 @@ class LateralPredictiveLoss(tf.keras.losses.Loss):
                 if self.graph[i][j]:
                     pred = y_pred[..., i, j]
                     loss += self.graph[i][j] * self.basic_batch_contrastive_loss(target, pred)
+        return loss
+
+
+class LinearPredictivityLoss(tf.keras.losses.Loss):
+    """
+    Say we have X and Y (samples by pathway i and pathway j).
+    Using linear regression we get M=(XT @ X)^-1 @ XT @ Y that minimizes the squared loss.
+    This loss uses a trick to calculate the least squares (or something similar) without calculating M.
+    E[NORM[(XT @ X)(Mx - y)]^2] over (x,y)
+    = E[NORM[(XT @ X) @ (XT @ X)^-1 @ XT @ Y @ x - XT @ X @ y]] over (x,y)
+    = E[NORM[XT @ Y @ x - XT @ X @ y]] over (x,y)
+    """
+    def __init__(self, graph, **kwargs):
+        super(LinearPredictivityLoss, self).__init__(**kwargs)
+        self.graph = eval(graph) if isinstance(graph, str) else graph
+        self.n = len(self.graph)
+
+    def call(self, y_true, y_pred):
+        loss = 0.
+        for i in range(self.n):
+            if any(self.graph[i]):
+                X = y_pred[..., i]                          # (B, dim)
+                XT = tf.transpose(X)                        # (dim, B)
+                for j in range(i+1, self.n):
+                    if self.graph[i][j]:
+                        Y = y_pred[..., j]                  # (B, dim)
+                        YXT = Y @ XT                        # (B, B)
+                        XYT = tf.transpose(YXT)             # (B, B)
+                        diff = XT @ (YXT - XYT)             # (dim, B)
+                        sample_loss = tf.reduce_sum(tf.pow(diff, 2), axis=0)        # (B, )
+                        mean_loss = tf.reduce_mean(sample_loss)     # (1, )
+                        loss += self.graph[i][j] * mean_loss
         return loss
