@@ -124,7 +124,7 @@ class ContrastiveSoftmaxLoss(Loss):
 class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
     def __init__(self, *args, a_pull, a_push, w_push=1, log_eps=1e-10, log_pull=False, contrastive=True,
                  remove_diag=True, corr=False, use_dists=False, naive_push=False, naive_push_max=None, top_k=0,
-                 stop_grad_dist=False, push_linear_predictivity=None, **kwargs):
+                 stop_grad_dist=False, push_linear_predictivity=None, push_linear_predictivity_normalize=True, **kwargs):
         super().__init__(*args, **kwargs)
         global A_PULL
         global A_PUSH
@@ -148,7 +148,8 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         self.use_dists = use_dists
         self.top_k = top_k
         self.stop_grad_dist = stop_grad_dist
-        self.push_linear_predictivity = LinearPredictivity([[-w * w_push for w in vec] for vec in eval_a_push]) if push_linear_predictivity else None
+        self.push_linear_predictivity = LinearPredictivity([[-w * w_push for w in vec] for vec in eval_a_push],
+                                                           normalize=push_linear_predictivity_normalize) if push_linear_predictivity else None
 
     def map_rep_dev(self, exp_logits=None, logits=None):
         assert (logits is not None) or (exp_logits is not None)
@@ -369,41 +370,41 @@ class LateralPredictiveLoss(tf.keras.losses.Loss):
         return loss
 
 
-class LinearPredictivityLoss(tf.keras.losses.Loss):
-    """
-    Say we have X and Y (samples by pathway i and pathway j).
-    Using linear regression we get M=(XT @ X)^-1 @ XT @ Y that minimizes the squared loss.
-    This loss uses a trick to calculate the least squares (or something similar) without calculating M.
-    E[NORM[(XT @ X)(Mx - y)]^2] over (x,y)
-    = E[NORM[(XT @ X) @ (XT @ X)^-1 @ XT @ Y @ x - XT @ X @ y]] over (x,y)
-    = E[NORM[XT @ Y @ x - XT @ X @ y]] over (x,y)
-    """
-    def __init__(self, graph, normalize=True, **kwargs):
-        super(LinearPredictivityLoss, self).__init__(**kwargs)
-        self.graph = eval(graph) if isinstance(graph, str) else graph
-        self.n = len(self.graph)
-        self.normalize = normalize
-
-    def call(self, y_true, y_pred):
-        if self.normalize:
-            y_pred = y_pred - tf.reduce_mean(y_pred, axis=0, keepdims=True)
-            y_pred = y_pred / tf.reduce_mean(tf.linalg.norm(tf.stop_gradient(y_pred), axis=1, keepdims=True),
-                                             axis=0, keepdims=True)
-        loss = 0.
-        for i in range(self.n):
-            if any(self.graph[i]):
-                X = y_pred[..., i]                          # (B, dim)
-                XT = tf.transpose(X)                        # (dim, B)
-                for j in range(i+1, self.n):
-                    if self.graph[i][j]:
-                        Y = y_pred[..., j]                  # (B, dim)
-                        YXT = Y @ XT                        # (B, B)
-                        XYT = tf.transpose(YXT)             # (B, B)
-                        diff = XT @ (YXT - XYT)             # (dim, B)
-                        sample_loss = tf.reduce_sum(tf.pow(diff, 2), axis=0)        # (B, )
-                        mean_loss = tf.reduce_mean(sample_loss)     # (1, )
-                        loss += self.graph[i][j] * mean_loss
-        return loss
+# class LinearPredictivityLoss(tf.keras.losses.Loss):
+#     """
+#     Say we have X and Y (samples by pathway i and pathway j).
+#     Using linear regression we get M=(XT @ X)^-1 @ XT @ Y that minimizes the squared loss.
+#     This loss uses a trick to calculate the least squares (or something similar) without calculating M.
+#     E[NORM[(XT @ X)(Mx - y)]^2] over (x,y)
+#     = E[NORM[(XT @ X) @ (XT @ X)^-1 @ XT @ Y @ x - XT @ X @ y]] over (x,y)
+#     = E[NORM[XT @ Y @ x - XT @ X @ y]] over (x,y)
+#     """
+#     def __init__(self, graph, normalize=True, **kwargs):
+#         super(LinearPredictivityLoss, self).__init__(**kwargs)
+#         self.graph = eval(graph) if isinstance(graph, str) else graph
+#         self.n = len(self.graph)
+#         self.normalize = normalize
+#
+#     def call(self, y_true, y_pred):
+#         if self.normalize:
+#             y_pred = y_pred - tf.reduce_mean(y_pred, axis=0, keepdims=True)
+#             y_pred = y_pred / tf.reduce_mean(tf.linalg.norm(tf.stop_gradient(y_pred), axis=1, keepdims=True),
+#                                              axis=0, keepdims=True)
+#         loss = 0.
+#         for i in range(self.n):
+#             if any(self.graph[i]):
+#                 X = y_pred[..., i]                          # (B, dim)
+#                 XT = tf.transpose(X)                        # (dim, B)
+#                 for j in range(i+1, self.n):
+#                     if self.graph[i][j]:
+#                         Y = y_pred[..., j]                  # (B, dim)
+#                         YXT = Y @ XT                        # (B, B)
+#                         XYT = tf.transpose(YXT)             # (B, B)
+#                         diff = XT @ (YXT - XYT)             # (dim, B)
+#                         sample_loss = tf.reduce_sum(tf.pow(diff, 2), axis=0)        # (B, )
+#                         mean_loss = tf.reduce_mean(sample_loss)     # (1, )
+#                         loss += self.graph[i][j] * mean_loss
+#         return loss
 
 
 class LinearPredictivity:
