@@ -28,7 +28,7 @@ def parse():
     parser.add_argument('-e', '--epochs', type=int, default=200, help='number of epochs')
     parser.add_argument('-q', '--queue', type=str, default=QUEUE_GPU, help='name of the queue')
     parser.add_argument('--rusage', type=int, default=RUSAGE, help='CPU mem')
-    parser.add_argument('--mem', type=int, default=10, help='GPU mem')
+    parser.add_argument('--mem', type=int, default=4, help='GPU mem')
 
     args = parser.parse_known_args()
     return args
