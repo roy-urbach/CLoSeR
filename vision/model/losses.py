@@ -429,16 +429,15 @@ class LinearPredictivity:
                                              axis=0, keepdims=True)
         loss = 0.
         for i in range(self.n):
-            if any(self.graph[i]):
-                X = arr[..., i]                          # (B, dim)
-                XT = tf.transpose(X)                        # (dim, B)
-                for j in range(i+1, self.n):
-                    if self.graph[i][j]:
-                        Y = arr[..., j]                  # (B, dim)
-                        YXT = Y @ XT                        # (B, B)
-                        XYT = tf.transpose(YXT)             # (B, B)
-                        diff = XT @ (YXT - XYT)             # (dim, B)
-                        sample_loss = tf.reduce_sum(tf.pow(diff, 2), axis=0)        # (B, )
-                        mean_loss = tf.reduce_mean(sample_loss)     # (1, )
-                        loss += self.graph[i][j] * mean_loss
+            X = arr[..., i]                             # (B, dim)
+            XT = tf.transpose(X)                        # (dim, B)
+            for j in range(i+1, self.n):
+                if self.graph[i][j]:
+                    Y = arr[..., j]                     # (B, dim)
+                    YXT = Y @ XT                        # (B, B)
+                    XYT = tf.transpose(YXT)             # (B, B)
+                    diff = XT @ (YXT - XYT)             # (dim, B)
+                    sample_loss = tf.reduce_sum(tf.pow(diff, 2), axis=0)        # (B, )
+                    mean_loss = tf.reduce_mean(sample_loss)     # (1, )
+                    loss += self.graph[i][j] * mean_loss
         return loss
