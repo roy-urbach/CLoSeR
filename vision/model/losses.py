@@ -128,8 +128,9 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         super().__init__(*args, **kwargs)
         global A_PULL
         global A_PUSH
+        eval_a_push = eval(a_push) if isinstance(a_push, str) else a_push
         A_PULL = tf.constant(eval(a_pull) if isinstance(a_pull, str) else a_pull, dtype=tf.float32)
-        A_PUSH = tf.constant(eval(a_push) if isinstance(a_push, str) else a_push, dtype=tf.float32)
+        A_PUSH = tf.constant(eval_a_push, dtype=tf.float32)
         self.a_pull = A_PULL
         self.a_push = A_PUSH * w_push
         self.neg_in_pull = tf.reduce_any(self.a_pull < 0)
@@ -147,7 +148,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         self.use_dists = use_dists
         self.top_k = top_k
         self.stop_grad_dist = stop_grad_dist
-        self.push_linear_predictivity = LinearPredictivity([[-w for w in vec] for vec in self.a_push]) if push_linear_predictivity else None
+        self.push_linear_predictivity = LinearPredictivity([[-w for w in vec] for vec in eval_a_push]) if push_linear_predictivity else None
 
     def map_rep_dev(self, exp_logits=None, logits=None):
         assert (logits is not None) or (exp_logits is not None)
