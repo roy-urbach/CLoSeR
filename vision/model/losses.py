@@ -373,12 +373,17 @@ class LinearPredictivityLoss(tf.keras.losses.Loss):
     = E[NORM[(XT @ X) @ (XT @ X)^-1 @ XT @ Y @ x - XT @ X @ y]] over (x,y)
     = E[NORM[XT @ Y @ x - XT @ X @ y]] over (x,y)
     """
-    def __init__(self, graph, **kwargs):
+    def __init__(self, graph, normalize=True, **kwargs):
         super(LinearPredictivityLoss, self).__init__(**kwargs)
         self.graph = eval(graph) if isinstance(graph, str) else graph
         self.n = len(self.graph)
+        self.normalize = normalize
 
     def call(self, y_true, y_pred):
+        if self.normalize:
+            y_pred = y_pred - tf.reduce_mean(y_pred, axis=0, keepdims=True)
+            y_pred = y_pred / tf.reduce_mean(tf.linalg.norm(tf.stop_gradient(y_pred), axis=1, keepdims=True),
+                                             axis=0, keepdims=True)
         loss = 0.
         for i in range(self.n):
             if any(self.graph[i]):
