@@ -148,7 +148,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         self.use_dists = use_dists
         self.top_k = top_k
         self.stop_grad_dist = stop_grad_dist
-        self.push_linear_predictivity = LinearPredictivity([[-w for w in vec] for vec in eval_a_push]) if push_linear_predictivity else None
+        self.push_linear_predictivity = LinearPredictivity([[-w * w_push for w in vec] for vec in eval_a_push]) if push_linear_predictivity else None
 
     def map_rep_dev(self, exp_logits=None, logits=None):
         assert (logits is not None) or (exp_logits is not None)
