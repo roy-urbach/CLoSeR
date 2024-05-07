@@ -124,7 +124,7 @@ class ContrastiveSoftmaxLoss(Loss):
 class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
     def __init__(self, *args, a_pull, a_push, w_push=1, log_eps=1e-10, log_pull=False, contrastive=True,
                  remove_diag=True, corr=False, use_dists=False, naive_push=False, naive_push_max=None, top_k=0,
-                 stop_grad_dist=False, **kwargs):
+                 stop_grad_dist=False, push_linear_predictivity=None, **kwargs):
         super().__init__(*args, **kwargs)
         global A_PULL
         global A_PUSH
@@ -147,6 +147,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         self.use_dists = use_dists
         self.top_k = top_k
         self.stop_grad_dist = stop_grad_dist
+        self.push_linear_predictivity = LinearPredictivity(-self.a_push) if push_linear_predictivity else None
 
     def map_rep_dev(self, exp_logits=None, logits=None):
         assert (logits is not None) or (exp_logits is not None)
@@ -224,34 +225,37 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
             loss += pull_loss
 
         if self.is_push:
-            if self.naive_push:
-                if self.is_pull:
-                    dists = dists[tf.eye(tf.shape(dists)[0], dtype='bool')]                                 # (b, n, n)
-                else:
-                    dists = tf.reduce_sum(tf.pow(y_pred[..., None, :] - y_pred[..., None], 2), axis=2)      # (b, n, n)
-                normalized_dists = dists / float(tf.shape(y_pred)[1])
-                if self.naive_push_max is not None:
-                    normalized_dists = tf.minimum(normalized_dists, self.naive_push_max)
-                paths_loss = tf.reduce_mean(-normalized_dists, axis=0)
+            if self.push_linear_predictivity is not None:
+                loss += self.push_linear_predictivity(y_pred)
             else:
-                if self.is_pull:
-                    if self.use_dists:
-                        dists = tf.linalg.diag_part(dists)  # (b, b, n)
+                if self.naive_push:
+                    if self.is_pull:
+                        dists = dists[tf.eye(tf.shape(dists)[0], dtype='bool')]                                 # (b, n, n)
                     else:
-                        if exp_logits is None:
-                            logits = tf.linalg.diag_part(logits)
-                        else:
-                            exp_logits = tf.linalg.diag_part(exp_logits)
-
-                if self.corr:
-                    paths_loss = tf.pow(self.calculate_correlation(exp_logits=None if self.use_dists else exp_logits,
-                                                                   logits=None if self.use_dists else logits,
-                                                                   dists=dists if self.use_dists else None), 2)  # R^2
+                        dists = tf.reduce_sum(tf.pow(y_pred[..., None, :] - y_pred[..., None], 2), axis=2)      # (b, n, n)
+                    normalized_dists = dists / float(tf.shape(y_pred)[1])
+                    if self.naive_push_max is not None:
+                        normalized_dists = tf.minimum(normalized_dists, self.naive_push_max)
+                    paths_loss = tf.reduce_mean(-normalized_dists, axis=0)
                 else:
-                    mrdev = self.map_rep_dev(exp_logits=exp_logits, logits=logits)   # (b, n)
-                    paths_loss = -tf.reduce_mean(mrdev, axis=0)
-            push_loss = tf.tensordot(self.a_push, paths_loss, axes=[[0, 1], [0, 1]])
-            loss += push_loss
+                    if self.is_pull:
+                        if self.use_dists:
+                            dists = tf.linalg.diag_part(dists)  # (b, b, n)
+                        else:
+                            if exp_logits is None:
+                                logits = tf.linalg.diag_part(logits)
+                            else:
+                                exp_logits = tf.linalg.diag_part(exp_logits)
+
+                    if self.corr:
+                        paths_loss = tf.pow(self.calculate_correlation(exp_logits=None if self.use_dists else exp_logits,
+                                                                       logits=None if self.use_dists else logits,
+                                                                       dists=dists if self.use_dists else None), 2)  # R^2
+                    else:
+                        mrdev = self.map_rep_dev(exp_logits=exp_logits, logits=logits)   # (b, n)
+                        paths_loss = -tf.reduce_mean(mrdev, axis=0)
+                push_loss = tf.tensordot(self.a_push, paths_loss, axes=[[0, 1], [0, 1]])
+                loss += push_loss
 
         return loss
 
@@ -392,6 +396,45 @@ class LinearPredictivityLoss(tf.keras.losses.Loss):
                 for j in range(i+1, self.n):
                     if self.graph[i][j]:
                         Y = y_pred[..., j]                  # (B, dim)
+                        YXT = Y @ XT                        # (B, B)
+                        XYT = tf.transpose(YXT)             # (B, B)
+                        diff = XT @ (YXT - XYT)             # (dim, B)
+                        sample_loss = tf.reduce_sum(tf.pow(diff, 2), axis=0)        # (B, )
+                        mean_loss = tf.reduce_mean(sample_loss)     # (1, )
+                        loss += self.graph[i][j] * mean_loss
+        return loss
+
+
+class LinearPredictivity:
+    """
+    Say we have X and Y (samples by pathway i and pathway j).
+    Using linear regression we get M=(XT @ X)^-1 @ XT @ Y that minimizes the squared loss.
+    This loss uses a trick to calculate the least squares (or something similar) without calculating M.
+    E[NORM[(XT @ X)(Mx - y)]^2] over (x,y)
+    = E[NORM[(XT @ X) @ (XT @ X)^-1 @ XT @ Y @ x - XT @ X @ y]] over (x,y)
+    = E[NORM[XT @ Y @ x - XT @ X @ y]] over (x,y)
+    """
+    def __init__(self, graph, normalize=True):
+        self.graph = eval(graph) if isinstance(graph, str) else graph
+        self.n = len(self.graph)
+        self.normalize = normalize
+
+    def __call__(self, arr):
+        """
+        :param arr: (B, dim, P)
+        """
+        if self.normalize:
+            arr = arr - tf.reduce_mean(arr, axis=0, keepdims=True)
+            arr = arr / tf.reduce_mean(tf.linalg.norm(tf.stop_gradient(arr), axis=1, keepdims=True),
+                                             axis=0, keepdims=True)
+        loss = 0.
+        for i in range(self.n):
+            if any(self.graph[i]):
+                X = arr[..., i]                          # (B, dim)
+                XT = tf.transpose(X)                        # (dim, B)
+                for j in range(i+1, self.n):
+                    if self.graph[i][j]:
+                        Y = arr[..., j]                  # (B, dim)
                         YXT = Y @ XT                        # (B, B)
                         XYT = tf.transpose(YXT)             # (B, B)
                         diff = XT @ (YXT - XYT)             # (dim, B)
