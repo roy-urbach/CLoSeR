@@ -48,7 +48,7 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
         augmented = augmented[..., None]
 
     if tokenizer_conv_kwargs is not None:
-        augmented = ConvNet(projection_dim, **tokenizer_conv_kwargs)(augmented)
+        augmented = ConvNet(channels=projection_dim, **tokenizer_conv_kwargs)(augmented)
 
     # Create patches.
     patches = Patches(patch_size, name=name + '_patch')(augmented)
