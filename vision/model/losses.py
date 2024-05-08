@@ -123,8 +123,9 @@ class ContrastiveSoftmaxLoss(Loss):
 
 class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
     def __init__(self, *args, a_pull, a_push, w_push=1, log_eps=1e-10, log_pull=False, contrastive=True,
-                 remove_diag=True, corr=False, use_dists=False, naive_push=False, naive_push_max=None, top_k=0,
-                 stop_grad_dist=False, push_linear_predictivity=None, push_linear_predictivity_normalize=True, **kwargs):
+                 remove_diag=True, corr=False, use_dists=False, naive_push=False, naive_push_max=None, naive_djs=False,
+                 top_k=0, stop_grad_dist=False, push_linear_predictivity=None, push_linear_predictivity_normalize=True,
+                 **kwargs):
         super().__init__(*args, **kwargs)
         global A_PULL
         global A_PUSH
@@ -141,6 +142,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         self.log_eps = log_eps
         self.log_pull = log_pull
         self.naive_push = naive_push
+        self.naive_djs = naive_djs
         self.naive_push_max = naive_push_max
         self.contrastive = contrastive
         self.remove_diag = remove_diag
@@ -239,6 +241,16 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
                     if self.naive_push_max is not None:
                         normalized_dists = tf.minimum(normalized_dists, self.naive_push_max)
                     paths_loss = tf.reduce_mean(-normalized_dists, axis=0)
+                elif self.naive_djs:
+                    exps = tf.math.exp(y_pred / self.temperature)
+                    ps = exps / tf.reduce_sum(exps, axis=1, keepdims=True)  # (b, dim, n)
+                    M = (ps[..., None, :] + ps[..., None]) / 2              # (b, dim, n, n)
+                    log_ps = tf.math.log(ps)                                # (b, dim, n)
+                    log_m = tf.math.log(M)                                  # (b, dim, n, n)
+                    minus_entropy = tf.einsum('bin,bin->bn', ps, log_ps)    # (b, n)
+                    cross_entropy = tf.einsum('bin,binm->bnm', ps, log_m)   # (b, n, n)
+                    djs = minus_entropy - cross_entropy
+                    paths_loss = -tf.reduce_mean(djs, axis=0)
                 else:
                     if self.is_pull:
                         if self.use_dists:
@@ -353,9 +365,7 @@ class LateralPredictiveLoss(tf.keras.losses.Loss):
         dists_sqr = tf.reduce_sum(tf.pow(y_true[:, None] - y_pred[None], 2), axis=-1)  # (B1, B2)
         logits = -dists_sqr / self.temperature
         logits = logits - tf.reduce_max(tf.stop_gradient(logits), axis=self.partition_along_axis, keepdims=True)
-        exps = tf.math.exp(logits)
-        partition = tf.reduce_sum(exps, axis=self.partition_along_axis)
-        gain = tf.linalg.diag_part(logits) - tf.math.log(partition)
+        gain = tf.linalg.diag_part(logits) - tf.math.reduce_logsumexp(logits, axis=self.partition_along_axis)
         mean_loss = -tf.reduce_mean(gain)
         return mean_loss
 
