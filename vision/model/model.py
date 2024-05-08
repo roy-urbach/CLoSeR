@@ -35,7 +35,7 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
                  encoder_kwargs={}, pathways_kwargs={}, image_size=72, patch_size=8,
                  pathway_classification=True, pathway_classification_allpaths=False,
                  ensemble_classification=False, classifier_pathways=True,
-                 predictive_embedding=None, predictive_embedding_kwargs={}):
+                 predictive_embedding=None, predictive_embedding_kwargs={}, tokenizer_conv_kwargs=None):
     if isinstance(kernel_regularizer, str) and kernel_regularizer.startswith("tf."):
         kernel_regularizer = eval(kernel_regularizer)
 
@@ -46,6 +46,9 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
 
     if len(augmented.get_shape()) == 3:
         augmented = augmented[..., None]
+
+    if tokenizer_conv_kwargs is not None:
+        augmented = ConvNet(projection_dim, **tokenizer_conv_kwargs)(augmented)
 
     # Create patches.
     patches = Patches(patch_size, name=name + '_patch')(augmented)

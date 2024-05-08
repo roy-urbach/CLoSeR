@@ -244,9 +244,9 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
                 elif self.naive_djs:
                     exps = tf.math.exp(y_pred / self.temperature)
                     ps = exps / tf.reduce_sum(exps, axis=1, keepdims=True)  # (b, dim, n)
-                    M = (ps[..., None, :] + ps[..., None]) / 2              # (b, dim, n, n)
+                    m = (ps[..., None, :] + ps[..., None]) / 2              # (b, dim, n, n)
                     log_ps = tf.math.log(ps)                                # (b, dim, n)
-                    log_m = tf.math.log(M)                                  # (b, dim, n, n)
+                    log_m = tf.math.log(m)                                  # (b, dim, n, n)
                     minus_entropy = tf.einsum('bin,bin->bn', ps, log_ps)    # (b, n)
                     cross_entropy = tf.einsum('bin,binm->bnm', ps, log_m)   # (b, n, n)
                     djs = minus_entropy - cross_entropy

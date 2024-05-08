@@ -129,19 +129,23 @@ class ViTOutBlock(tf_layers.Layer):
         # Create a [batch_size, projection_dim] tensor.
         self.bn = tf_layers.BatchNormalization()
         self.fl = tf_layers.Flatten()
-        self.dropout = tf_layers.Dropout(dropout_rate)
+        self.dropout = tf_layers.Dropout(dropout_rate) if dropout_rate else None
         self.output_dim = output_dim
-        self.mlp = MLP(mlp_head_units, dropout_rate=dropout_rate, kernel_regularizer=kernel_regularizer)
-        self.dense = tf_layers.Dense(self.output_dim, kernel_regularizer=kernel_regularizer)
+        self.mlp = MLP(mlp_head_units, dropout_rate=dropout_rate, kernel_regularizer=kernel_regularizer) if mlp_head_units else None
+        self.dense = tf_layers.Dense(self.output_dim, kernel_regularizer=kernel_regularizer) if output_dim else None
         self.reg = reg
         self.mlp_head_units = mlp_head_units
 
     def call(self, encoded_patches):
         x = self.bn(encoded_patches)
         x = self.fl(x)
-        x = self.dropout(x)
-        x = self.mlp(x)
-        out = self.dense(x)
+        if self.dropout is not None:
+            x = self.dropout(x)
+        if self.mlp is not None:
+            x = self.mlp(x)
+        if self.dense is not None:
+            x = self.dense(x)
+        out = x
         return out
 
     def get_config(self):
@@ -346,3 +350,20 @@ class PredictiveEmbedding(tf.keras.layers.Layer):
                     pred_embd[-1].append(tf.zeros_like(embedding[..., i]))
             pred_embd[-1] = tf.stack(pred_embd[-1], axis=-1)
         return tf.stack(pred_embd, axis=2)
+
+
+class ConvNet:
+    def __init__(self, depth=1, kernel_size=4, strides=4, channels=256, max_pool=False, activation='relu', name="convnet"):
+        self.convs = [tf.keras.layers.Conv2D(channels, kernel_size, strides=(strides, strides),
+                                             activation=activation, name=name + f"_conv{i}")
+                      for i in range(depth)]
+        self.pools = [tf.keras.layers.MaxPool2D((kernel_size, kernel_size), strides=(strides, strides), name=name + f"_conv{i}")
+                      for i in range(depth)] if max_pool else None
+
+    def __call__(self, inp):
+        x = inp
+        for i in range(len(self.convs)):
+            x = self.convs[i](x)
+            if self.pools is not None:
+                x = self.pools[i](x)
+        return x
