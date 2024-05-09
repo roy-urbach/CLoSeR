@@ -14,10 +14,10 @@ from model.optimizers import *
 PATHWAY_TO_CLS = None
 
 
-def get_data_augmentation(image_size, rotation_factor=0.02, random_zoom_factor=0.2):
+def get_data_augmentation(image_size, normalization_kwargs={}, rotation_factor=0.02, random_zoom_factor=0.2):
     data_augmentation = keras.Sequential(
         [
-            layers.Normalization(),
+            layers.Normalization(**normalization_kwargs),
             layers.Resizing(image_size, image_size),
             layers.RandomFlip("horizontal"),
             layers.RandomRotation(factor=rotation_factor),
