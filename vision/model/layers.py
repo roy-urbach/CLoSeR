@@ -92,19 +92,20 @@ class PatchEncoder(tf_layers.Layer):
 
 @serialize
 class ViTBlock(tf_layers.Layer):
-    def __init__(self, num_heads=4, projection_dim=64, dropout_rate=0.1, kernel_regularizer='l1_l2', **kwargs):
+    def __init__(self, num_heads=4, projection_dim=64, dropout_rate=0.1, kernel_regularizer='l1_l2',
+                 ln=False, divide_dim_by_head=False, **kwargs):
         super(ViTBlock, self).__init__(**kwargs)
         self.num_heads = num_heads
         self.projection_dim = projection_dim
         self.dropout_rate = dropout_rate
-        self.bn1 = tf_layers.BatchNormalization(name=self.name + '_bn1')
+        self.norm2 = tf.keras.layers.LayerNormalization(name=self.name + "_ln1") if ln else tf_layers.BatchNormalization(name=self.name + '_bn1')
         self.mh_attn = tf_layers.MultiHeadAttention(num_heads=num_heads,
-                                                    key_dim=projection_dim,
+                                                    key_dim=projection_dim // num_heads if divide_dim_by_head else projection_dim,
                                                     dropout=dropout_rate,
                                                     kernel_regularizer=kernel_regularizer,
                                                     name=self.name + '_mhattn')
         self.add1 = tf_layers.Add(name=self.name + '_add1')
-        self.bn2 = tf_layers.BatchNormalization(name=self.name + '_bn2')
+        self.norm2 = tf.keras.layers.LayerNormalization(name=self.name + "_ln2") if ln else tf_layers.BatchNormalization(name=self.name + '_bn2')
         self.mlp = MLP([projection_dim * 2, projection_dim], dropout_rate=dropout_rate, kernel_regularizer=kernel_regularizer)
         self.add2 = tf_layers.Add(name=self.name + '_add2')
 
@@ -113,10 +114,10 @@ class ViTBlock(tf_layers.Layer):
                     projection_dim=self.projection_dim, dropout_rate=self.dropout_rate)
 
     def call(self, encoded_patches):
-        x1 = self.bn1(encoded_patches)
+        x1 = self.norm1(encoded_patches)
         attention_output = self.mh_attn(x1, x1)
         x2 = self.add1([attention_output, encoded_patches])
-        x3 = self.bn2(x2)
+        x3 = self.norm2(x2)
         x3 = self.mlp(x3)
         out = self.add2([x2, x3])
         return out
@@ -124,20 +125,19 @@ class ViTBlock(tf_layers.Layer):
 
 @serialize
 class ViTOutBlock(tf_layers.Layer):
-    def __init__(self, dropout_rate=0.1, output_dim=512, mlp_head_units=(2048, 1024), reg=0, kernel_regularizer='l1_l2', **kwargs):
+    def __init__(self, dropout_rate=0.1, output_dim=512, mlp_head_units=(2048, 1024), ln=False, kernel_regularizer='l1_l2', **kwargs):
         super(ViTOutBlock, self).__init__(**kwargs)
         # Create a [batch_size, projection_dim] tensor.
-        self.bn = tf_layers.BatchNormalization()
+        self.norm = tf.keras.layers.LayerNormalization(name=self.name + "_ln") if ln else tf_layers.BatchNormalization()
         self.fl = tf_layers.Flatten()
         self.dropout = tf_layers.Dropout(dropout_rate) if dropout_rate else None
         self.output_dim = output_dim
         self.mlp = MLP(mlp_head_units, dropout_rate=dropout_rate, kernel_regularizer=kernel_regularizer) if mlp_head_units else None
         self.dense = tf_layers.Dense(self.output_dim, kernel_regularizer=kernel_regularizer) if output_dim else None
-        self.reg = reg
         self.mlp_head_units = mlp_head_units
 
     def call(self, encoded_patches):
-        x = self.bn(encoded_patches)
+        x = self.norm(encoded_patches)
         x = self.fl(x)
         if self.dropout is not None:
             x = self.dropout(x)
