@@ -14,16 +14,14 @@ from model.optimizers import *
 PATHWAY_TO_CLS = None
 
 
-def get_data_augmentation(image_size):
+def get_data_augmentation(image_size, rotation_factor=0.02, random_zoom_factor=0.2):
     data_augmentation = keras.Sequential(
         [
             layers.Normalization(),
             layers.Resizing(image_size, image_size),
             layers.RandomFlip("horizontal"),
-            layers.RandomRotation(factor=0.02),
-            layers.RandomZoom(
-                height_factor=0.2, width_factor=0.2
-            ),
+            layers.RandomRotation(factor=rotation_factor),
+            layers.RandomZoom(random_zoom_factor),
         ],
         name="data_augmentation",
     )
@@ -33,9 +31,9 @@ def get_data_augmentation(image_size):
 def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
                  input_shape=(32, 32, 3), num_classes=10, kernel_regularizer=None,
                  projection_dim=64, encoder='ViTEncoder', encoder_per_path=False,
-                 encoder_kwargs={}, pathways_kwargs={}, image_size=72, patch_size=8,
-                 pathway_classification=True, pathway_classification_allpaths=False,
+                 image_size=72, patch_size=8, pathway_classification=True, pathway_classification_allpaths=False,
                  ensemble_classification=False, classifier_pathways=True,
+                 augmentation_kwargs={}, encoder_kwargs={}, pathways_kwargs={},
                  predictive_embedding=None, predictive_embedding_kwargs={}, tokenizer_conv_kwargs=None):
     if isinstance(kernel_regularizer, str) and kernel_regularizer.startswith("tf."):
         kernel_regularizer = eval(kernel_regularizer)
@@ -43,7 +41,7 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
 
     inputs = layers.Input(shape=input_shape)
     # Augment data.
-    augmented = get_data_augmentation(image_size)(inputs)
+    augmented = get_data_augmentation(image_size, **augmentation_kwargs)(inputs)
 
     if len(augmented.get_shape()) == 3:
         augmented = augmented[..., None]
