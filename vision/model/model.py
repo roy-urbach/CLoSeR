@@ -112,6 +112,17 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
     if kwargs:
         print(f"WARNING: compile_model got spare kwargs that won't be used: {kwargs}")
 
+    if "optimizer" in optimizer_kwargs:
+        optimizer_cls_name = optimizer_kwargs.pop("optimizer")
+        try:
+            optimizer_cls = eval(optimizer_cls_name)
+        except Exception as err:
+            print(f"Tried to eval {optimizer_cls_name}, get error:", err)
+            try:
+                optimizer_cls = tf.keras.optimizers.getattr(optimizer_cls_name)
+            except Exception as err:
+                print(f"Tried to getattr tf.keras.optimizers.{optimizer_cls_name}, get error:", err)
+    print(f"using optimizer {optimizer_cls}")
     optimizer = optimizer_cls(**optimizer_kwargs)
     serialize(optimizer.__class__, 'Custom')
 
@@ -155,7 +166,7 @@ def train(model_name, model_kwargs, loss=ContrastiveSoftmaxLoss, data_kwargs={},
     # TODO: regression callback?
 
     if num_epochs > max_epoch:
-        printd("Fitting the model!")
+        printd(f"Fitting the model (with {model.count_params()} parameters)!")
         history = model.fit(
             x=dataset.get_x_train(),
             y=dataset.get_y_train(),
