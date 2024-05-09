@@ -98,7 +98,7 @@ class ViTBlock(tf_layers.Layer):
         self.num_heads = num_heads
         self.projection_dim = projection_dim
         self.dropout_rate = dropout_rate
-        self.norm2 = tf.keras.layers.LayerNormalization(name=self.name + "_ln1") if ln else tf_layers.BatchNormalization(name=self.name + '_bn1')
+        self.norm1 = tf.keras.layers.LayerNormalization(name=self.name + "_ln1") if ln else tf_layers.BatchNormalization(name=self.name + '_bn1')
         self.mh_attn = tf_layers.MultiHeadAttention(num_heads=num_heads,
                                                     key_dim=projection_dim // num_heads if divide_dim_by_head else projection_dim,
                                                     dropout=dropout_rate,
