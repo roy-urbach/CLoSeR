@@ -9,7 +9,7 @@ import utils.data
 from tensorflow.keras import layers
 from tensorflow import keras
 import tensorflow as tf
-from optimizers import AdamW
+from model.optimizers import *
 
 PATHWAY_TO_CLS = None
 
