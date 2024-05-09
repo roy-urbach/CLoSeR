@@ -1,16 +1,15 @@
 import random
-import numpy as np
 import tensorflow as tf
-from tensorflow.python.framework import ops
-from tensorflow.python.keras import backend_config
-from tensorflow.python.keras.optimizer_v2.optimizer_v2 import OptimizerV2
-from tensorflow.python.keras.optimizer_v2 import learning_rate_schedule
 from tensorflow.python.ops import array_ops, control_flow_ops, math_ops, state_ops
-from tensorflow.python.util.tf_export import keras_export
-from tensorflow.python.keras import backend as K
+import numpy as np
+from tensorflow.keras import backend as K
+from tensorflow.keras.legacy import interfaces
+from tensorflow.keras.optimizers import Optimizer
+
 
 # https://github.com/OverLordGoldDragon/keras-adamw/blob/master/keras_adamw
 
+TF_KERAS = bool(os.environ.get("TF_KERAS", '0') == '1')
 
 # Utils
 
@@ -127,7 +126,7 @@ def _check_args(self, total_iterations, use_cosine_annealing, weight_decays):
     if use_cosine_annealing and total_iterations > 1:
         print('Using cosine annealing learning rates')
     elif (use_cosine_annealing or weight_decays) and total_iterations <= 1:
-        print(WARN, "'total_iterations'==%s, must be >1" % total_iterations
+        print("'total_iterations'==%s, must be >1" % total_iterations
               + " to use cosine annealing and/or weight decays; "
               "proceeding without either")
         self.use_cosine_annealing = False
@@ -137,10 +136,10 @@ def _check_args(self, total_iterations, use_cosine_annealing, weight_decays):
 
 def _init_weight_decays(model, zero_penalties, weight_decays):
     if not zero_penalties:
-        print(WARN, "loss-based weight penalties should be set to zero. "
+        print("loss-based weight penalties should be set to zero. "
               "(set `zero_penalties=True`)")
     if weight_decays is not None and model is not None:
-        print(WARN, "`weight_decays` is set automatically when "
+        print("`weight_decays` is set automatically when "
               "passing in `model`; will override supplied")
     if model is not None:
         weight_decays = get_weight_decays(model, zero_penalties)
@@ -246,44 +245,24 @@ def KE(x, backend):
             except Exception:
                 return K.eval(x)
 
-
-
 def K_eval(x):
     return KE(x, K)
 
 
-@keras_export('keras.optimizers.AdamW')
-class AdamW(OptimizerV2):
+class AdamW(Optimizer):
     """AdamW optimizer.
     Default parameters follow those provided in the original paper.
-    For extended documentation, see optimizer_v2.Adam.__doc__.
     # Arguments
         model: keras.Model/tf.keras.Model. Pass as first positional argument
             to constructor (AdamW(model, ...)). If passed, automatically extracts
             weight penalties from layers and overrides `weight_decays`.
         zero_penalties: bool. If True and `model` is passed, will zero weight
             penalties (loss-based). (RECOMMENDED; see README "Use guidelines").
-        learning_rate: A Tensor or a floating point value.  The learning rate.
-        beta_1: A float value or a constant float tensor. The exponential decay
-            rate for the 1st moment estimates.
-        beta_2: A float value or a constant float tensor. The exponential decay
-            rate for the 2nd moment estimates.
-        epsilon: A small constant for numerical stability. This epsilon is
-            "epsilon hat" in the Kingma and Ba paper (in the formula just before
-            Section 2.1), not the epsilon in Algorithm 1 of the paper.
-        amsgrad: boolean. Whether to apply AMSGrad variant of this algorithm from
-            the paper "On the Convergence of Adam and beyond".
-        name: Optional name for the operations created when applying gradients.
-            Defaults to "Adam".  @compatibility(eager) When eager execution is
-            enabled, `learning_rate`, `beta_1`, `beta_2`, and `epsilon` can each
-            be a callable that takes no arguments and returns the actual value
-            to use. This can be useful for changing these values across different
-            invocations of optimizer functions. @end_compatibility
-        **kwargs: keyword arguments. Allowed to be {`clipnorm`, `clipvalue`, `lr`,
-            `decay`}. `clipnorm` is clip gradients by norm; `clipvalue` is clip
-            gradients by value, `decay` is included for backward compatibility to
-            allow time inverse decay of learning rate. `lr` is included for
-            backward compatibility, recommended to use `learning_rate` instead.
+        learning_rate: float >= 0. Learning rate.
+        beta_1: float, 0 < beta < 1. Generally close to 1.
+        beta_2: float, 0 < beta < 1. Generally close to 1.
+        amsgrad: boolean. Whether to apply the AMSGrad variant of this
+            algorithm from the paper "On the Convergence of Adam and Beyond".
 
         model: keras.Model/tf.keras.Model/None. If not None, automatically
             extracts weight penalties from layers, and overrides `weight_decays`.
@@ -331,202 +310,139 @@ class AdamW(OptimizerV2):
              (https://arxiv.org/abs/1711.05101)
     """
     def __init__(self, learning_rate=0.001, beta_1=0.9, beta_2=0.999,
-                 epsilon=None, decay=0., amsgrad=False,
-                 model=None, zero_penalties=True,
+                 amsgrad=False, model=None, zero_penalties=True,
                  total_iterations=0, total_iterations_wd=None,
                  use_cosine_annealing=False, lr_multipliers=None,
-                 weight_decays=None, autorestart=None,
-                 init_verbose=True, eta_min=0, eta_max=1, t_cur=0,
-                 name="AdamW", **kwargs):
+                 weight_decays=None, autorestart=None, init_verbose=True,
+                 eta_min=0, eta_max=1, t_cur=0, **kwargs):
         if total_iterations > 1:
             weight_decays = _init_weight_decays(model, zero_penalties,
                                                 weight_decays)
+
+        self.initial_decay = kwargs.pop('decay', 0.0)
+        self.epsilon = kwargs.pop('epsilon', K.epsilon())
+        learning_rate = kwargs.pop('lr', learning_rate)
         eta_t = kwargs.pop('eta_t', 1.)
+        super(AdamW, self).__init__(**kwargs)
 
-        super(AdamW, self).__init__(name, **kwargs)
-        self._set_hyper('learning_rate', kwargs.get('lr', learning_rate))
-        self._set_hyper('decay', self._initial_decay)
-        self._set_hyper('beta_1', beta_1)
-        self._set_hyper('beta_2', beta_2)
+        with K.name_scope(self.__class__.__name__):
+            self.iterations = K.variable(0, dtype='int64', name='iterations')
+            self.learning_rate = K.variable(learning_rate, name='learning_rate')
+            self.beta_1 = K.variable(beta_1, name='beta_1')
+            self.beta_2 = K.variable(beta_2, name='beta_2')
+            self.decay = K.variable(self.initial_decay, name='decay')
+            self.eta_min = K.constant(eta_min, name='eta_min')
+            self.eta_max = K.constant(eta_max, name='eta_max')
+            self.eta_t = K.variable(eta_t, dtype='float32', name='eta_t')
+            self.t_cur = K.variable(t_cur, dtype='int64', name='t_cur')
 
-        self.eta_min = K.constant(eta_min, name='eta_min')
-        self.eta_max = K.constant(eta_max, name='eta_max')
-        self.eta_t = K.variable(eta_t, dtype='float32', name='eta_t')
-        self.t_cur = K.variable(t_cur, dtype='int64', name='t_cur')
         self.total_iterations = total_iterations
         self.total_iterations_wd = total_iterations_wd or total_iterations
+        self.amsgrad = amsgrad
         self.lr_multipliers = lr_multipliers
         self.weight_decays = weight_decays or {}
         self.init_verbose = init_verbose
         self.use_cosine_annealing = use_cosine_annealing
-        self.epsilon = epsilon or backend_config.epsilon()
-        self.amsgrad = amsgrad
 
         _set_autorestart(self, autorestart, use_cosine_annealing)
         _check_args(self, total_iterations, use_cosine_annealing, weight_decays)
-        self._init_lr = kwargs.get('lr', learning_rate)  # to print lr_mult setup
-        self._updates_processed = 0  # to track num calls to '_resource_apply_...'
+        self._init_lr = learning_rate  # to print lr_mult setup
         self._init_notified = False
 
-    def _create_slots(self, var_list):
-        # Create slots for the first and second moments.
-        # Separate for-loops to respect the ordering of slot variables from v1.
-        for var in var_list:
-            self.add_slot(var, 'm')
-        for var in var_list:
-            self.add_slot(var, 'v')
+    @interfaces.legacy_get_updates_support
+    @K.symbolic
+    def get_updates(self, loss, params):
+        grads = self.get_gradients(loss, params)
+        self.updates = [K.update_add(self.iterations, 1)]
+
+        lr = self.learning_rate
+        if self.initial_decay > 0:
+            lr = lr * (1. / (1. + self.decay * K.cast(self.iterations,
+                                                      K.dtype(self.decay))))
+
+        t = K.cast(self.iterations, K.floatx()) + 1
+        lr_t = lr * (K.sqrt(1. - K.pow(self.beta_2, t)) /
+                     (1. - K.pow(self.beta_1, t)))
+
+        ms = [K.zeros(K.int_shape(p),
+              dtype=K.dtype(p),
+              name='m_' + str(i))
+              for (i, p) in enumerate(params)]
+        vs = [K.zeros(K.int_shape(p),
+              dtype=K.dtype(p),
+              name='v_' + str(i))
+              for (i, p) in enumerate(params)]
+
         if self.amsgrad:
-            for var in var_list:
-                self.add_slot(var, 'vhat')
-        self._updates_per_iter = len(var_list)
-
-    def _resource_apply_dense(self, grad, var):
-        var_dtype = var.dtype.base_dtype
-        lr_t = self._decayed_lr(var_dtype)
-        local_step = math_ops.cast(self.iterations + 1, var_dtype)
-        m = self.get_slot(var, 'm')
-        v = self.get_slot(var, 'v')
-        beta_1_t = array_ops.identity(self._get_hyper('beta_1', var_dtype))
-        beta_2_t = array_ops.identity(self._get_hyper('beta_2', var_dtype))
-        beta_1_power = math_ops.pow(beta_1_t, local_step)
-        beta_2_power = math_ops.pow(beta_2_t, local_step)
-        epsilon_t = ops.convert_to_tensor(self.epsilon, var_dtype)
-
-        lr_t = lr_t * math_ops.sqrt(1 - beta_2_power) / (1 - beta_1_power)
-        # Learning rate multipliers
-        if self.lr_multipliers is not None:
-            lr_t = _apply_lr_multiplier(self, lr_t, var)
-
-        m_t = state_ops.assign(m,
-                               beta_1_t * m + (1.0 - beta_1_t) * grad,
-                               use_locking=self._use_locking)
-        v_t = state_ops.assign(v,
-                               beta_2_t * v + (1.0 - beta_2_t
-                                               ) * math_ops.square(grad),
-                               use_locking=self._use_locking)
-        if self.amsgrad:
-            vhat = self.get_slot(var, 'vhat')
-            vhat_t = state_ops.assign(vhat,
-                                      math_ops.maximum(vhat, v_t),
-                                      use_locking=self._use_locking)
-            var_delta = m_t / (math_ops.sqrt(vhat_t) + epsilon_t)
+            vhats = [K.zeros(K.int_shape(p),
+                     dtype=K.dtype(p),
+                     name='vhat_' + str(i))
+                     for (i, p) in enumerate(params)]
         else:
-            var_delta = m_t / (math_ops.sqrt(v_t) + epsilon_t)
-        var_t = math_ops.sub(var, self.eta_t * lr_t * var_delta)
+            vhats = [K.zeros(1, name='vhat_' + str(i))
+                     for i in range(len(params))]
+        self.weights = [self.iterations] + ms + vs + vhats
 
-        # Weight decays
-        if var.name in self.weight_decays.keys():
-            var_t = _apply_weight_decays(self, var, var_t)
+        for p, g, m, v, vhat in zip(params, grads, ms, vs, vhats):
+            # Learning rate multipliers
+            if self.lr_multipliers is not None:
+                lr_t = _apply_lr_multiplier(self, lr_t, p)
 
-        var_update = state_ops.assign(var, var_t, use_locking=self._use_locking)
+            m_t = (self.beta_1 * m) + (1. - self.beta_1) * g
+            v_t = (self.beta_2 * v) + (1. - self.beta_2) * K.square(g)
+            if self.amsgrad:
+                vhat_t = K.maximum(vhat, v_t)
+                p_t = p - self.eta_t * lr_t * m_t / (
+                    K.sqrt(vhat_t) + self.epsilon)
+                self.updates.append(K.update(vhat, vhat_t))
+            else:
+                p_t = p - self.eta_t * lr_t * m_t / (K.sqrt(v_t) + self.epsilon)
+
+            self.updates.append(K.update(m, m_t))
+            self.updates.append(K.update(v, v_t))
+
+            # Weight decays
+            if p.name in self.weight_decays.keys():
+                p_t = _apply_weight_decays(self, p, p_t)
+            new_p = p_t
+
+            # Apply constraints.
+            if getattr(p, 'constraint', None) is not None:
+                new_p = p.constraint(new_p)
+
+            self.updates.append(K.update(p, new_p))
 
         # Cosine annealing
-        (iteration_done, t_cur_update, eta_t_update
-         ) = _update_t_cur_eta_t_v2(self, lr_t, var)
-        if iteration_done and not self._init_notified:
-            self._init_notified = True
+        _update_t_cur_eta_t(self)
+        self.lr_t = lr_t * self.eta_t  # for external tracking
 
-        updates = [var_update, m_t, v_t]
-        if iteration_done:
-            updates += [t_cur_update]
-        if self.use_cosine_annealing and iteration_done:
-            updates += [eta_t_update]
-        if self.amsgrad:
-            updates.append(vhat_t)
-        return control_flow_ops.group(*updates)
-
-    def _resource_apply_sparse(self, grad, var, indices):
-        var_dtype = var.dtype.base_dtype
-        lr_t = self._decayed_lr(var_dtype)
-        local_step = math_ops.cast(self.iterations + 1, var_dtype)
-        m = self.get_slot(var, 'm')
-        v = self.get_slot(var, 'v')
-        beta_1_t = array_ops.identity(self._get_hyper('beta_1', var_dtype))
-        beta_2_t = array_ops.identity(self._get_hyper('beta_2', var_dtype))
-        beta_1_power = math_ops.pow(beta_1_t, local_step)
-        beta_2_power = math_ops.pow(beta_2_t, local_step)
-        epsilon_t = ops.convert_to_tensor(self.epsilon, var_dtype)
-
-        lr_t = lr_t * math_ops.sqrt(1 - beta_2_power) / (1 - beta_1_power)
-        # Learning rate multipliers
-        if self.lr_multipliers is not None:
-            lr_t = _apply_lr_multiplier(self, lr_t, var)
-
-        m_scaled_g_values = grad * (1 - beta_1_t)
-        m_t = state_ops.assign(m, m * beta_1_t, use_locking=self._use_locking)
-        with ops.control_dependencies([m_t]):
-            m_t = self._resource_scatter_add(m, indices, m_scaled_g_values)
-
-        v_scaled_g_values = (grad * grad) * (1 - beta_2_t)
-        v_t = state_ops.assign(v, v * beta_2_t, use_locking=self._use_locking)
-        with ops.control_dependencies([v_t]):
-            v_t = self._resource_scatter_add(v, indices, v_scaled_g_values)
-
-        if self.amsgrad:
-            vhat = self.get_slot(var, 'vhat')
-            vhat_t = state_ops.assign(vhat,
-                                      math_ops.maximum(vhat, v_t),
-                                      use_locking=self._use_locking)
-            var_delta = m_t / (math_ops.sqrt(vhat_t) + epsilon_t)
-        else:
-            var_delta = m_t / (math_ops.sqrt(v_t) + epsilon_t)
-        var_t = math_ops.sub(var, self.eta_t * lr_t * var_delta)
-
-        # Weight decays
-        if var.name in self.weight_decays.keys():
-            var_t = _apply_weight_decays(self, var, var_t)
-
-        var_update = state_ops.assign(var, var_t, use_locking=self._use_locking)
-
-        # Cosine annealing
-        (iteration_done, t_cur_update, eta_t_update
-         ) = _update_t_cur_eta_t_v2(self, lr_t, var)
-        if iteration_done and not self._init_notified:
-            self._init_notified = True
-
-        updates = [var_update, m_t, v_t]
-        if iteration_done:
-            updates += [t_cur_update]
-        if self.use_cosine_annealing and iteration_done:
-            updates += [eta_t_update]
-        if self.amsgrad:
-            updates.append(vhat_t)
-        return control_flow_ops.group(*updates)
-
-    def set_weights(self, weights):
-        params = self.weights
-        # If the weights are generated by Keras V1 optimizer, it includes vhats
-        # even without amsgrad, i.e, V1 optimizer has 3x + 1 variables, while V2
-        # optimizer has 2x + 1 variables. Filter vhats out for compatibility.
-        num_vars = int((len(params) - 1) / 2)
-        if len(weights) == 3 * num_vars + 1:
-            weights = weights[:len(params)]
-        super(AdamW, self).set_weights(weights)
+        self._init_notified = True
+        return self.updates
 
     def get_config(self):
-        config = super(AdamW, self).get_config()
-        config.update({
-            'learning_rate': self._serialize_hyperparameter('learning_rate'),
-            'decay': self._serialize_hyperparameter('decay'),
-            'beta_1': self._serialize_hyperparameter('beta_1'),
-            'beta_2': self._serialize_hyperparameter('beta_2'),
-            'epsilon': self.epsilon,
-            'amsgrad': self.amsgrad,
+        config = {
+            'learning_rate': float(K_eval(self.learning_rate)),
+            'beta_1': float(K_eval(self.beta_1)),
+            'beta_2': float(K_eval(self.beta_2)),
+            'decay': float(K_eval(self.decay)),
             'total_iterations': int(self.total_iterations),
             'weight_decays': self.weight_decays,
+            'lr_multipliers': self.lr_multipliers,
             'use_cosine_annealing': self.use_cosine_annealing,
             'autorestart': self.autorestart,
             't_cur': int(K_eval(self.t_cur)),
             'eta_t': float(K_eval(self.eta_t)),
             'eta_min': float(K_eval(self.eta_min)),
             'eta_max': float(K_eval(self.eta_max)),
-            'init_verbose': self.init_verbose
-        })
-        return config
+            'init_verbose': self.init_verbose,
+            'epsilon': self.epsilon,
+            'amsgrad': self.amsgrad
+        }
+        base_config = super(AdamW, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
 
 
-@keras_export('keras.optimizers.NadamW')
-class NadamW(OptimizerV2):
+class NadamW(Optimizer):
     """Nesterov Adam optimizer.
 
     Much like Adam is essentially RMSprop with momentum,
@@ -537,19 +453,9 @@ class NadamW(OptimizerV2):
     at their default values.
 
     # Arguments
-      learning_rate: A Tensor or a floating point value.  The learning rate.
-      beta_1: A float value or a constant float tensor. The exponential decay
-        rate for the 1st moment estimates.
-      beta_2: A float value or a constant float tensor. The exponential decay
-        rate for the exponentially weighted infinity norm.
-      epsilon: A small constant for numerical stability.
-      name: Optional name for the operations created when applying gradients.
-        Defaults to "Adamax".
-      **kwargs: keyword arguments. Allowed to be {`clipnorm`, `clipvalue`, `lr`,
-        `decay`}. `clipnorm` is clip gradients by norm; `clipvalue` is clip
-        gradients by value, `decay` is included for backward compatibility to
-        allow time inverse decay of learning rate. `lr` is included for backward
-        compatibility, recommended to use `learning_rate` instead.
+        lr: float >= 0. Learning rate.
+        beta_1/beta_2: floats, 0 < beta < 1. Generally close to 1.
+        epsilon: float >= 0. Fuzz factor. If `None`, defaults to `K.epsilon()`.
 
         model: keras.Model/tf.keras.Model/None. If not None, automatically
             extracts weight penalties from layers, and overrides `weight_decays`.
@@ -598,214 +504,126 @@ class NadamW(OptimizerV2):
         - [3][Fixing Weight Decay Regularization in Adam]
              (https://arxiv.org/abs/1711.05101)
     """
-    def __init__(self, learning_rate=0.001, beta_1=0.9, beta_2=0.999,
-                 epsilon=1e-7, model=None, zero_penalties=True,
+    def __init__(self, learning_rate=0.002, beta_1=0.9, beta_2=0.999,
+                 model=None, zero_penalties=True,
                  total_iterations=0, total_iterations_wd=None,
                  use_cosine_annealing=False, lr_multipliers=None,
                  weight_decays=None, autorestart=None, init_verbose=True,
-                 eta_min=0, eta_max=1, t_cur=0, name="NadamW", **kwargs):
+                 eta_min=0, eta_max=1, t_cur=0, **kwargs):
         if total_iterations > 1:
             weight_decays = _init_weight_decays(model, zero_penalties,
                                                 weight_decays)
 
-        # Backwards compatibility with keras NAdam optimizer.
-        kwargs['decay'] = kwargs.pop('schedule_decay', 0.004)
+        self.schedule_decay = kwargs.pop('schedule_decay', 0.004)
+        self.epsilon = kwargs.pop('epsilon', K.epsilon())
+        learning_rate = kwargs.pop('lr', learning_rate)
         eta_t = kwargs.pop('eta_t', 1.)
-        learning_rate = kwargs.get('lr', learning_rate)
-        if isinstance(learning_rate, learning_rate_schedule.LearningRateSchedule):
-            raise ValueError('The Nadam optimizer does not support '
-                             'tf.keras.optimizers.LearningRateSchedules as the '
-                             'learning rate.')
+        super(NadamW, self).__init__(**kwargs)
 
-        super(NadamW, self).__init__(name, **kwargs)
-        self._set_hyper('learning_rate', kwargs.get('lr', learning_rate))
-        self._set_hyper('decay', self._initial_decay)
-        self._set_hyper('beta_1', beta_1)
-        self._set_hyper('beta_2', beta_2)
-        self.epsilon = epsilon or backend_config.epsilon()
-        self._m_cache = None
+        with K.name_scope(self.__class__.__name__):
+            self.iterations = K.variable(0, dtype='int64', name='iterations')
+            self.m_schedule = K.variable(1., name='m_schedule')
+            self.learning_rate = K.variable(learning_rate, name='learning_rate')
+            self.beta_1 = K.variable(beta_1, name='beta_1')
+            self.beta_2 = K.variable(beta_2, name='beta_2')
+            self.eta_min = K.constant(eta_min, name='eta_min')
+            self.eta_max = K.constant(eta_max, name='eta_max')
+            self.eta_t = K.variable(eta_t, dtype='float32', name='eta_t')
+            self.t_cur = K.variable(t_cur, dtype='int64', name='t_cur')
 
-        self.eta_min = K.constant(eta_min, name='eta_min')
-        self.eta_max = K.constant(eta_max, name='eta_max')
-        self.eta_t = K.variable(eta_t, dtype='float32', name='eta_t')
-        self.t_cur = K.variable(t_cur, dtype='int64', name='t_cur')
         self.total_iterations = total_iterations
         self.total_iterations_wd = total_iterations_wd or total_iterations
         self.lr_multipliers = lr_multipliers
         self.weight_decays = weight_decays or {}
-        self.init_verbose = init_verbose
         self.use_cosine_annealing = use_cosine_annealing
-        self.epsilon = epsilon or backend_config.epsilon()
+        self.init_verbose = init_verbose
 
         _set_autorestart(self, autorestart, use_cosine_annealing)
         _check_args(self, total_iterations, use_cosine_annealing, weight_decays)
-        self._init_lr = kwargs.get('lr', learning_rate)  # to print lr_mult setup
-        self._updates_processed = 0  # to track num calls to '_resource_apply_...'
+        self._init_lr = learning_rate  # to print lr_mult setup
         self._init_notified = False
 
-    def _create_slots(self, var_list):
-        var_dtype = var_list[0].dtype.base_dtype
-        if self._m_cache is None:
-            self._m_cache = self.add_weight('momentum_cache', shape=[],
-                                            dtype=var_dtype, initializer='ones',
-                                            trainable=False)
-            self._weights.append(self._m_cache)
-        # Separate for-loops to respect the ordering of slot variables from v1.
-        for var in var_list:
-            self.add_slot(var, 'm')
-        for var in var_list:
-            self.add_slot(var, 'v')
-        self._updates_per_iter = len(var_list)
+    @interfaces.legacy_get_updates_support
+    @K.symbolic
+    def get_updates(self, loss, params):
+        grads = self.get_gradients(loss, params)
+        self.updates = [K.update_add(self.iterations, 1)]
 
-    def _prepare(self, var_list):
-        # Get the value of the momentum cache before starting to apply gradients.
-        self._m_cache_read = array_ops.identity(self._m_cache)
-        return super(NadamW, self)._prepare(var_list)
-
-    def _resource_apply_dense(self, grad, var):
-        var_dtype = var.dtype.base_dtype
-        lr_t = array_ops.identity(self._get_hyper('learning_rate', var_dtype))
-        beta_1_t = array_ops.identity(self._get_hyper('beta_1', var_dtype))
-        beta_2_t = array_ops.identity(self._get_hyper('beta_2', var_dtype))
-        epsilon_t = ops.convert_to_tensor(self.epsilon, var_dtype)
-        m = self.get_slot(var, 'm')
-        v = self.get_slot(var, 'v')
-        local_step = math_ops.cast(self.iterations + 1, var_dtype)
-        next_step = math_ops.cast(self.iterations + 2, var_dtype)
-        decay_base = math_ops.cast(0.96, var_dtype)
-
-        # Learning rate multipliers
-        if self.lr_multipliers is not None:
-            lr_t = _apply_lr_multiplier(self, lr_t, var)
+        t = K.cast(self.iterations, K.floatx()) + 1
 
         # Due to the recommendations in [2], i.e. warming momentum schedule
-        momentum_cache_t = beta_1_t * (1. - 0.5 * (
-            math_ops.pow(decay_base, self._initial_decay * local_step)))
-        momentum_cache_t_1 = beta_1_t * (1. - 0.5 * (
-            math_ops.pow(decay_base, self._initial_decay * next_step)))
-        m_schedule_new = math_ops.cast(self._m_cache_read,
-                                       var_dtype) * momentum_cache_t
-        if var_dtype is self._m_cache.dtype:
-            m_schedule_new = array_ops.identity(state_ops.assign(
-                self._m_cache, m_schedule_new, use_locking=self._use_locking))
-        m_schedule_next = m_schedule_new * momentum_cache_t_1
+        momentum_cache_t = self.beta_1 * (1. - 0.5 * (
+            K.pow(K.cast_to_floatx(0.96), t * self.schedule_decay)))
+        momentum_cache_t_1 = self.beta_1 * (1. - 0.5 * (
+            K.pow(K.cast_to_floatx(0.96), (t + 1) * self.schedule_decay)))
+        m_schedule_new = self.m_schedule * momentum_cache_t
+        m_schedule_next = self.m_schedule * momentum_cache_t * momentum_cache_t_1
+        self.updates.append((self.m_schedule, m_schedule_new))
 
-        # the following equations given in [1]
-        g_prime = grad / (1. - m_schedule_new)
-        m_t = beta_1_t * m + (1. - beta_1_t) * grad
-        m_t_prime = m_t / (1. - m_schedule_next)
-        v_t = beta_2_t * v + (1. - beta_2_t) * math_ops.square(grad)
-        v_t_prime = v_t / (1. - math_ops.pow(beta_2_t, local_step))
-        m_t_bar = (1. - momentum_cache_t) * g_prime + (
-                momentum_cache_t * m_t_prime)
+        shapes = [K.int_shape(p) for p in params]
+        ms = [K.zeros(shape, name='m_' + str(i))
+              for (i, shape) in enumerate(shapes)]
+        vs = [K.zeros(shape, name='v_' + str(i))
+              for (i, shape) in enumerate(shapes)]
 
-        m_t = state_ops.assign(m, m_t, use_locking=self._use_locking)
-        v_t = state_ops.assign(v, v_t, use_locking=self._use_locking)
+        self.weights = [self.iterations, self.m_schedule] + ms + vs
 
-        var_t = math_ops.sub(var, self.eta_t * lr_t * m_t_bar / (
-                math_ops.sqrt(v_t_prime + epsilon_t)))
+        for p, g, m, v in zip(params, grads, ms, vs):
+            # Learning rate multipliers
+            lr_t = self.learning_rate
+            if self.lr_multipliers is not None:
+                lr_t = _apply_lr_multiplier(self, lr_t, p)
 
-        # Weight decays
-        if var.name in self.weight_decays.keys():
-            var_t = _apply_weight_decays(self, var, var_t)
-
-        var_update = state_ops.assign(var, var_t, use_locking=self._use_locking)
-
-        # Cosine annealing
-        (iteration_done, t_cur_update, eta_t_update
-         ) = _update_t_cur_eta_t_v2(self, lr_t, var)
-        if iteration_done and not self._init_notified:
-            self._init_notified = True
-
-        updates = [var_update, m_t, v_t]
-        if iteration_done:
-            updates += [t_cur_update]
-        if self.use_cosine_annealing and iteration_done:
-            updates += [eta_t_update]
-        return control_flow_ops.group(*updates)
-
-    def _resource_apply_sparse(self, grad, var, indices, apply_state=None):
-        var_dtype = var.dtype.base_dtype
-        lr_t = array_ops.identity(self._get_hyper('learning_rate', var_dtype))
-        beta_1_t = array_ops.identity(self._get_hyper('beta_1', var_dtype))
-        beta_2_t = array_ops.identity(self._get_hyper('beta_2', var_dtype))
-        epsilon_t = ops.convert_to_tensor(self.epsilon, var_dtype)
-        m = self.get_slot(var, 'm')
-        v = self.get_slot(var, 'v')
-        local_step = math_ops.cast(self.iterations + 1, var_dtype)
-        next_step = math_ops.cast(self.iterations + 2, var_dtype)
-        decay_base = math_ops.cast(0.96, var_dtype)
-
-        # Learning rate multipliers
-        if self.lr_multipliers is not None:
-            lr_t = _apply_lr_multiplier(self, lr_t, var)
-
-        momentum_cache_t = beta_1_t * (1. - 0.5 * (
-            math_ops.pow(decay_base, self._initial_decay * local_step)))
-        momentum_cache_t_1 = beta_1_t * (1. - 0.5 * (
-            math_ops.pow(decay_base, self._initial_decay * next_step)))
-        m_schedule_new = math_ops.cast(self._m_cache_read,
-                                       var_dtype) * momentum_cache_t
-        if var_dtype is self._m_cache.dtype:
-            m_schedule_new = array_ops.identity(state_ops.assign(
-                self._m_cache, m_schedule_new, use_locking=self._use_locking))
-        m_schedule_next = m_schedule_new * momentum_cache_t_1
-
-        m_scaled_g_values = grad * (1. - beta_1_t)
-        m_t = state_ops.assign(m, m * beta_1_t, use_locking=self._use_locking)
-        with ops.control_dependencies([m_t]):
-            m_t = self._resource_scatter_add(m, indices, m_scaled_g_values)
-            m_t_slice = array_ops.gather(m_t, indices)
-
-        m_t_prime = m_t_slice / (1. - m_schedule_next)
-        g_prime = grad / (1. - m_schedule_new)
-        m_t_bar = (1. - momentum_cache_t) * g_prime + (
+            # the following equations given in [1]
+            g_prime = g / (1. - m_schedule_new)
+            m_t = self.beta_1 * m + (1. - self.beta_1) * g
+            m_t_prime = m_t / (1. - m_schedule_next)
+            v_t = self.beta_2 * v + (1. - self.beta_2) * K.square(g)
+            v_t_prime = v_t / (1. - K.pow(self.beta_2, t))
+            m_t_bar = (1. - momentum_cache_t) * g_prime + (
                 momentum_cache_t_1 * m_t_prime)
 
-        v_scaled_g_values = (grad * grad) * (1. - beta_2_t)
-        v_t = state_ops.assign(v, v * beta_2_t, use_locking=self._use_locking)
+            self.updates.append(K.update(m, m_t))
+            self.updates.append(K.update(v, v_t))
+            p_t = p - self.eta_t * lr_t * m_t_bar / (
+                    K.sqrt(v_t_prime) + self.epsilon)
 
-        with ops.control_dependencies([v_t]):
-            v_t = self._resource_scatter_add(v, indices, v_scaled_g_values)
-            v_t_slice = array_ops.gather(v_t, indices)
+            # Weight decays
+            if p.name in self.weight_decays.keys():
+                p_t = _apply_weight_decays(self, p, p_t)
+            new_p = p_t
 
-        v_t_prime_denominator = 1. - math_ops.pow(beta_2_t, local_step)
-        v_t_prime = v_t_slice / v_t_prime_denominator
-        v_prime_sqrt_plus_eps = math_ops.sqrt(v_t_prime) + epsilon_t
-
-        var_t = self._resource_scatter_add(
-            var, indices,
-            -self.eta_t * lr_t * m_t_bar / v_prime_sqrt_plus_eps)
-
-        # Weight decays
-        if var.name in self.weight_decays.keys():
-            var_t = _apply_weight_decays(self, var, var_t)
-
-        var_update = state_ops.assign(var, var_t, use_locking=self._use_locking)
+            # Apply constraints.
+            if getattr(p, 'constraint', None) is not None:
+                new_p = p.constraint(new_p)
+            self.updates.append(K.update(p, new_p))
 
         # Cosine annealing
-        (iteration_done, t_cur_update, eta_t_update
-         ) = _update_t_cur_eta_t_v2(self, lr_t, var)
-        if iteration_done and not self._init_notified:
-            self._init_notified = True
+        _update_t_cur_eta_t(self)
+        self.lr_t = lr_t * self.eta_t  # for external tracking
 
-        updates = [var_update, m_t_bar, v_t]
-        if iteration_done:
-            updates += [t_cur_update]
-        if self.use_cosine_annealing and iteration_done:
-            updates += [eta_t_update]
-        return control_flow_ops.group(*updates)
+        self._init_notified = True
+        return self.updates
+
+    def set_weights(self, weights):
+        params = self.weights
+        # Override set_weights for backward compatibility of Keras 2.2.4 optimizer
+        # since it does not include m_schedule at head of the weight list. Set
+        # m_schedule to 1.
+        if len(params) == len(weights) + 1:
+            weights = [weights[0]] + [np.array(1.)] + weights[1:]
+        super(NadamW, self).set_weights(weights)
 
     def get_config(self):
-        config = super(NadamW, self).get_config()
-        config.update({
-            'learning_rate': self._serialize_hyperparameter('learning_rate'),
-            'decay': self._serialize_hyperparameter('decay'),
-            'beta_1': self._serialize_hyperparameter('beta_1'),
-            'beta_2': self._serialize_hyperparameter('beta_2'),
+        config = {
+            'learning_rate': float(K_eval(self.learning_rate)),
+            'beta_1': float(K_eval(self.beta_1)),
+            'beta_2': float(K_eval(self.beta_2)),
             'epsilon': self.epsilon,
+            'schedule_decay': self.schedule_decay,
             'total_iterations': int(self.total_iterations),
             'weight_decays': self.weight_decays,
+            'lr_multipliers': self.lr_multipliers,
             'use_cosine_annealing': self.use_cosine_annealing,
             'autorestart': self.autorestart,
             't_cur': int(K_eval(self.t_cur)),
@@ -813,29 +631,23 @@ class NadamW(OptimizerV2):
             'eta_min': float(K_eval(self.eta_min)),
             'eta_max': float(K_eval(self.eta_max)),
             'init_verbose': self.init_verbose
-        })
-        return config
+        }
+        base_config = super(NadamW, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
 
 
-@keras_export("keras.optimizers.SGDW")
-class SGDW(OptimizerV2):
+class SGDW(Optimizer):
     """Stochastic gradient descent optimizer.
 
     Includes support for momentum,
     learning rate decay, and Nesterov momentum.
 
     # Arguments
-        learning_rate: float hyperparameter >= 0. Learning rate.
-        momentum: float hyperparameter >= 0 that accelerates SGDW in the relevant
-          direction and dampens oscillations.
+        lr: float >= 0. Learning rate.
+        momentum: float >= 0. Parameter that accelerates SGD
+            in the relevant direction and dampens oscillations.
+        decay: float >= 0. Learning rate decay over each update.
         nesterov: boolean. Whether to apply Nesterov momentum.
-        name: Optional name prefix for the operations created when applying
-            gradients.  Defaults to 'SGDW'.
-        **kwargs: keyword arguments. Allowed to be {`clipnorm`, `clipvalue`, `lr`,
-            `decay`}. `clipnorm` is clip gradients by norm; `clipvalue` is clip
-            gradients by value, `decay` is included for backward compatibility to
-            allow time inverse decay of learning rate. `lr` is included for
-            backward compatibility, recommended to use `learning_rate` instead.
 
         model: keras.Model/tf.keras.Model/None. If not None, automatically
             extracts weight penalties from layers, and overrides `weight_decays`.
@@ -883,35 +695,34 @@ class SGDW(OptimizerV2):
     - [2][Fixing Weight Decay Regularization in Adam]
          (https://arxiv.org/abs/1711.05101)
     """
-    def __init__(self, learning_rate=0.01, momentum=0.0, nesterov=False,
+    def __init__(self, learning_rate=0.01, momentum=0., nesterov=False,
                  model=None, zero_penalties=True,
                  total_iterations=0, total_iterations_wd=None,
                  use_cosine_annealing=False, lr_multipliers=None,
                  weight_decays=None, autorestart=None, init_verbose=True,
-                 eta_min=0, eta_max=1, t_cur=0, name="SGDW", **kwargs):
+                 eta_min=0, eta_max=1, t_cur=0, **kwargs):
         if total_iterations > 1:
             weight_decays = _init_weight_decays(model, zero_penalties,
                                                 weight_decays)
 
+        self.initial_decay = kwargs.pop('decay', 0.0)
+        learning_rate = kwargs.pop('lr', learning_rate)
         eta_t = kwargs.pop('eta_t', 1.)
-        super(SGDW, self).__init__(name, **kwargs)
-        self._set_hyper("learning_rate", kwargs.get("lr", learning_rate))
-        self._set_hyper("decay", self._initial_decay)
+        super(SGDW, self).__init__(**kwargs)
 
-        self._momentum = False
-        if isinstance(momentum, ops.Tensor) or callable(momentum) or momentum > 0:
-            self._momentum = True
-        if isinstance(momentum, (int, float)) and (momentum < 0 or momentum > 1):
-            raise ValueError("`momentum` must be between [0, 1].")
-        self._set_hyper("momentum", momentum)
+        with K.name_scope(self.__class__.__name__):
+            self.iterations = K.variable(0, dtype='int64', name='iterations')
+            self.learning_rate = K.variable(learning_rate, name='learning_rate')
+            self.momentum = K.variable(momentum, name='momentum')
+            self.decay = K.variable(self.initial_decay, name='decay')
+            self.eta_min = K.constant(eta_min, name='eta_min')
+            self.eta_max = K.constant(eta_max, name='eta_max')
+            self.eta_t = K.variable(eta_t, dtype='float32', name='eta_t')
+            self.t_cur = K.variable(t_cur, dtype='int64', name='t_cur')
 
-        self.nesterov = nesterov
-        self.eta_min = K.constant(eta_min, name='eta_min')
-        self.eta_max = K.constant(eta_max, name='eta_max')
-        self.eta_t = K.variable(eta_t, dtype='float32', name='eta_t')
-        self.t_cur = K.variable(t_cur, dtype='int64', name='t_cur')
         self.total_iterations = total_iterations
         self.total_iterations_wd = total_iterations_wd or total_iterations
+        self.nesterov = nesterov
         self.lr_multipliers = lr_multipliers
         self.weight_decays = weight_decays or {}
         self.init_verbose = init_verbose
@@ -919,113 +730,65 @@ class SGDW(OptimizerV2):
 
         _set_autorestart(self, autorestart, use_cosine_annealing)
         _check_args(self, total_iterations, use_cosine_annealing, weight_decays)
-        self._init_lr = kwargs.get('lr', learning_rate)  # to print lr_mult setup
-        self._updates_processed = 0  # to track num calls to '_resource_apply_...'
+        self._init_lr = learning_rate  # to print lr_mult setup
         self._init_notified = False
 
-    def _create_slots(self, var_list):
-        if self._momentum:
-            for var in var_list:
-                self.add_slot(var, "momentum")
-        self._updates_per_iter = len(var_list)
+    @interfaces.legacy_get_updates_support
+    @K.symbolic
+    def get_updates(self, loss, params):
+        grads = self.get_gradients(loss, params)
+        self.updates = [K.update_add(self.iterations, 1)]
 
-    def _resource_apply_dense(self, grad, var):
-        var_dtype = var.dtype.base_dtype
-        lr_t = self._decayed_lr(var_dtype)
+        lr = self.learning_rate
+        if self.initial_decay > 0:
+            lr = lr * (1. / (1. + self.decay * K.cast(self.iterations,
+                                                      K.dtype(self.decay))))
+        # momentum
+        shapes = [K.int_shape(p) for p in params]
+        moments = [K.zeros(shape, name='moment_' + str(i))
+                   for (i, shape) in enumerate(shapes)]
+        self.weights = [self.iterations] + moments
 
-        # Learning rate multipliers
-        if self.lr_multipliers is not None:
-            lr_t = _apply_lr_multiplier(self, lr_t, var)
+        for p, g, m in zip(params, grads, moments):
+            # Learning rate multipliers
+            lr_t = self.learning_rate
+            if self.lr_multipliers is not None:
+                lr_t = _apply_lr_multiplier(self, lr_t, p)
 
-        if self._momentum:
-            momentum = array_ops.identity(self._get_hyper('momentum', var_dtype))
-            m = self.get_slot(var, 'momentum')
-            v = momentum * m - self.eta_t * lr_t * grad  # velocity
-            m = state_ops.assign(m, v, use_locking=self._use_locking)
-
-            if self.nesterov:
-                var_t = math_ops.sub(
-                    var, -momentum * v + self.eta_t * lr_t * grad)
-            else:
-                var_t = var + v
-        else:
-            v = - self.eta_t * lr_t * grad
-            var_t = var + v
-
-        # Weight decays
-        if var.name in self.weight_decays.keys():
-            var_t = _apply_weight_decays(self, var, var_t)
-
-        var_update = state_ops.assign(var, var_t, use_locking=self._use_locking)
-
-        # Cosine annealing
-        (iteration_done, t_cur_update, eta_t_update
-         ) = _update_t_cur_eta_t_v2(self, lr_t, var)
-        if iteration_done and not self._init_notified:
-            self._init_notified = True
-
-        updates = [var_update]
-        if self._momentum:
-            updates += [m]
-        if iteration_done:
-            updates += [t_cur_update]
-        if self.use_cosine_annealing and iteration_done:
-            updates += [eta_t_update]
-        return control_flow_ops.group(*updates)
-
-    def _resource_apply_sparse(self, grad, var, indices):
-        var_dtype = var.dtype.base_dtype
-        lr_t = self._decayed_lr(var_dtype)
-
-        # Learning rate multipliers
-        if self.lr_multipliers is not None:
-            lr_t = _apply_lr_multiplier(self, lr_t, var)
-
-        if self._momentum:
-            momentum = array_ops.identity(self._get_hyper('momentum', var_dtype))
-            m = self.get_slot(var, 'momentum')
-            v = momentum * m - self.eta_t * lr_t * grad
-            m = state_ops.assign(m, v, use_locking=self._use_locking)
+            v = self.momentum * m - self.eta_t * lr_t * g  # velocity
+            self.updates.append(K.update(m, v))
 
             if self.nesterov:
-                var_t = self._resource_scatter_add(
-                    var, indices, momentum * v - (self.eta_t * lr_t * grad))
+                p_t = p + self.momentum * v - self.eta_t * lr_t * g
             else:
-                var_t = self._resource_scatter_add(var, indices, v)
-        else:
-            v = - self.eta_t * lr_t * grad
-            var_t = var + v
+                p_t = p + v
 
-        # Weight decays
-        if var.name in self.weight_decays.keys():
-            var_t = _apply_weight_decays(self, var, var_t)
+            # Weight decays
+            if p.name in self.weight_decays.keys():
+                p_t = _apply_weight_decays(self, p, p_t)
+            new_p = p_t
 
-        var_update = state_ops.assign(var, var_t, use_locking=self._use_locking)
+            # Apply constraints.
+            if getattr(p, 'constraint', None) is not None:
+                new_p = p.constraint(new_p)
+            self.updates.append(K.update(p, new_p))
 
         # Cosine annealing
-        (iteration_done, t_cur_update, eta_t_update
-         ) = _update_t_cur_eta_t_v2(self, lr_t, var)
-        if iteration_done and not self._init_notified:
-            self._init_notified = True
+        _update_t_cur_eta_t(self)
+        self.lr_t = lr_t * self.eta_t  # for external tracking
 
-        updates = [var_update]
-        if self._momentum:
-            updates += [m]
-        if iteration_done:
-            updates += [t_cur_update]
-        if self.use_cosine_annealing and iteration_done:
-            updates += [eta_t_update]
-        return control_flow_ops.group(*updates)
+        self._init_notified = True
+        return self.updates
 
     def get_config(self):
-        config = super(SGDW, self).get_config()
-        config.update({
-            "learning_rate": self._serialize_hyperparameter("learning_rate"),
-            "decay": self._serialize_hyperparameter("decay"),
-            "momentum": self._serialize_hyperparameter("momentum"),
-            "nesterov": self.nesterov,
+        config = {
+            'learning_rate': float(K_eval(self.learning_rate)),
+            'momentum': float(K_eval(self.momentum)),
+            'decay': float(K_eval(self.decay)),
+            'nesterov': self.nesterov,
             'total_iterations': int(self.total_iterations),
             'weight_decays': self.weight_decays,
+            'lr_multipliers': self.lr_multipliers,
             'use_cosine_annealing': self.use_cosine_annealing,
             'autorestart': self.autorestart,
             't_cur': int(K_eval(self.t_cur)),
@@ -1033,5 +796,6 @@ class SGDW(OptimizerV2):
             'eta_min': float(K_eval(self.eta_min)),
             'eta_max': float(K_eval(self.eta_max)),
             'init_verbose': self.init_verbose
-        })
-        return config
+        }
+        base_config = super(SGDW, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
