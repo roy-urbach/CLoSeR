@@ -92,16 +92,18 @@ class PatchEncoder(tf_layers.Layer):
 
 @serialize
 class ViTBlock(tf_layers.Layer):
-    def __init__(self, num_heads=4, projection_dim=64, dropout_rate=0.1, kernel_regularizer='l1_l2',
+    def __init__(self, num_heads=4, projection_dim=64, dropout_rate=0.1, attn_dropout=None, kernel_regularizer='l1_l2',
                  ln=False, divide_dim_by_head=False, **kwargs):
         super(ViTBlock, self).__init__(**kwargs)
+        if attn_dropout is None:
+            attn_dropout = dropout_rate
         self.num_heads = num_heads
         self.projection_dim = projection_dim
         self.dropout_rate = dropout_rate
         self.norm1 = tf.keras.layers.LayerNormalization(name=self.name + "_ln1") if ln else tf_layers.BatchNormalization(name=self.name + '_bn1')
         self.mh_attn = tf_layers.MultiHeadAttention(num_heads=num_heads,
                                                     key_dim=projection_dim // num_heads if divide_dim_by_head else projection_dim,
-                                                    dropout=dropout_rate,
+                                                    dropout=attn_dropout,
                                                     kernel_regularizer=kernel_regularizer,
                                                     name=self.name + '_mhattn')
         self.add1 = tf_layers.Add(name=self.name + '_add1')

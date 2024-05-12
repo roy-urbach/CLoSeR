@@ -426,10 +426,12 @@ class LinearPredictivity:
     = E[NORM[(XT @ X) @ (XT @ X)^-1 @ XT @ Y @ x - XT @ X @ y]] over (x,y)
     = E[NORM[XT @ Y @ x - XT @ X @ y]] over (x,y)
     """
-    def __init__(self, graph, normalize=True):
+    def __init__(self, graph, normalize=True, trick=True, ridge=0):
         self.graph = eval(graph) if isinstance(graph, str) else graph
         self.n = len(self.graph)
         self.normalize = normalize
+        self.trick = trick
+        self.ridge = ridge
 
     def __call__(self, arr):
         """
@@ -438,7 +440,7 @@ class LinearPredictivity:
         if self.normalize:
             arr = arr - tf.reduce_mean(arr, axis=0, keepdims=True)
             arr = arr / tf.reduce_mean(tf.linalg.norm(tf.stop_gradient(arr), axis=1, keepdims=True),
-                                             axis=0, keepdims=True)
+                                       axis=0, keepdims=True)
         loss = 0.
         for i in range(self.n):
             X = arr[..., i]                             # (B, dim)
@@ -446,9 +448,16 @@ class LinearPredictivity:
             for j in range(i+1, self.n):
                 if self.graph[i][j]:
                     Y = arr[..., j]                     # (B, dim)
-                    YXT = Y @ XT                        # (B, B)
-                    XYT = tf.transpose(YXT)             # (B, B)
-                    diff = XT @ (YXT - XYT)             # (dim, B)
+                    if self.trick:
+                        YXT = Y @ XT                        # (B, B)
+                        XYT = tf.transpose(YXT)             # (B, B)
+                        diff = XT @ (YXT - XYT)             # (dim, B)
+                    else:
+                        to_inverse = XT @ X
+                        if self.ridge:
+                            to_inverse += tf.eye(tf.shape(to_inverse)[0]) * self.ridge
+                        w = tf.linalg.pinv(XT @ X + to_inverse) @ XT @ Y  # (dim, dim)
+                        diff = w @ X - Y
                     sample_loss = tf.reduce_sum(tf.pow(diff, 2), axis=0)        # (B, )
                     mean_loss = tf.reduce_mean(sample_loss)     # (1, )
                     loss += self.graph[i][j] * mean_loss
