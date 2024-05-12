@@ -122,7 +122,8 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
             except Exception as err:
                 print(f"Tried to getattr tf.keras.optimizers.{optimizer_cls_name}, get error:", err)
     print(f"using optimizer {optimizer_cls}")
-    optimizer = optimizer_cls(**optimizer_kwargs)
+    optimizer = optimizer_cls(**{k: eval(v) if isinstance(v, str) and v.startswith("tf.") else v
+                                 for k, v in optimizer_kwargs.items()})
     serialize(optimizer.__class__, 'Custom')
 
     losses = {}
