@@ -125,7 +125,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
     def __init__(self, *args, a_pull, a_push, w_push=1, log_eps=1e-10, log_pull=False, contrastive=True,
                  remove_diag=True, corr=False, use_dists=False, naive_push=False, naive_push_max=None, naive_djs=False,
                  top_k=0, stop_grad_dist=False, push_linear_predictivity=None, push_linear_predictivity_normalize=True,
-                 **kwargs):
+                 linear_predictivity_kwargs={}, **kwargs):
         super().__init__(*args, **kwargs)
         global A_PULL
         global A_PUSH
@@ -151,7 +151,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         self.top_k = top_k
         self.stop_grad_dist = stop_grad_dist
         self.push_linear_predictivity = LinearPredictivity([[-w * w_push for w in vec] for vec in eval_a_push],
-                                                           normalize=push_linear_predictivity_normalize) if push_linear_predictivity else None
+                                                           normalize=push_linear_predictivity_normalize, **linear_predictivity_kwargs) if push_linear_predictivity else None
 
     def map_rep_dev(self, exp_logits=None, logits=None):
         assert (logits is not None) or (exp_logits is not None)
