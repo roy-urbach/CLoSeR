@@ -457,7 +457,7 @@ class LinearPredictivity:
                         if self.ridge:
                             to_inverse += tf.eye(tf.shape(to_inverse)[0]) * self.ridge
                         w = tf.linalg.pinv(XT @ X + to_inverse) @ XT @ Y  # (dim, dim)
-                        diff = w @ X - Y
+                        diff = X @ w - Y
                     sample_loss = tf.reduce_sum(tf.pow(diff, 2), axis=0)        # (B, )
                     mean_loss = tf.reduce_mean(sample_loss)     # (1, )
                     loss += self.graph[i][j] * mean_loss
