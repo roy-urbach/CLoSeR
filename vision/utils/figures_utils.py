@@ -2,7 +2,6 @@ from utils.plot_utils import *
 from utils import plot_utils
 import re
 from utils.io_utils import load_json
-from model.model import load_model_from_json
 import os
 
 BASELINE_NAME = r'$f^{image}_{logistic}$'
@@ -46,6 +45,7 @@ def name_to_d(name, naive=True, mapping={}, frac=True):
             if PATCHES:
                 d = f"{int(load_json(name)['model_kwargs']['pathways_kwargs']['d'] * PATCHES)}/{PATCHES}"
             else:
+                from model.model import load_model_from_json
                 model = load_model_from_json(name, load=False)
                 pathways_layer = model.get_layer(model.name + '_pathways')
                 if frac:
@@ -281,8 +281,8 @@ from evaluation.evaluation import classify_head_eval
 from evaluation.utils import load_evaluation_json, save_evaluation_json
 
 
-def plot_pathways_vs_masked_images(model_name):
-    eval_dct = load_evaluation_json(model.name)
+def plot_pathways_vs_masked_images(model_name, num_pathways=10):
+    eval_dct = load_evaluation_json(model_name)
     reg_image_res = []
     reg_pathway_res = []
 
@@ -293,7 +293,7 @@ def plot_pathways_vs_masked_images(model_name):
 
     from utils.plot_utils import basic_scatterplot, set_ticks_style, simpleaxis, legend
     fig = plt.figure(figsize=(4, 2.5))
-    plt.suptitle(model.name + " pathways accuracy\n\n")
+    plt.suptitle(model_name + " pathways accuracy\n\n")
     ax = plt.subplot(1, 1, 1)
     for i in range(2):
         basic_scatterplot(np.array(reg_image_res)[..., i], np.array(reg_pathway_res)[..., i],
