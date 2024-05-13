@@ -505,7 +505,7 @@ def plot_lines_different_along_d(model_format, seeds=SEEDS, name="logistic",
 def plot_positional_encoding(model, cosine=True, save=False):
     from model.model import load_model_from_json
     if isinstance(model, str):
-        model = load_model_from_json(model)
+        model = load_model_from_json(model, optimizer_state=False)
     embd = model.get_layer(model.name + '_patchenc').position_embedding
     class_token = model.get_layer(model.name + '_patchenc').class_token.numpy()
     num_patches = model.get_layer(model.name + '_pathways').num_patches
