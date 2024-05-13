@@ -14,5 +14,7 @@ def parse():
 
 if __name__ == "__main__":
     args, bsub_args = parse()
+    import matplotlib
+    matplotlib.use('Agg')
     if args.history:
         plot_history(args.regex, keys=eval(args.keys) if args.keys else None, **eval(args.history_kwargs), save=True)
