@@ -15,4 +15,4 @@ def parse():
 if __name__ == "__main__":
     args, bsub_args = parse()
     if args.history:
-        plot_history(args.regex, keys=eval(args.keys) if args.keys else None, **args.history_kwargs, save=True)
+        plot_history(args.regex, keys=eval(args.keys) if args.keys else None, **eval(args.history_kwargs), save=True)
