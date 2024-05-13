@@ -326,7 +326,7 @@ def regex_models(regex):
     return list(filter(lambda m: re.match(regex, m), os.listdir("models")))
 
 
-def plot_history(model_regex, window=10, name_to_d=lambda m: name_to_d(m, naive=False), log=True, keys=None,
+def plot_history(model_regex, window=10, name_to_name=lambda m: m, log=True, keys=None,
                  log_keys={'embedding'}, plot_train=True, plot_val=True, name_to_c=None, save=None):
     from utils.tf_utils import load_history
     models = regex_models(model_regex)
@@ -337,10 +337,10 @@ def plot_history(model_regex, window=10, name_to_d=lambda m: name_to_d(m, naive=
         history = load_history(model)
         if history:
             orig_names.append(model)
-            models_names.append(name_to_d(model))
+            models_names.append(name_to_name(model))
             for k, v in history.items():
                 k = k.replace(model+'_', "")
-                histories.setdefault(k, {})[name_to_d(model)] = v
+                histories.setdefault(k, {})[name_to_name(model)] = v
     for k, v in histories.items():
         if k.startswith("val") or k == "loss": continue
         if keys is not None and k not in keys: continue
