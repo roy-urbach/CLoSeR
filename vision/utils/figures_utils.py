@@ -502,3 +502,50 @@ def plot_lines_different_along_d(model_format, seeds=SEEDS, name="logistic",
     return fig
 
 
+def plot_positional_encoding(model, cosine=True, save=False):
+    from model.model import load_model_from_json
+    if isinstance(model, str):
+        model = load_model_from_json(model)
+    embd = model.get_layer(model.name + '_patchenc').position_embedding
+    class_token = model.get_layer(model.name + '_patchenc').class_token.numpy()
+    num_patches = model.get_layer(model.name + '_pathways').num_patches
+    n_pathways = model.get_layer(model.name + "_pathways").n
+    indices_shape = [int(np.sqrt(num_patches))] * 2
+    patches_enc = embd(np.arange(num_patches)).numpy()
+    plt.figure(figsize=(6, 6))
+    plt.suptitle(f"Model {model.name} Cosine similarity of positional patch encoding")
+
+    masks = np.full([indices_shape[0] * indices_shape[1], n_pathways], False)
+    for pathway in range(n_pathways):
+        inds = model.get_layer(model.name + '_pathways').indices.numpy()[:, pathway] - model.get_layer(
+            model.name + '_pathways').shift
+        masks[inds, pathway] = True
+    full_mask = masks.any(axis=-1)
+
+    for i in range(num_patches):
+        if full_mask[i]:
+            plt.subplot(indices_shape[0], indices_shape[1] + 1, i + 1 + i // indices_shape[1])
+            if cosine:
+                cos_sim = cosine_sim(patches_enc[i], patches_enc, axis=-1).reshape(indices_shape)
+                plt.imshow(np.where(~full_mask.reshape(indices_shape), np.nan, cos_sim), vmin=-1, vmax=1,
+                           cmap='seismic')
+            else:
+                dist = np.einsum('j,ij->i', patches_enc[i], patches_enc).reshape(indices_shape)
+                plt.imshow(np.where(~full_mask.reshape(indices_shape), np.nan, dist), cmap='magma')
+
+            #                 dist = np.sqrt(np.power(patches_enc[i, None] - patches_enc, 2).sum(axis=-1)).reshape(indices_shape)
+            #                 plt.imshow(np.where(~full_mask.reshape(indices_shape), np.nan, dist), cmap='magma')
+
+            plt.xticks([])
+            plt.yticks([])
+    if cosine:
+        ax = plt.subplot(1, indices_shape[1] + 1, indices_shape[1] + 1)
+        plt.imshow(np.tile(np.linspace(-1, 1, 1001)[..., None], [1, 50]), cmap='seismic', origin='lower')
+        plt.yticks([0, 1000], [-1, 1])
+        plt.xticks([])
+        plt.ylabel("cosine similarity")
+        ax.yaxis.set_label_position("right")
+        ax.yaxis.tick_right()
+    plt.tight_layout()
+    if save:
+        savefig(f"figures/positional_encoding_{model.name}")
