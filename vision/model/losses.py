@@ -151,7 +151,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         self.top_k = top_k
         self.stop_grad_dist = stop_grad_dist
         self.entropy_w = entropy_w
-        assert (self.entropy_w and not self.log_pull) or not self.entropy_w, "entropy loss only for log pull"
+        assert (self.entropy_w and self.log_pull) or not self.entropy_w, "entropy loss only for log pull"
         self.push_linear_predictivity = LinearPredictivity([[-w * w_push for w in vec] for vec in eval_a_push],
                                                            normalize=push_linear_predictivity_normalize, **linear_predictivity_kwargs) if push_linear_predictivity else None
 
