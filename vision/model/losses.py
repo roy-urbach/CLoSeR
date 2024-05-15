@@ -125,7 +125,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
     def __init__(self, *args, a_pull, a_push, w_push=1, log_eps=1e-10, log_pull=False, contrastive=True,
                  remove_diag=True, corr=False, use_dists=False, naive_push=False, naive_push_max=None, naive_djs=False,
                  top_k=0, stop_grad_dist=False, push_linear_predictivity=None, push_linear_predictivity_normalize=True,
-                 linear_predictivity_kwargs={}, **kwargs):
+                 linear_predictivity_kwargs={}, entropy_w=0, **kwargs):
         super().__init__(*args, **kwargs)
         global A_PULL
         global A_PUSH
@@ -150,6 +150,8 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         self.use_dists = use_dists
         self.top_k = top_k
         self.stop_grad_dist = stop_grad_dist
+        self.entropy_w = entropy_w
+        assert (self.entropy_w and not self.log_pull) or not self.entropy_w, "entropy loss only for log pull"
         self.push_linear_predictivity = LinearPredictivity([[-w * w_push for w in vec] for vec in eval_a_push],
                                                            normalize=push_linear_predictivity_normalize, **linear_predictivity_kwargs) if push_linear_predictivity else None
 
@@ -210,7 +212,22 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         if self.is_pull:
             if self.contrastive:
                 if self.log_pull:
-                    gain = logits[tf.eye(tf.shape(logits)[0], dtype=tf.bool)] - tf.math.reduce_logsumexp(logits, axis=0)
+                    log_z = tf.math.reduce_logsumexp(logits, axis=0)
+                    gain = logits[tf.eye(tf.shape(logits)[0], dtype=tf.bool)] - log_z
+
+                    if self.entropy_w:
+                        b = tf.shape(logits)[0]
+                        n = tf.shape(logits)[-1]
+                        logits_without_self = tf.reshape(logits[tf.tile(~tf.eye(b, dtype=tf.bool)[..., None, None], [1, 1, n, n])],
+                                                         (b - 1, b, n, n))    # (B-1, B, N, N)
+                        likelihood_without_self = self.calculate_likelihood(None, logits=logits_without_self)
+                        log_likelihood_without_self = tf.math.log(likelihood_without_self)
+                        minus_entropy_without_self = tf.einsum('bBnN,bBnN->BnN', likelihood_without_self, log_likelihood_without_self)
+                        mean_minus_entropy_without_self = tf.reduce_mean(minus_entropy_without_self, axis=0)  # (N, N)
+
+                        entropy_loss = tf.tensordot(self.a_pull, mean_minus_entropy_without_self, axes=[[0, 1], [0, 1]])
+                        loss += entropy_loss * self.entropy_w
+
                 else:
                     # (b, n, n)
                     gain = self.calculate_likelihood(None, exp_logits=exp_logits, logits=logits)[tf.eye(tf.shape(logits)[0], dtype=tf.bool)]
@@ -273,7 +290,6 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
                         paths_loss = -tf.reduce_mean(mrdev, axis=0)
                 push_loss = tf.tensordot(self.a_push, paths_loss, axes=[[0, 1], [0, 1]])
                 loss += push_loss
-
         return loss
 
 
