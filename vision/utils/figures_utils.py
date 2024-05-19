@@ -509,7 +509,7 @@ def plot_lines_different_along_d(model_format, seeds=SEEDS, name="logistic", sav
         plt.axhline(0.4, linestyle=':', c='k')
     plt.tight_layout()
     if save:
-        savefig(f"{model_format}_along_d_{arg}")
+        savefig(f"figures/{model_format}_along_d_{arg}")
     return fig
 
 
