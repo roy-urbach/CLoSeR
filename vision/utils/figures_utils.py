@@ -489,10 +489,16 @@ def plot_lines_different_along_d(model_format, seeds=SEEDS, name="logistic", sav
     for i in range(2):
         ax = plt.subplot(2,1,i+1, sharey=ax)
         plt.title(["Train", "Test"][i])
-        for ind, identity in enumerate(args):
-            plt.plot(ds, means[ind, ..., i], label=(legend + ' ' if isinstance(legend, str) else "") + str(identity), c=f"C{ind+c_shift}")
+        if arg:
+            for ind, identity in enumerate(args):
+                plt.plot(ds, means[ind, ..., i], label=(legend + ' ' if isinstance(legend, str) else "") + str(identity), c=f"C{ind+c_shift}")
+                if len(seeds) > 1:
+                    plt.fill_between(ds, CI[0][ind, ..., i], CI[1][ind, ..., i], color=f"C{ind+c_shift}", alpha=0.3)
+        else:
+            plt.plot(ds, means[..., i], label=(legend + ' ') if isinstance(legend, str) else "",
+                     c=f"C{c_shift}")
             if len(seeds) > 1:
-                plt.fill_between(ds, CI[0][ind, ..., i], CI[1][ind, ..., i], color=f"C{ind+c_shift}", alpha=0.3)
+                plt.fill_between(ds, CI[0][..., i], CI[1][..., i], color=f"C{c_shift}", alpha=0.3)
         if i:
             if legend:
                 plt.legend()
