@@ -5,7 +5,7 @@ import argparse
 def parse():
     parser = argparse.ArgumentParser(description='Plot a figure')
     parser.add_argument('-r', '--regex', type=str, help='a regex to filter models', required=True)
-    parser.add_argument('--action', choices=['h', 'p'], default=True)
+    parser.add_argument('--action', choices=['h', 'p', 'd'], default=True)
     parser.add_argument('--kwargs', type=str, default="{}")
     args = parser.parse_known_args()
     return args
