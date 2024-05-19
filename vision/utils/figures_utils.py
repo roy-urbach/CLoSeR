@@ -474,9 +474,12 @@ def plot_mesh_accuracy(res, name=r'$f^{ensemble}_{logistic}$', only_mesh=True, x
 
 
 def plot_lines_different_along_d(model_format, seeds=SEEDS, name="logistic", save=False,
-                                 args=PS, arg="P", mean=False, legend=True, fig=None, c_shift=0, ds=EXTENDED_DS, **kwargs):
+                                 args=PS, arg=None, mean=False, legend=True, fig=None, c_shift=0, ds=EXTENDED_DS, **kwargs):
+    if isinstance(args, str):
+        args = eval(args)
     res = (gather_results_over_all_args if not mean else gather_results_over_all_args_pathways_mean)(model_format, name, seeds=seeds,
-                                                                                                     args={arg: args, 'd': ds}, **kwargs)
+                                                                                                     args={arg: args, 'd': ds} if arg else {'d': ds},
+                                                                                                     **kwargs)
     means = np.nanmean(res, axis=2)
     stds = np.nanstd(res, axis=2, ddof=1)
     CI = stats.norm.interval(0.975, loc=means, scale=stds / np.sqrt(np.sum(~np.isnan(res), axis=2)))
