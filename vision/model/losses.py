@@ -93,13 +93,15 @@ class ContrastiveSoftmaxLoss(Loss):
             logits = -dist / self.temperature
         return logits
 
-    def calculate_exp_logits(self, embedding, logits=None):
+    def calculate_exp_logits(self, embedding=None, logits=None):
+        assert embedding is not None or logits is not None
         logits = self.calculate_logits(embedding) if logits is None else logits
         if self.stable:
             logits = logits - tf.reduce_max(tf.stop_gradient(logits), axis=0, keepdims=True)
         return tf.exp(logits)
 
-    def calculate_likelihood(self, embedding, exp_logits=None, logits=None):
+    def calculate_likelihood(self, embedding=None, exp_logits=None, logits=None):
+        assert embedding is not None or exp_logits is not None or logits is not None
         exp_logits = self.calculate_exp_logits(embedding, logits=logits) if exp_logits is None else exp_logits
         softmaxed = exp_logits / tf.reduce_sum(exp_logits, axis=0, keepdims=True)
         return softmaxed

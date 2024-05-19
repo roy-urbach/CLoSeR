@@ -3,6 +3,7 @@ from utils import plot_utils
 import re
 from utils.io_utils import load_json
 import os
+from scipy import stats
 
 BASELINE_NAME = r'$f^{image}_{logistic}$'
 DS = (0.025, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.5, 0.75, 0.9)
@@ -472,11 +473,10 @@ def plot_mesh_accuracy(res, name=r'$f^{ensemble}_{logistic}$', only_mesh=True, x
         plt.tight_layout()
 
 
-
-from scipy import stats
-def plot_lines_different_along_d(model_format, seeds=SEEDS, name="logistic",
+def plot_lines_different_along_d(model_format, seeds=SEEDS, name="logistic", save=False,
                                  args=PS, arg="P", mean=False, legend=True, fig=None, c_shift=0, ds=EXTENDED_DS, **kwargs):
-    res = (gather_results_over_all_args if not mean else gather_results_over_all_args_pathways_mean)(model_format, name, seeds=seeds, args={arg: args, 'd': ds}, **kwargs)
+    res = (gather_results_over_all_args if not mean else gather_results_over_all_args_pathways_mean)(model_format, name, seeds=seeds,
+                                                                                                     args={arg: args, 'd': ds}, **kwargs)
     means = np.nanmean(res, axis=2)
     stds = np.nanstd(res, axis=2, ddof=1)
     CI = stats.norm.interval(0.975, loc=means, scale=stds / np.sqrt(np.sum(~np.isnan(res), axis=2)))
@@ -499,6 +499,8 @@ def plot_lines_different_along_d(model_format, seeds=SEEDS, name="logistic",
         plt.grid(alpha=0.3)
         plt.axhline(0.4, linestyle=':', c='k')
     plt.tight_layout()
+    if save:
+        savefig(f"{model_format}_along_d_{arg}")
     return fig
 
 

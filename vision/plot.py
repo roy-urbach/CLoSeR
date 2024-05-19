@@ -22,3 +22,5 @@ if __name__ == "__main__":
     elif args.action == 'p':
         for model in regex_models(args.regex):
             plot_positional_encoding(model, **kwargs, save=True)
+    elif args.action == 'd':
+        plot_lines_different_along_d(args.regex, **kwargs, save=True)
