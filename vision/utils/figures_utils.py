@@ -477,6 +477,8 @@ def plot_lines_different_along_d(model_format, seeds=SEEDS, name="logistic", sav
                                  args=PS, arg=None, mean=False, legend=True, fig=None, c_shift=0, ds=EXTENDED_DS, **kwargs):
     if isinstance(args, str):
         args = eval(args)
+    if isinstance(ds, str):
+        ds = eval(ds)
     res = (gather_results_over_all_args if not mean else gather_results_over_all_args_pathways_mean)(model_format, name, seeds=seeds,
                                                                                                      args={arg: args, 'd': ds} if arg else {'d': ds},
                                                                                                      **kwargs)
