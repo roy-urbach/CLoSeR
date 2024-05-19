@@ -502,9 +502,10 @@ def plot_lines_different_along_d(model_format, seeds=SEEDS, name="logistic", sav
             if len(seeds) > 1:
                 plt.fill_between(ds, CI[0][..., i], CI[1][..., i], color=f"C{c_shift}", alpha=0.3)
         if i:
+            plt.xlabel('d')
+        else:
             if legend:
                 plt.legend()
-            plt.xlabel('d')
         plt.ylabel("Accuracy")
         plt.xticks(ds, ds_to_labels(ds))
         plt.grid(alpha=0.3)

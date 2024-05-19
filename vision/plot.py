@@ -27,6 +27,3 @@ if __name__ == "__main__":
         fig = None
         for i, model_format in enumerate(args.regex.split(',')):
             fig = plot_lines_different_along_d(model_format, **kwargs, save=(i+1)==n, c_shift=i, legend=model_format, fig=fig)
-
-        plt.subplot(211)
-        plt.legend()
