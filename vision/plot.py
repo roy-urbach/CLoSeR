@@ -23,4 +23,7 @@ if __name__ == "__main__":
         for model in regex_models(args.regex):
             plot_positional_encoding(model, **kwargs, save=True)
     elif args.action == 'd':
-        plot_lines_different_along_d(args.regex, **kwargs, save=True)
+        fig = None
+        for i, model_format in enumerate(args.regex.split(',')):
+            fig = plot_lines_different_along_d(args.regex, **kwargs, save=True, c_shift=i, legend=model_format, fig=fig)
+        plt.legend()
