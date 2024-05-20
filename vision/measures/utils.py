@@ -48,7 +48,7 @@ def measure_model(model, iterations=50, b=128):
     # train_embd = model.predict(dataset.get_x_train())[1]
     test_embd = model.predict(dataset.get_x_test())[0]
 
-    n = test_embd.shape[1]
+    n = test_embd.shape[2]
 
     loss = model.loss[model.name + "_embedding"]
 
