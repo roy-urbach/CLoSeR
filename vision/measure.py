@@ -25,7 +25,7 @@ def main():
             f.write("Yes!")
 
     try:
-        res = measure(args.json, b=args.b, iterations=args.iterations, save_results=True, override=args.override)
+        res = measure(args.json, b=args.batch, iterations=args.iterations, save_results=True, override=args.override)
     finally:
         os.remove(measuring_fn)
     return res
