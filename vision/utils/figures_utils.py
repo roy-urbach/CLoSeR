@@ -572,7 +572,7 @@ def plot_measures(model_regex, mask=None, save=False):
     for measure in CrossPathMeasures:
         plt.figure()
         plt.title(measure)
-        dct_to_multiviolin({k: v[measure.name][mask if mask is not None else ~np.eye(len(v))]
+        dct_to_multiviolin({k: v[measure.name][mask if mask is not None else ~np.eye(len(v), dtype=bool)]
                             for k, v in dcts.items()})
         if save:
             savefig(f"figures/{measure}")
