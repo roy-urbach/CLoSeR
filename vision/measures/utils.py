@@ -43,7 +43,7 @@ def measure_model(model, iterations=50, b=128):
         model = load_model_from_json(model)
 
     import utils.data
-    kwargs = load_json(model)
+    kwargs = load_json(model.name)
     dataset = get_class(kwargs.get('dataset', 'Cifar10'), utils.data)(**kwargs.get("data_kwargs", {}))
     # train_embd = model.predict(dataset.get_x_train())
     test_embd = model.predict(dataset.get_x_test())
