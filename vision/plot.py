@@ -5,7 +5,7 @@ import argparse
 def parse():
     parser = argparse.ArgumentParser(description='Plot a figure')
     parser.add_argument('-r', '--regex', type=str, help='a regex to filter models', required=True)
-    parser.add_argument('--action', choices=['h', 'p', 'd'], default=True)
+    parser.add_argument('--action', choices=['h', 'p', 'd', 'm'], default=True)
     parser.add_argument('--kwargs', type=str, default="{}")
     args = parser.parse_known_args()
     return args
@@ -27,3 +27,5 @@ if __name__ == "__main__":
         fig = None
         for i, model_format in enumerate(args.regex.split(',')):
             fig = plot_lines_different_along_d(model_format, **kwargs, save=(i+1)==n, c_shift=i, legend=model_format, fig=fig)
+    elif args.action == 'm':
+        plot_measures(args.regex, **kwargs, save=True)

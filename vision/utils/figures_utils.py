@@ -563,3 +563,16 @@ def plot_positional_encoding(model, cosine=True, save=False):
     plt.tight_layout()
     if save:
         savefig(f"figures/positional_encoding_{model.name}")
+
+
+def plot_measures(model_regex, mask=None, save=False):
+    from measures.utils import CrossPathMeasures, load_measures_json
+    models = regex_models(model_regex)
+    dcts = {model: load_measures_json(model) for model in models}
+    for measure in CrossPathMeasures:
+        plt.figure()
+        plt.title(measure)
+        dct_to_multiviolin({k: v[measure.name][mask if mask is not None else ~np.eye(len(v))]
+                            for k, v in dcts.items()})
+        if save:
+            savefig(f"figures/{measure}")
