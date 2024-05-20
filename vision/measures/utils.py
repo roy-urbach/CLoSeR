@@ -82,5 +82,5 @@ def measure_model(model, iterations=50, b=128):
         res_dct[CrossPathMeasures.Correlation].append(np.corrcoef(cur_dists[triu_inds][..., np.arange(n), np.arange(n)].T))
         res_dct[CrossPathMeasures.DKL].append(tf.reduce_mean(mrdev, axis=0))
 
-    res_dct = {k.name: np.mean(v, axis=0) for k, v in res_dct}
+    res_dct = {k.name: np.mean(v, axis=0) for k, v in res_dct.items()}
     return res_dct
