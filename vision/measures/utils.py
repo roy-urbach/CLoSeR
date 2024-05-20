@@ -20,7 +20,10 @@ class CrossPathMeasures(Enum):
 
 def load_measures_json(model_name):
     dct_with_list = load_json(MEASURES_FILE_NAME, base_path=f'models/{model_name}')
-    dct = {k: np.array(v) for k, v in dct_with_list.items()}
+    if dct_with_list is not None:
+        dct = {k: np.array(v) for k, v in dct_with_list.items()}
+    else:
+        dct = dct_with_list
     return dct
 
 
