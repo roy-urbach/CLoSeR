@@ -423,7 +423,7 @@ def gather_results_over_all_args(model_format, name='logistic', seeds=[1], args=
             if val is np.nan:
                 print(f"val is nan: {model_name}")
             if res is None:
-                res = np.full(list(shape) + [len(seeds)] + ([2] if not measure else (list(val.shape) if isinstance(val, np.ndarray) else 2)), np.nan)
+                res = np.full(list(shape) + [len(seeds)] + ([2] if not measure else (list(val.shape) if isinstance(val, np.ndarray) else [2])), np.nan)
             cur = res
             for cur_ind in inds:
                 cur = cur[cur_ind]
