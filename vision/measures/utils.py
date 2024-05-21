@@ -58,7 +58,7 @@ def measure_model(model, iterations=50, b=128):
     for i in counter(range(iterations)):
         cur_samples = test_embd[np.random.permutation(test_embd.shape[0])[:b]]
         cur_dists = np.sqrt(loss.calculate_dists(cur_samples).numpy())
-        logits = loss.calculate_logits(None, dist=cur_dists)
+        logits = loss.calculate_logits(None, dist=cur_dists**2)
         mrdev = loss.map_rep_dev(exp_logits=None, logits=tf.linalg.diag_part(logits))   # (b, n)
 
         likelihood = model.loss[model.name + "_embedding"].calculate_likelihood(logits=logits)
