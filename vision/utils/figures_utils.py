@@ -496,7 +496,7 @@ def plot_lines_different_along_d(model_format, seeds=SEEDS, name="logistic", sav
     plt.suptitle(model_format + " " + name + f" different {arg}")
     for i in range(2):
         if measure and not i: continue
-        ax = plt.subplot(2-measure,1,i+1, sharey=ax)
+        ax = plt.subplot(2-measure,1,i+1-measure, sharey=ax)
         plt.title(["Train", "Test"][i])
         if arg:
             for ind, identity in enumerate(args):
