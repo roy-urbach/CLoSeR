@@ -1,3 +1,4 @@
+from measures.utils import load_measures_json
 from utils.plot_utils import *
 from utils import plot_utils
 import re
@@ -81,7 +82,7 @@ def metric_to_label(metric):
             "ensemble_linear_ArgmaxMeanProb": r"$f^{ensemble}_{mean prob}$"}.get(metric, metric)
 
 
-def plot_metrics_along_d(model_regex, metric_regex=("logistic", '.*linear_.*', '.*knn.*'), name_to_d_naive=False):
+def plot_metrics_along_d(model_regex, metric_regex=("logistic", '.*linear_.*', '.*knn.*'), name_to_d_naive=False, measures=False):
     archive = load_classfications_by_regex(model_regex, name_to_d_naive=name_to_d_naive)
     best = max([max([v[-1] for v in val.values()]) for val in archive.values()])
     print(best)
@@ -399,11 +400,11 @@ from json import JSONDecodeError
 from itertools import product
 
 
-def gather_results_over_all_args(model_format, name='logistic', seeds=[1], args=dict(P=PS, d=EXTENDED_DS)):
+def gather_results_over_all_args(model_format, name='logistic', seeds=[1], args=dict(P=PS, d=EXTENDED_DS), measure=False):
     names = list(args.keys())
     args = [args[n] for n in names]
     shape = [len(arg) for arg in args]
-    res = np.full(list(shape) + [len(seeds), 2], np.nan)
+    res = np.full(list(shape) + [len(seeds), 2 - measure], np.nan)
 
     for i, inds in enumerate(product(*[range(s) for s in shape])):
         for s, seed in enumerate(seeds):
@@ -411,7 +412,7 @@ def gather_results_over_all_args(model_format, name='logistic', seeds=[1], args=
                 **{k: v for k, v in zip(names, [args[arg_ind][cur_ind] for arg_ind, cur_ind in enumerate(inds)])},
                 seed=seed)
             try:
-                dct = load_evaluation_json(model_name)
+                dct = load_measures_json(model_name) if measure else load_evaluation_json(model_name)
             except JSONDecodeError as err:
                 print(model_name)
             if dct is None:
@@ -429,7 +430,7 @@ def gather_results_over_all_args(model_format, name='logistic', seeds=[1], args=
 
 
 def gather_results_over_all_args_pathways_mean(model_format, name_format='pathway{}_linear', seeds=[1],
-                                               args=dict(P=PS, d=EXTENDED_DS), P=10):
+                                               args=dict(P=PS, d=EXTENDED_DS), P=10, measure=False):
     names = list(args.keys())
     args = [args[n] for n in names]
     shape = [len(arg) for arg in args]
@@ -440,7 +441,7 @@ def gather_results_over_all_args_pathways_mean(model_format, name_format='pathwa
             model_name = model_format.format(
                 **{k: v for k, v in zip(names, [args[arg_ind][cur_ind] for arg_ind, cur_ind in enumerate(inds)])},
                 seed=seed)
-            dct = load_evaluation_json(model_name)
+            dct = load_measures_json(model_name) if measure else load_evaluation_json(model_name)
             val = np.mean(
                 [dct[name_format.format(path)] for path in range(args[names.index("P")] if "P" in names else P)],
                 axis=0)
@@ -473,7 +474,7 @@ def plot_mesh_accuracy(res, name=r'$f^{ensemble}_{logistic}$', only_mesh=True, x
         plt.tight_layout()
 
 
-def plot_lines_different_along_d(model_format, seeds=SEEDS, name="logistic", save=False,
+def plot_lines_different_along_d(model_format, seeds=SEEDS, name="logistic", save=False, measure=False, mask=None,
                                  args=PS, arg=None, mean=False, legend=True, fig=None, c_shift=0, ds=EXTENDED_DS, **kwargs):
     if isinstance(args, str):
         args = eval(args)
@@ -481,26 +482,40 @@ def plot_lines_different_along_d(model_format, seeds=SEEDS, name="logistic", sav
         ds = eval(ds)
     res = (gather_results_over_all_args if not mean else gather_results_over_all_args_pathways_mean)(model_format, name, seeds=seeds,
                                                                                                      args={arg: args, 'd': ds} if arg else {'d': ds},
+                                                                                                     measure=measure,
                                                                                                      **kwargs)
-    means = np.nanmean(res, axis=2)
-    stds = np.nanstd(res, axis=2, ddof=1)
-    CI = stats.norm.interval(0.975, loc=means, scale=stds / np.sqrt(np.sum(~np.isnan(res), axis=2)))
+    # means = np.nanmean(res, axis=2)
+    # stds = np.nanstd(res, axis=2, ddof=1)
+    # CI = stats.norm.interval(0.975, loc=means, scale=stds / np.sqrt(np.sum(~np.isnan(res), axis=2)))
     ax = None
     fig = plt.figure() if fig is None else fig
     plt.suptitle(model_format + " " + name + f" different {arg}")
     for i in range(2):
-        ax = plt.subplot(2,1,i+1, sharey=ax)
+        if measure and not i: continue
+        ax = plt.subplot(2-measure,1,i+1, sharey=ax)
         plt.title(["Train", "Test"][i])
         if arg:
             for ind, identity in enumerate(args):
-                plt.plot(ds, means[ind, ..., i], label=(legend + ' ' if isinstance(legend, str) else "") + str(identity), c=f"C{ind+c_shift}")
+                relevant_part = res[ind, ..., i] if not measure else np.stack([np.stack([res[ind, i_d, s][mask if mask is not None else ~np.eye(len(res[ind]), dtype=bool)]
+                                                                                         for s in range(res.shape[2])], axis=0)
+                                                                               for i_d in range(len(res[ind]))], axis=0)
+                mean = np.nanmean(relevant_part, axis=(-2, -1))
+                CI = stats.norm.interval(0.975, loc=mean, scale=np.nanstd(relevant_part, ddof=1, axis=(-2, -1)) / np.sqrt(np.sum(~np.isnan(relevant_part), axis=(-2, -1))))
+                plt.plot(ds, mean, label=(legend + ' ' if isinstance(legend, str) else "") + str(identity), c=f"C{ind+c_shift}")
                 if len(seeds) > 1:
-                    plt.fill_between(ds, CI[0][ind, ..., i], CI[1][ind, ..., i], color=f"C{ind+c_shift}", alpha=0.3)
+                    plt.fill_between(ds, CI[0], CI[1][ind, ..., i], color=f"C{ind+c_shift}", alpha=0.3)
         else:
-            plt.plot(ds, means[..., i], label=(legend + ' ') if isinstance(legend, str) else "",
+            relevant_part = res[..., i] if not measure else np.stack([np.stack([res[i_d, s][mask if mask is not None else ~np.eye(len(res[ind]), dtype=bool)]
+                                                                                for s in range(res.shape[2])], axis=0)
+                                                                      for i_d in range(len(res[ind]))], axis=0)
+            mean = np.nanmean(relevant_part, axis=(-2, -1))
+            CI = stats.norm.interval(0.975, loc=mean, scale=np.nanstd(relevant_part, ddof=1, axis=(-2, -1)) / np.sqrt(
+                np.sum(~np.isnan(relevant_part), axis=(-2, -1))))
+
+            plt.plot(ds, mean, label=(legend + ' ') if isinstance(legend, str) else "",
                      c=f"C{c_shift}")
             if len(seeds) > 1:
-                plt.fill_between(ds, CI[0][..., i], CI[1][..., i], color=f"C{c_shift}", alpha=0.3)
+                plt.fill_between(ds, CI[0], CI[1], color=f"C{c_shift}", alpha=0.3)
         if i:
             plt.xlabel('d')
         else:
