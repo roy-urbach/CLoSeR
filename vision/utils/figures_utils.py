@@ -488,6 +488,9 @@ def plot_lines_different_along_d(model_format, seeds=SEEDS, name="logistic", sav
                                                                                                      args={arg: args, 'd': ds} if arg else {'d': ds},
                                                                                                      measure=measure,
                                                                                                      **kwargs)
+    if np.isnan(res).all():
+        print(f"for {model_format} and {name}, everything is nan, so not plotting")
+        return
     # means = np.nanmean(res, axis=2)
     # stds = np.nanstd(res, axis=2, ddof=1)
     # CI = stats.norm.interval(0.975, loc=means, scale=stds / np.sqrt(np.sum(~np.isnan(res), axis=2)))
