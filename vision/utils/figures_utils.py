@@ -525,10 +525,11 @@ def plot_lines_different_along_d(model_format, seeds=SEEDS, name="logistic", sav
         else:
             if legend:
                 plt.legend()
-        plt.ylabel("Accuracy")
+        plt.ylabel("Accuracy") if not measure else plt.ylabel(name)
         plt.xticks(ds, ds_to_labels(ds))
         plt.grid(alpha=0.3)
-        plt.axhline(0.4, linestyle=':', c='k')
+        if not measure:
+            plt.axhline(0.4, linestyle=':', c='k')
     plt.tight_layout()
     if save:
         savefig(f"figures/{model_format}_along_d_{arg}")
