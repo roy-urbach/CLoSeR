@@ -9,7 +9,7 @@ MEASURES_FILE_NAME = 'measures'
 
 class CrossPathMeasures(Enum):
     Acc = auto()
-    MaxLike = auto()
+    LikeSelf = auto()
     Entropy = auto()
     MaxLikeNoSelf = auto()
     EntropyNoSelf = auto()
@@ -65,7 +65,7 @@ def measure_model(model, iterations=50, b=128):
         res_dct[CrossPathMeasures.Acc].append(tf.reduce_mean(tf.cast((likelihood >= tf.reduce_max(likelihood, axis=0, keepdims=True))[
                                                      tf.eye(tf.shape(likelihood)[0], dtype=tf.bool)], dtype=tf.float32),
                                          axis=0))
-        res_dct[CrossPathMeasures.MaxLike].append(tf.reduce_mean(likelihood[tf.eye(tf.shape(likelihood)[0], dtype=tf.bool)], axis=0))
+        res_dct[CrossPathMeasures.LikeSelf].append(tf.reduce_mean(likelihood[tf.eye(tf.shape(likelihood)[0], dtype=tf.bool)], axis=0))
         res_dct[CrossPathMeasures.Entropy].append(-tf.reduce_mean(tf.einsum('bBnN,bBnN->BnN', likelihood, tf.math.log(likelihood)), axis=0))
 
         likelihood_without_self = tf.reshape(
@@ -73,6 +73,8 @@ def measure_model(model, iterations=50, b=128):
             (b - 1, b, n, n))
         likelihood_without_self = likelihood_without_self / tf.reduce_sum(likelihood_without_self, axis=0,
                                                                           keepdims=True)
+
+        res_dct[CrossPathMeasures.MaxLikeNoSelf].append(tf.reduce_mean(tf.reduce_max(likelihood, axis=0)), axis=0)
         res_dct[CrossPathMeasures.EntropyNoSelf].append(
             -tf.reduce_mean(tf.einsum('bBnN,bBnN->BnN', likelihood_without_self, tf.math.log(likelihood_without_self)),
                             axis=0))
