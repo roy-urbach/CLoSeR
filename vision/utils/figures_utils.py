@@ -515,9 +515,10 @@ def plot_lines_different_along_d(model_format, seeds=SEEDS, name="logistic", sav
             relevant_part = res[..., i] if not measure else np.stack([np.stack([res[i_d, s][mask if mask is not None else ~np.eye(res.shape[-1], dtype=bool)]
                                                                                 for s in range(res.shape[1])], axis=0)
                                                                       for i_d in range(len(res))], axis=0)
-            mean = np.nanmean(relevant_part, axis=(-2, -1))
-            CI = stats.norm.interval(0.975, loc=mean, scale=np.nanstd(relevant_part, ddof=1, axis=(-2, -1)) / np.sqrt(
-                np.sum(~np.isnan(relevant_part), axis=(-2, -1))))
+            over_axes = (-2, -1) if measure else (-1, )
+            mean = np.nanmean(relevant_part, axis=over_axes)
+            CI = stats.norm.interval(0.975, loc=mean, scale=np.nanstd(relevant_part, ddof=1, axis=over_axes) / np.sqrt(
+                np.sum(~np.isnan(relevant_part), axis=over_axes)))
 
             plt.plot(ds, mean, label=(legend + ' ') if isinstance(legend, str) else "",
                      c=f"C{c_shift}")
