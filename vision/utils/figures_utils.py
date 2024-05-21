@@ -404,7 +404,7 @@ def gather_results_over_all_args(model_format, name='logistic', seeds=[1], args=
     names = list(args.keys())
     args = [args[n] for n in names]
     shape = [len(arg) for arg in args]
-    res = np.full(list(shape) + [len(seeds), 2 - measure], np.nan)
+    res = None # np.full(list(shape) + [len(seeds), 2 - measure], np.nan)
 
     for i, inds in enumerate(product(*[range(s) for s in shape])):
         for s, seed in enumerate(seeds):
@@ -422,6 +422,8 @@ def gather_results_over_all_args(model_format, name='logistic', seeds=[1], args=
                 val = dct.get(name, np.nan)
             if val is np.nan:
                 print(f"val is nan: {model_name}")
+            if res is None:
+                res = np.full(list(shape) + [len(seeds)] + ([2] if not measure else list(val.shape)), np.nan)
             cur = res
             for cur_ind in inds:
                 cur = cur[cur_ind]
@@ -434,7 +436,7 @@ def gather_results_over_all_args_pathways_mean(model_format, name_format='pathwa
     names = list(args.keys())
     args = [args[n] for n in names]
     shape = [len(arg) for arg in args]
-    res = np.full(list(shape) + [len(seeds), 2], np.nan)
+    res = None # np.full(list(shape) + [len(seeds), 2], np.nan)
 
     for i, inds in enumerate(product(*[range(s) for s in shape])):
         for s, seed in enumerate(seeds):
@@ -445,6 +447,8 @@ def gather_results_over_all_args_pathways_mean(model_format, name_format='pathwa
             val = np.mean(
                 [dct[name_format.format(path)] for path in range(args[names.index("P")] if "P" in names else P)],
                 axis=0)
+            if res is None:
+                res = np.full(list(shape) + [len(seeds)] + ([2] if not measure else list(val.shape)), np.nan)
             cur = res
             for cur_ind in inds:
                 cur = cur[cur_ind]

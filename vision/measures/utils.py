@@ -18,9 +18,9 @@ class CrossPathMeasures(Enum):
     DKL = auto()
 
 
-def load_measures_json(model_name):
+def load_measures_json(model_name, tolist=False):
     dct_with_list = load_json(MEASURES_FILE_NAME, base_path=f'models/{model_name}')
-    if dct_with_list is not None:
+    if not tolist and dct_with_list is not None:
         dct = {k: np.array(v) for k, v in dct_with_list.items()}
     else:
         dct = dct_with_list
