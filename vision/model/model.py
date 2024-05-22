@@ -10,6 +10,8 @@ from tensorflow.keras import layers
 from tensorflow import keras
 import tensorflow as tf
 from model.optimizers import *
+import os
+
 
 PATHWAY_TO_CLS = None
 
@@ -202,8 +204,7 @@ def create_and_compile_model(model_name, input_shape, model_kwargs, loss=Contras
     return m
 
 
-def load_or_create_model(model_name, *args, load=True, optimizer_state=True, skip_mismatch=False, **kwargs):
-    import os
+def load_or_create_model(model_name, *args, load=True, optimizer_state=True, skip_mismatch=False, pretrained_name=None, **kwargs):
     import re
 
     model = create_and_compile_model(model_name, *args, **kwargs)
@@ -226,6 +227,12 @@ def load_or_create_model(model_name, *args, load=True, optimizer_state=True, ski
                                    skip_mismatch=skip_mismatch, by_name=skip_mismatch)
         if not max_epoch:
             print("didn't find previous checkpoint")
+
+    if pretrained_name is not None and not max_epoch:
+        pretrained_model = load_model_from_json(pretrained_name)
+        for i, (l, pretrained_l) in enumerate(zip(model.layers, pretrained_model.layers)):
+            l.set_weights([w.numpy() for w in pretrained_l.weights])
+
     return model, max_epoch
 
 
