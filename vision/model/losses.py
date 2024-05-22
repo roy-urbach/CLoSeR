@@ -491,7 +491,7 @@ class ConfidenceContrastiveLoss(ContrastiveSoftmaxLoss):
         self.c_w = c_w
         self.squared = squared
 
-    def __call__(self, y_true, y_pred):
+    def call(self, y_true, y_pred):
         b = tf.shape(y_pred)[0]
         n = tf.shape(y_pred)[2]
         embedding = y_pred[:, :-1]                      # (B, dim, N)
