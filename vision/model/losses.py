@@ -501,7 +501,7 @@ class ConfidenceContrastiveLoss(ContrastiveSoftmaxLoss):
         weighted_non_likelihood = confidence[..., None, :] * confidence[..., None] * (1 - likelihood)
         loss = tf.reduce_mean(weighted_non_likelihood[tf.tile((~tf.eye(n, dtype=tf.bool))[None], [b, 1, 1])])
         if self.squared:
-            loss = loss - self.c_w * tf.reduce_mean(confidence**2)
+            loss = loss + self.c_w * tf.reduce_mean((1-confidence)**2)
         else:
             loss = loss - self.c_w * tf.reduce_mean(confidence)
         return loss
