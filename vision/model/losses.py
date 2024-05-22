@@ -483,3 +483,24 @@ class LinearPredictivity:
                     mean_loss = tf.reduce_mean(sample_loss)     # (1, )
                     loss += self.graph[i][j] * mean_loss
         return loss
+
+
+class ConfidenceContrastiveLoss(ContrastiveSoftmaxLoss):
+    def __init__(self, *args, c_w=1, squared=False, **kwargs):
+        super(ConfidenceContrastiveLoss).__init__(*args, **kwargs)
+        self.c_w = c_w
+        self.squared = squared
+
+    def __call__(self, y_true, y_pred):
+        b = tf.shape(y_pred)[0]
+        n = tf.shape(y_pred)[2]
+        embedding = y_pred[:, :-1]                      # (B, dim, N)
+        confidence = tf.math.sigmoid(y_pred[:, -1])     # (B, N)
+        likelihood = self.calculate_likelihood(embedding=embedding)[tf.arange(b), tf.arange(b)]     # (B, N, N)
+        weighted_non_likelihood = confidence[..., None, :] * confidence[..., None] * (1 - likelihood)
+        loss = tf.reduce_mean(weighted_non_likelihood[tf.tile((~tf.eye(n, dtype=tf.bool))[None], [b, 1, 1])])
+        if self.squared:
+            loss = loss + self.c_w * tf.reduce_mean(confidence**2)
+        else:
+            loss = loss + self.c_w * tf.reduce_mean(confidence)
+        return loss
