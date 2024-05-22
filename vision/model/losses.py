@@ -487,7 +487,7 @@ class LinearPredictivity:
 
 class ConfidenceContrastiveLoss(ContrastiveSoftmaxLoss):
     def __init__(self, *args, c_w=1, squared=False, **kwargs):
-        super(ConfidenceContrastiveLoss).__init__(*args, **kwargs)
+        super(ConfidenceContrastiveLoss, self).__init__(*args, **kwargs)
         self.c_w = c_w
         self.squared = squared
 
