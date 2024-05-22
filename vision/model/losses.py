@@ -496,7 +496,7 @@ class ConfidenceContrastiveLoss(ContrastiveSoftmaxLoss):
         n = tf.shape(y_pred)[2]
         embedding = y_pred[:, :-1]                      # (B, dim, N)
         confidence = tf.math.sigmoid(y_pred[:, -1])     # (B, N)
-        likelihood = self.calculate_likelihood(embedding=embedding)[tf.arange(b), tf.arange(b)]     # (B, N, N)
+        likelihood = self.calculate_likelihood(embedding=embedding)[tf.range(b), tf.range(b)]     # (B, N, N)
         weighted_non_likelihood = confidence[..., None, :] * confidence[..., None] * (1 - likelihood)
         loss = tf.reduce_mean(weighted_non_likelihood[tf.tile((~tf.eye(n, dtype=tf.bool))[None], [b, 1, 1])])
         if self.squared:
