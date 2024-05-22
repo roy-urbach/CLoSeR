@@ -231,6 +231,8 @@ def load_or_create_model(model_name, *args, load=True, optimizer_state=True, ski
     if pretrained_name is not None and not max_epoch:
         pretrained_model = load_model_from_json(pretrained_name)
         for i, l in enumerate(model.layers):
+            if len(l.weights) == 0:
+                continue
             pretrained_layer_name = l.name.replace(model.name, pretrained_model.name)
             loaded_w = False
             for layer in pretrained_model.layers:
