@@ -238,12 +238,15 @@ def load_or_create_model(model_name, *args, load=True, optimizer_state=True, ski
             loaded_w = False
             for layer in pretrained_model.layers:
                 if layer.name == pretrained_layer_name:
-                    l.set_weights([w.numpy() for w in layer.weights])
+                    try:
+                        l.set_weights([w.numpy() for w in layer.weights])
+                        print(f"loaded layer {l.name}")
+                    except Exception as err:
+                        print(f"could load layer {l.name}, got exception {err}")
                     loaded_w = True
-                    print(f"loaded layer {l.name}")
                     break
             if not loaded_w:
-                print(f"couldn't load layer {l.name}")
+                print(f"couldn't load layer {l.name}, name didn't exist")
     return model, max_epoch
 
 
