@@ -229,6 +229,7 @@ def load_or_create_model(model_name, *args, load=True, optimizer_state=True, ski
             print("didn't find previous checkpoint")
 
     if pretrained_name is not None and not max_epoch:
+        print(f"trying to load from {pretrained_name}")
         pretrained_model = load_model_from_json(pretrained_name)
         for i, l in enumerate(model.layers):
             if len(l.weights) == 0:
@@ -239,6 +240,7 @@ def load_or_create_model(model_name, *args, load=True, optimizer_state=True, ski
                 if layer.name == pretrained_layer_name:
                     l.set_weights([w.numpy() for w in layer.weights])
                     loaded_w = True
+                    print(f"loaded layer {l.name}")
                     break
             if not loaded_w:
                 print(f"couldn't load layer {l.name}")
