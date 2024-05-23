@@ -6,27 +6,37 @@ mpl.rc('image', cmap='gray')
 
 def basic_scatterplot(x, y, identity=True, fig=None, c='k', corr=False, t=False,
                       regress=False, mean_diff=False, label=None, regress_color='r',
-                      regress_label=None, add_r_squared_to_regress_label=True):
+                      regress_label=None, add_r_squared_to_regress_label=True, log_x=False, log_y=False):
     x = np.array(x)
     y = np.array(y)
+
+    x_ = np.log(x) if log_x else x
+    y_ = np.log(y) if log_y else y
+
     if fig is None: fig = plt.figure()
     plt.scatter(x, y, c=c, alpha=0.6, label=label)
     if corr:
-        plt.title(f"r={correlation(x,y):.3f}")
+        plt.title(f"r={correlation(x_, y_):.3f}")
     if t:
-        plt.title(f"paired ttest p = {paired_t_test(x,y):.2e}" + f', mean diff = {np.abs(np.nanmean(x-y)):.3f}'*mean_diff)
+        plt.title(f"paired ttest p = {paired_t_test(x_,y_):.2e}" + f', mean diff = {np.abs(np.nanmean(x_-y_)):.3f}'*mean_diff)
     if identity:
         min_, max_ = get_min_max(x, y)
         plt.plot([min_, max_], [min_, max_], c='k', linestyle=':')
     if regress:
-        corr = correlation(x,y)
-        slope = corr * np.std(y) / np.std(x)
-        reg = lambda p: slope * (p - np.mean(x)) + np.mean(y)
+        corr = correlation(x_,y_)
+        slope = corr * np.std(y_) / np.std(x_)
+        reg = lambda p: slope * ((np.log(p) if log_x else p) - np.mean(x_)) + np.mean(y_)
+        if log_y:
+            reg = lambda p: np.exp(reg(p))
         min_ = np.min(x)
         max_ = np.max(x)
         min_, max_ = min_ - 0.05 * (max_ - min_), max_ + 0.05 * (max_ - min_)
         plt.plot([min_, max_], [reg(min_), reg(max_)], c=regress_color,
                  label=(regress_label + (r"$R^2=$" + f"{corr**2:.2f}") if add_r_squared_to_regress_label else "") if regress_label else None)
+        if log_x:
+            plt.xscale("log")
+        if log_y:
+            plt.yscale("log")
     return fig
 
 
