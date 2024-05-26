@@ -524,9 +524,10 @@ class ConfidenceContrastiveLoss(ContrastiveSoftmaxLoss):
 
 
 class CrossEntropyAgreement(tf.keras.losses.Loss):
-    def __init__(self, *args, w_ent=0., stable=True, **kwargs):
+    def __init__(self, *args, w_ent=0., w_ent_mean=0., stable=True, **kwargs):
         super(CrossEntropyAgreement, self).__init__(*args, **kwargs)
         self.w_ent = w_ent
+        self.w_ent_mean = w_ent_mean
         self.stable = stable
 
     def call(self, y_true, y_pred):
@@ -546,8 +547,9 @@ class CrossEntropyAgreement(tf.keras.losses.Loss):
         if self.w_ent:
             loss = loss - self.w_ent * tf.reduce_mean(minus_entropy)
 
+        if self.w_ent_mean:
             mean_probs = tf.reduce_mean(probs, axis=0)
             log_mean_probs = tf.math.log(mean_probs)
             minus_entropy_mean_probs = tf.einsum('dn,dn->n', mean_probs, log_mean_probs)
-            loss = loss + self.w_ent * tf.reduce_mean(minus_entropy_mean_probs)
+            loss = loss + self.w_ent_mean * tf.reduce_mean(minus_entropy_mean_probs)
         return loss
