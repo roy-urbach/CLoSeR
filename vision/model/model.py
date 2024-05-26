@@ -110,7 +110,7 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
                   optimizer_cls=tf.optimizers.legacy.Nadam if tf.__version__ == '2.12.0' else tf.optimizers.Nadam,
                   optimizer_kwargs={}, classifier=False, pathway_classification=True,
                   ensemble_classification=False, pathway_classification_allpaths=False,
-                  metrics_kwargs=None, **kwargs):
+                  metrics_kwargs={}, **kwargs):
     if kwargs:
         print(f"WARNING: compile_model got spare kwargs that won't be used: {kwargs}")
 
@@ -139,7 +139,7 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
     if (model.name + "_predembd") in [l.name for l in model.layers]:
         losses[model.name + "_predembd"] = LateralPredictiveLoss(graph=model.get_layer(model.name + "_predembd").pred_graph)
 
-    if metrics_kwargs is not None:
+    if metrics_kwargs:
         import model.metrics as metrics_file
         metrics[model.name + "_embedding"] = get_class(metrics_kwargs['name'], metrics_file)(metrics_kwargs.get('kwargs', {}))
 
