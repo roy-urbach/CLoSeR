@@ -508,7 +508,7 @@ class ConfidenceContrastiveLoss(ContrastiveSoftmaxLoss):
         likelihood = self.calculate_likelihood(embedding=embedding)  # (B, B, N, N)
         if self.implicit:
             # confidence based on entropy
-            confidence = 1 + tf.einsum('bBnN,bBnN->BnN', likelihood, tf.math.log(likelihood)) / tf.math.log(b)
+            confidence = 1 + tf.einsum('bBnN,bBnN->BnN', likelihood, tf.math.log(likelihood)) / tf.math.log(tf.cast(b, dtype=likelihood.dtype))
 
         if self.stop_gradient:
             confidence = tf.stop_gradient(confidence)
