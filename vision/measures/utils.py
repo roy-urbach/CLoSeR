@@ -65,7 +65,7 @@ def measure_model(model, iterations=50, b=128):
         logits = loss.calculate_logits(None, dist=cur_dists**2)
         mrdev = loss.map_rep_dev(exp_logits=None, logits=tf.linalg.diag_part(logits))   # (b, n)
 
-        likelihood = model.loss[model.name + "_embedding"].calculate_likelihood(logits=logits)
+        likelihood = loss.calculate_likelihood(logits=logits)
         res_dct[CrossPathMeasures.Acc].append(tf.reduce_mean(tf.cast((likelihood >= tf.reduce_max(likelihood, axis=0, keepdims=True))[
                                                      tf.eye(tf.shape(likelihood)[0], dtype=tf.bool)], dtype=tf.float32),
                                          axis=0))
