@@ -50,7 +50,8 @@ def measure_model(model, iterations=50, b=128):
     n = test_embd.shape[2]
 
     loss = model.loss[model.name + "_embedding"]
-    if loss.name == 'NullLoss':
+    from model.losses import NullLoss
+    if isinstance(loss, NullLoss):
         from model.losses import CommunitiesLoss
         loss = CommunitiesLoss(n, 1)
 
