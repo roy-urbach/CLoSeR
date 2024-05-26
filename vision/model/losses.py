@@ -544,6 +544,8 @@ class CrossEntropyAgreement(tf.keras.losses.Loss):
         loss = tf.reduce_mean(dkl[tf.tile((~tf.eye(n, dtype=tf.bool))[None], [b, 1, 1])])
 
         if self.w_ent:
+            loss = loss - self.w_ent * tf.reduce_mean(minus_entropy)
+
             mean_probs = tf.reduce_mean(probs, axis=0)
             log_mean_probs = tf.math.log(mean_probs)
             minus_entropy_mean_probs = tf.einsum('dn,dn->n', mean_probs, log_mean_probs)
