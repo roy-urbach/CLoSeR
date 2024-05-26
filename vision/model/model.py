@@ -141,7 +141,7 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
 
     if metrics_kwargs is not None:
         import model.metrics
-        metrics[model.name + "_embedding"] = get_class(metrics_kwargs['name'], model.metrics)(metrics_kwargs['kwargs'])
+        metrics[model.name + "_embedding"] = get_class(metrics_kwargs['name'], model.metrics)(metrics_kwargs.get('kwargs', {}))
 
     if pathway_classification:
         if pathway_classification_allpaths:
