@@ -140,8 +140,8 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
         losses[model.name + "_predembd"] = LateralPredictiveLoss(graph=model.get_layer(model.name + "_predembd").pred_graph)
 
     if metrics_kwargs is not None:
-        import model.metrics
-        metrics[model.name + "_embedding"] = get_class(metrics_kwargs['name'], model.metrics)(metrics_kwargs.get('kwargs', {}))
+        import model.metrics as metrics_file
+        metrics[model.name + "_embedding"] = get_class(metrics_kwargs['name'], metrics_file)(metrics_kwargs.get('kwargs', {}))
 
     if pathway_classification:
         if pathway_classification_allpaths:
