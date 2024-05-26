@@ -486,7 +486,7 @@ class LinearPredictivity:
 
 
 class ConfidenceContrastiveLoss(ContrastiveSoftmaxLoss):
-    def __init__(self, *args, c_w=1, squared=False, threshold=0, **kwargs):
+    def __init__(self, *args, c_w=1, squared=False, threshold=0, implicit=False, **kwargs):
         super(ConfidenceContrastiveLoss, self).__init__(*args, **kwargs)
         self.c_w = c_w
         self.squared = squared
@@ -495,10 +495,16 @@ class ConfidenceContrastiveLoss(ContrastiveSoftmaxLoss):
     def call(self, y_true, y_pred):
         b = tf.shape(y_pred)[0]
         n = tf.shape(y_pred)[2]
-        embedding = y_pred[:, :-1]                      # (B, dim, N)
-        confidence = tf.math.sigmoid(y_pred[:, -1])     # (B, N)
+        if self.implicit:
+            embedding = y_pred
+            confidence = None
+        else:
+            embedding = y_pred[:, :-1]                      # (B, dim, N)
+            confidence = tf.math.sigmoid(y_pred[:, -1])     # (B, N)
         likelihood = self.calculate_likelihood(embedding=embedding)
         likelihood = tf.reshape(likelihood[tf.tile((tf.eye(b, dtype=tf.bool))[None, None], [1, 1, n, n])], (b, n, n))     # (B, N, N)
+        if self.implicit:
+            confidence = -tf.einsum('bnN,bnN->nN', likelihood, tf.math.log(likelihood))
         weighted_non_likelihood = confidence[..., None, :] * confidence[..., None] * (1 - likelihood - self.threshold)
         loss = tf.reduce_mean(weighted_non_likelihood[tf.tile((~tf.eye(n, dtype=tf.bool))[None], [b, 1, 1])])
         if self.squared:
