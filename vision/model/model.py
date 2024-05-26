@@ -110,7 +110,7 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
                   optimizer_cls=tf.optimizers.legacy.Nadam if tf.__version__ == '2.12.0' else tf.optimizers.Nadam,
                   optimizer_kwargs={}, classifier=False, pathway_classification=True,
                   ensemble_classification=False, pathway_classification_allpaths=False,
-                  embedding_metric=None, **kwargs):
+                  metrics_kwargs=None, **kwargs):
     if kwargs:
         print(f"WARNING: compile_model got spare kwargs that won't be used: {kwargs}")
 
@@ -139,9 +139,9 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
     if (model.name + "_predembd") in [l.name for l in model.layers]:
         losses[model.name + "_predembd"] = LateralPredictiveLoss(graph=model.get_layer(model.name + "_predembd").pred_graph)
 
-    if embedding_metric is not None:
+    if metrics_kwargs is not None:
         import model.metrics
-        metrics[model.name + "_embedding"] = get_class(embedding_metric, model.metrics) if isinstance(embedding_metric, str) else embedding_metric()
+        metrics[model.name + "_embedding"] = get_class(metrics_kwargs['name'], model.metrics)(metrics_kwargs['kwargs'])
 
     if pathway_classification:
         if pathway_classification_allpaths:
@@ -192,7 +192,7 @@ def train(model_name, model_kwargs, loss=ContrastiveSoftmaxLoss, data_kwargs={},
 
 
 def create_and_compile_model(model_name, input_shape, model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
-                             optimizer_kwargs={}, print_log=False, **kwargs):
+                             optimizer_kwargs={}, metrics_kwargs={}, print_log=False, **kwargs):
     if print_log:
         printd("Creating model...", end='\t')
     m = create_model(model_name, input_shape=input_shape, **model_kwargs, **kwargs)
@@ -204,7 +204,7 @@ def create_and_compile_model(model_name, input_shape, model_kwargs, loss=Contras
 
     if print_log:
         printd("Compiling model...", end='\t')
-    compile_model(m, loss=loss, loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs, **kwargs)
+    compile_model(m, loss=loss, loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs, metrics_kwargs=metrics_kwargs, **kwargs)
 
     return m
 
