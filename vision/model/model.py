@@ -109,7 +109,8 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
 def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
                   optimizer_cls=tf.optimizers.legacy.Nadam if tf.__version__ == '2.12.0' else tf.optimizers.Nadam,
                   optimizer_kwargs={}, classifier=False, pathway_classification=True,
-                  ensemble_classification=False, pathway_classification_allpaths=False, **kwargs):
+                  ensemble_classification=False, pathway_classification_allpaths=False,
+                  embedding_metric=None, **kwargs):
     if kwargs:
         print(f"WARNING: compile_model got spare kwargs that won't be used: {kwargs}")
 
@@ -137,6 +138,10 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
 
     if (model.name + "_predembd") in [l.name for l in model.layers]:
         losses[model.name + "_predembd"] = LateralPredictiveLoss(graph=model.get_layer(model.name + "_predembd").pred_graph)
+
+    if embedding_metric is not None:
+        import model.metrics
+        metrics[model.name + "_embedding"] = get_class(embedding_metric, model.metrics) if isinstance(embedding_metric, str) else embedding_metric()
 
     if pathway_classification:
         if pathway_classification_allpaths:
