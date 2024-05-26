@@ -491,6 +491,7 @@ class ConfidenceContrastiveLoss(ContrastiveSoftmaxLoss):
         self.c_w = c_w
         self.squared = squared
         self.threshold = threshold
+        self.implicit = implicit
 
     def call(self, y_true, y_pred):
         b = tf.shape(y_pred)[0]
