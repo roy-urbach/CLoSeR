@@ -365,7 +365,7 @@ def plot_history(model_regex, window=10, name_to_name=lambda m: m, log=True, key
 
 
 def sorted_barplot(model_regex, metric_regex, sort_by_train=True, show_top=None, regex_suptitle=True,
-                   negative_regex=None, print_err=False):
+                   negative_regex=None, print_err=False, baseline=None):
     archive = load_classfications_by_regex(model_regex, convert_name=False, negative_regex=negative_regex,
                                            print_err=print_err)
     n_models = len(archive)
@@ -388,10 +388,12 @@ def sorted_barplot(model_regex, metric_regex, sort_by_train=True, show_top=None,
         plt.barh(np.arange(len(sorted_k)), [values[k][0] for k in sorted_k], label='train', zorder=1)
         plt.scatter([values[k][1] for k in sorted_k], np.arange(len(sorted_k)), label='test', zorder=2)
         plt.yticks(np.arange(len(sorted_k)), sorted_k)
-        plt.axvline(load_evaluation_json(BASELINE_UNTRAINED)[metric][1], c='k', linestyle=':')
+        if baseline:
+            plt.axvline(load_evaluation_json(BASELINE_UNTRAINED)[metric][1], c='k', linestyle=':')
         plt.legend()
-        plt.xticks(np.linspace(0, 1, 11))
-        plt.xlim(load_evaluation_json(BASELINE_UNTRAINED)[metric][1], 1)
+        if baseline:
+            plt.xticks(np.linspace(0, 1, 11))
+            plt.xlim(load_evaluation_json(BASELINE_UNTRAINED)[metric][1], 1)
         plt.grid(axis='x', zorder=0, alpha=0.2, linewidth=2)
     if len(metrics) > 1: plt.tight_layout()
 
