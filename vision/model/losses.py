@@ -486,12 +486,13 @@ class LinearPredictivity:
 
 
 class ConfidenceContrastiveLoss(ContrastiveSoftmaxLoss):
-    def __init__(self, *args, c_w=1, squared=False, threshold=0, implicit=False, **kwargs):
+    def __init__(self, *args, c_w=1, squared=False, threshold=0, implicit=False, stop_gradient=False, **kwargs):
         super(ConfidenceContrastiveLoss, self).__init__(*args, **kwargs)
         self.c_w = c_w
         self.squared = squared
         self.threshold = threshold
         self.implicit = implicit
+        self.stop_gradient = stop_gradient
 
     def call(self, y_true, y_pred):
         b = tf.shape(y_pred)[0]
@@ -508,6 +509,10 @@ class ConfidenceContrastiveLoss(ContrastiveSoftmaxLoss):
         if self.implicit:
             # confidence based on entropy
             confidence = -tf.einsum('bBnN,bBnN->BnN', likelihood, tf.math.log(likelihood))
+
+        if self.stop_gradient:
+            confidence = tf.stop_gradient(confidence)
+
         likelihood = tf.reshape(likelihood[tf.tile((tf.eye(b, dtype=tf.bool))[None, None], [1, 1, n, n])], (b, n, n))     # (B, N, N)
         weighted_non_likelihood = confidence * (1 - likelihood - self.threshold)
         loss = tf.reduce_mean(weighted_non_likelihood[tf.tile((~tf.eye(n, dtype=tf.bool))[None], [b, 1, 1])])
