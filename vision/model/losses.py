@@ -521,3 +521,31 @@ class ConfidenceContrastiveLoss(ContrastiveSoftmaxLoss):
         else:
             loss = loss - self.c_w * tf.reduce_mean(confidence)
         return loss
+
+
+class CrossEntropyAgreement(tf.keras.losses.Loss):
+    def __init__(self, *args, w_ent=0., stable=True, **kwargs):
+        super(CrossEntropyAgreement, self).__init__(*args, **kwargs)
+        self.w_ent = w_ent
+        self.stable = stable
+
+    def call(self, y_true, y_pred):
+        embedding = y_pred      # (B, dim, N)
+        b = tf.shape(embedding)[0]
+        n = tf.shape(embedding)[-1]
+        if self.stable:
+            embedding = embedding - tf.reduce_max(embedding, axis=0)
+        exps = tf.exp(embedding)
+        probs = exps / tf.reduce_sum(exps, axis=1, keepdims=True)   # (B, dim, N)
+        log_probs = tf.math.log(probs)
+        minus_entropy = tf.einsum("bdn,bdn->bn", probs, log_probs)
+        cross_entropy = tf.einsum("bdn,bdN->bnN", probs, log_probs)
+        dkl = minus_entropy[..., None] - cross_entropy
+        loss = tf.reduce_mean(dkl[tf.tile((~tf.eye(n, dtype=tf.bool))[None], [b, 1, 1])])
+
+        if self.w_ent:
+            mean_probs = tf.reduce_mean(probs, axis=0)
+            log_mean_probs = tf.math.log(mean_probs)
+            minus_entropy_mean_probs = tf.einsum('dn,dn->n', mean_probs, log_mean_probs)
+            loss = loss + self.w_ent * tf.reduce_mean(minus_entropy_mean_probs)
+        return loss
