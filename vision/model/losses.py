@@ -507,7 +507,7 @@ class ConfidenceContrastiveLoss(ContrastiveSoftmaxLoss):
         return loss
 
 
-class MeanConfidence(tf.keras.Metrics.Metric):
+class MeanConfidence(tf.keras.metrics.Metric):
     def __init__(self, name='mean_confidence', alpha=0.75, **kwargs):
         super(MeanConfidence, self).__init__(name=name, **kwargs)
         self.mean_conf = self.add_variable(
