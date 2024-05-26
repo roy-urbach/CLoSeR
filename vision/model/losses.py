@@ -501,11 +501,14 @@ class ConfidenceContrastiveLoss(ContrastiveSoftmaxLoss):
         else:
             embedding = y_pred[:, :-1]                      # (B, dim, N)
             confidence = tf.math.sigmoid(y_pred[:, -1])     # (B, N)
-        likelihood = self.calculate_likelihood(embedding=embedding)
-        likelihood = tf.reshape(likelihood[tf.tile((tf.eye(b, dtype=tf.bool))[None, None], [1, 1, n, n])], (b, n, n))     # (B, N, N)
+            confidence = confidence[..., None, :] * confidence[..., None]
+
+        likelihood = self.calculate_likelihood(embedding=embedding)  # (B, B, N, N)
         if self.implicit:
-            confidence = -tf.einsum('bnN,bnN->nN', likelihood, tf.math.log(likelihood))
-        weighted_non_likelihood = confidence[..., None, :] * confidence[..., None] * (1 - likelihood - self.threshold)
+            # confidence based on entropy
+            confidence = -tf.einsum('bBnN,bBnN->BnN', likelihood, tf.math.log(likelihood))
+        likelihood = tf.reshape(likelihood[tf.tile((tf.eye(b, dtype=tf.bool))[None, None], [1, 1, n, n])], (b, n, n))     # (B, N, N)
+        weighted_non_likelihood = confidence * (1 - likelihood - self.threshold)
         loss = tf.reduce_mean(weighted_non_likelihood[tf.tile((~tf.eye(n, dtype=tf.bool))[None], [b, 1, 1])])
         if self.squared:
             loss = loss + self.c_w * tf.reduce_mean((1-confidence)**2)
