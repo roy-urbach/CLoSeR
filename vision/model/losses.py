@@ -200,31 +200,26 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         dist = tf.reduce_sum(tf.pow(embedding[..., None, :] - embedding[..., None], 2), axis=-3)
         return dist
 
-
-    def calculate_cka(self, embedding=None, dists=None):
+    def calculate_cka(self, embedding=None, logits=None, exp_logits=None):
         """
         A measure of independence. 0 means independent.
         https://arxiv.org/pdf/1905.00414
         https://arxiv.org/pdf/2202.07757
-        :param self:
-        :param embedding:
-        :param dists:
-        :return: cka
         """
-        assert embedding is not None or dists is not None
-        if dists is None:
-            dists = self.calculate_dists(embedding, self_only=True, stop_grad=self.stop_grad_dist)
+        assert embedding is not None or logits is not None or exp_logits is not None
+        if exp_logits is None:
+            exp_logits = self.calculate_exp_logits(embedding=embedding, logits=logits)
 
-        elif len(tf.shape(dists).to_list()) == 4:
-            dists = tf.linalg.diag_part(dists)  # (b, b, n)
-        centered_dists = dists - tf.reduce_mean(dists, axis=1, keepdims=True)
-        b = tf.shape(dists)[0]
-        n = tf.shape(dists)[2]
+        elif len(tf.shape(exp_logits).to_list()) == 4:
+            exp_logits = tf.linalg.diag_part(exp_logits)  # (b, b, n)
+        centered_exp_logits = exp_logits - tf.reduce_mean(exp_logits, axis=1, keepdims=True)
+        b = tf.shape(exp_logits)[0]
+        n = tf.shape(exp_logits)[2]
 
         # (N, N)
         hsic = tf.reduce_sum(tf.reshape(tf.einsum('bBn->BkN->bknN',
-                                                  centered_dists,
-                                                  centered_dists)[tf.tile(tf.eye(b, dtype=tf.bool)[..., None],
+                                                  centered_exp_logits,
+                                                  centered_exp_logits)[tf.tile(tf.eye(b, dtype=tf.bool)[..., None],
                                                                           [1, 1, n, n])], (b, n, n)), axis=0) / (b - 1) ** 2
         cka = hsic / tf.sqrt(tf.linalg.diag_part(hsic)[..., None] * tf.linalg.diag_part(hsic)[None])
         return cka
@@ -305,7 +300,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
                     djs = minus_entropy - cross_entropy
                     paths_loss = -tf.reduce_mean(djs, axis=0)
                 elif self.cka:
-                    paths_loss = self.calculate_cka(embedding=y_pred, dists=dists)
+                    paths_loss = self.calculate_cka(embedding=y_pred, exp_logits=exp_logits)
                 else:
                     if self.is_pull:
                         if self.use_dists:
