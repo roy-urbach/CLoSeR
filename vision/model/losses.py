@@ -127,7 +127,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
     def __init__(self, *args, a_pull, a_push, w_push=1, log_eps=1e-10, log_pull=False, contrastive=True,
                  remove_diag=True, corr=False, use_dists=False, naive_push=False, naive_push_max=None, naive_djs=False,
                  top_k=0, stop_grad_dist=False, push_linear_predictivity=None, push_linear_predictivity_normalize=True,
-                 linear_predictivity_kwargs={}, entropy_w=0, **kwargs):
+                 linear_predictivity_kwargs={}, entropy_w=0, cka=False, **kwargs):
         super().__init__(*args, **kwargs)
         global A_PULL
         global A_PUSH
@@ -153,6 +153,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         self.top_k = top_k
         self.stop_grad_dist = stop_grad_dist
         self.entropy_w = entropy_w
+        self.cka = cka
         assert (self.entropy_w and self.log_pull) or not self.entropy_w, "entropy loss only for log pull"
         self.push_linear_predictivity = LinearPredictivity([[-w * w_push for w in vec] for vec in eval_a_push],
                                                            normalize=push_linear_predictivity_normalize, **linear_predictivity_kwargs) if push_linear_predictivity else None
@@ -199,6 +200,35 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         dist = tf.reduce_sum(tf.pow(embedding[..., None, :] - embedding[..., None], 2), axis=-3)
         return dist
 
+
+    def calculate_cka(self, embedding=None, dists=None):
+        """
+        A measure of independence. 0 means independent.
+        https://arxiv.org/pdf/1905.00414
+        https://arxiv.org/pdf/2202.07757
+        :param self:
+        :param embedding:
+        :param dists:
+        :return: cka
+        """
+        assert embedding is not None or dists is not None
+        if dists is None:
+            dists = self.calculate_dists(embedding, self_only=True, stop_grad=self.stop_grad_dist)
+
+        elif len(tf.shape(dists).to_list()) == 4:
+            dists = tf.linalg.diag_part(dists)  # (b, b, n)
+        centered_dists = dists - tf.reduce_mean(dists, axis=1, keepdims=True)
+        b = tf.shape(dists)[0]
+        n = tf.shape(dists)[2]
+
+        # (N, N)
+        hsic = tf.reduce_sum(tf.reshape(tf.einsum('bBn->BkN->bknN',
+                                                  centered_dists,
+                                                  centered_dists)[tf.tile(tf.eye(b, dtype=tf.bool)[..., None],
+                                                                          [1, 1, n, n])], (b, n, n)), axis=0) / (b - 1) ** 2
+        cka = hsic / tf.sqrt(tf.linalg.diag_part(hsic)[..., None] * tf.linalg.diag_part(hsic)[None])
+        return cka
+
     def call(self, y_true, y_pred):
         if not self.cosine or self.is_push:
             dists = self.calculate_dists(y_pred, self_only=not self.is_pull, stop_grad=self.stop_grad_dist)
@@ -232,7 +262,8 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
 
                 else:
                     # (b, n, n)
-                    gain = self.calculate_likelihood(None, exp_logits=exp_logits, logits=logits)[tf.eye(tf.shape(logits)[0], dtype=tf.bool)]
+                    likelihood = self.calculate_likelihood(None, exp_logits=exp_logits, logits=logits)
+                    gain = likelihood[tf.eye(tf.shape(logits)[0], dtype=tf.bool)]
 
                 if self.neg_in_pull:
                     gain = tf.where(self.a_pull_neg_mask, tf.maximum(gain, tf.cast(1/b, tf.float32)), gain)
@@ -273,6 +304,8 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
                     cross_entropy = tf.einsum('bin,binm->bnm', ps, log_m)   # (b, n, n)
                     djs = minus_entropy - cross_entropy
                     paths_loss = -tf.reduce_mean(djs, axis=0)
+                elif self.cka:
+                    paths_loss = self.calculate_cka(embedding=y_pred, dists=dists)
                 else:
                     if self.is_pull:
                         if self.use_dists:
@@ -535,7 +568,7 @@ class CrossEntropyAgreement(tf.keras.losses.Loss):
         b = tf.shape(embedding)[0]
         n = tf.shape(embedding)[-1]
         if self.stable:
-            embedding = embedding - tf.reduce_max(embedding, axis=0)
+            embedding = embedding - tf.reduce_max(embedding, axis=0, keepdims=True)
         exps = tf.exp(embedding)
         probs = exps / tf.reduce_sum(exps, axis=1, keepdims=True)   # (B, dim, N)
         log_probs = tf.math.log(probs)
