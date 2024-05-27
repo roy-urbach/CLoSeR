@@ -216,10 +216,11 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         n = tf.shape(exp_logits)[2]
 
         # (N, N)
+        denom = tf.cast((b - 1) ** 2, dtype=centered_exp_logits.dtype)
         hsic = tf.reduce_sum(tf.reshape(tf.einsum('bBn,BkN->bknN',
                                                   centered_exp_logits,
                                                   centered_exp_logits)[tf.tile(tf.eye(b, dtype=tf.bool)[..., None, None],
-                                                                          [1, 1, n, n])], (b, n, n)), axis=0) / (b - 1) ** 2
+                                                                          [1, 1, n, n])], (b, n, n)), axis=0) / denom
         cka = hsic / tf.sqrt(tf.linalg.diag_part(hsic)[..., None] * tf.linalg.diag_part(hsic)[None])
         return cka
 
