@@ -217,7 +217,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         n = tf.shape(exp_logits)[2]
 
         # (N, N)
-        hsic = tf.reduce_sum(tf.reshape(tf.einsum('bBn->BkN->bknN',
+        hsic = tf.reduce_sum(tf.reshape(tf.einsum('bBn,BkN->bknN',
                                                   centered_exp_logits,
                                                   centered_exp_logits)[tf.tile(tf.eye(b, dtype=tf.bool)[..., None],
                                                                           [1, 1, n, n])], (b, n, n)), axis=0) / (b - 1) ** 2
