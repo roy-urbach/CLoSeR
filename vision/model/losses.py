@@ -210,8 +210,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         if exp_logits is None:
             exp_logits = self.calculate_exp_logits(embedding=embedding, logits=logits)
 
-        elif len(tf.shape(exp_logits).to_list()) == 4:
-            exp_logits = tf.linalg.diag_part(exp_logits)  # (b, b, n)
+        exp_logits = tf.linalg.diag_part(exp_logits)  # (b, b, n)
         centered_exp_logits = exp_logits - tf.reduce_mean(exp_logits, axis=1, keepdims=True)
         b = tf.shape(exp_logits)[0]
         n = tf.shape(exp_logits)[2]
