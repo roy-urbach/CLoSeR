@@ -385,7 +385,8 @@ def sorted_barplot(model_regex, metric_regex, sort_by_train=True, show_top=None,
         sorted_k = keys[nan_mask][np.argsort(values_to_sort_by[nan_mask])]
         if show_top is not None:
             sorted_k = sorted_k[-show_top:]
-        plt.barh(np.arange(len(sorted_k)), [values[k][0] for k in sorted_k], label='train', zorder=1)
+        if plot_train:
+            plt.barh(np.arange(len(sorted_k)), [values[k][0] for k in sorted_k], label='train', zorder=1)
         plt.scatter([values[k][1] for k in sorted_k], np.arange(len(sorted_k)), label='test', zorder=2)
         plt.yticks(np.arange(len(sorted_k)), sorted_k)
         if baseline:
