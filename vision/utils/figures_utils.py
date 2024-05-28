@@ -393,8 +393,9 @@ def sorted_barplot(model_regex, metric_regex, sort_by_train=True, show_top=None,
             plt.axvline(load_evaluation_json(BASELINE_UNTRAINED)[metric][1], c='k', linestyle=':')
         plt.legend()
         if baseline:
-            plt.xticks(np.linspace(0, 1, 11))
-            plt.xlim(load_evaluation_json(BASELINE_UNTRAINED)[metric][1], 1)
+            plt.gca().set_xlim(left=load_evaluation_json(BASELINE_UNTRAINED)[metric][1])
+            # plt.xticks(np.linspace(0, 1, 11))
+            # plt.xlim(load_evaluation_json(BASELINE_UNTRAINED)[metric][1], 1)
         plt.grid(axis='x', zorder=0, alpha=0.2, linewidth=2)
     if len(metrics) > 1: plt.tight_layout()
 
