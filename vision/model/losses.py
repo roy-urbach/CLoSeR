@@ -325,8 +325,8 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
 
 class ProbabilisticPullPushGraphLoss(GeneralPullPushGraphLoss):
     def __init__(self, num_pathways, *args, p_pull=1., p_push=0., depend=False, **kwargs):
-        a_pull = (np.random.rand(num_pathways, num_pathways) <= p_pull) & ~np.eye(num_pathways, dtype=np.bool)
-        a_push = (np.random.rand(num_pathways, num_pathways) <= p_push) & ~np.eye(num_pathways, dtype=np.bool)
+        a_pull = (np.random.rand(num_pathways, num_pathways) <= p_pull) & (np.eye(num_pathways) == 0)
+        a_push = (np.random.rand(num_pathways, num_pathways) <= p_push) & (np.eye(num_pathways) == 0)
         if depend:
             a_push = a_push & ~a_pull
         super(ProbabilisticPullPushGraphLoss, self).__init__(*args, a_pull=a_pull, a_push=a_push, **kwargs)
