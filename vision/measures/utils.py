@@ -52,7 +52,7 @@ def measure_model(model, iterations=50, b=128):
 
     loss = model.loss[model.name + "_embedding"]
     from model.losses import GeneralPullPushGraphLoss
-    if issubclass(loss.__class__, GeneralPullPushGraphLoss):
+    if not issubclass(loss.__class__, GeneralPullPushGraphLoss):
         from model.losses import CommunitiesLoss
         loss = CommunitiesLoss(n, 1)
 
