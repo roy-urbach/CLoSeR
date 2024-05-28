@@ -63,6 +63,7 @@ def multiviolin(arr, xshift=0, fig=None):
         fig = plt.figure()
     for i in range(len(arr)):
         if (isinstance(arr[i], np.ndarray) and arr[i].size) or (not isinstance(arr[i], np.ndarray) and arr):
+            if np.isnan(arr[i]).all(): continue
             violinplot_with_CI(arr[i][~np.isnan(arr[i])], [i + xshift], c=f"C{i}")
 
 
