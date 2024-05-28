@@ -387,7 +387,9 @@ def sorted_barplot(model_regex, metric_regex, sort_by_train=True, show_top=None,
             sorted_k = sorted_k[-show_top:]
         if plot_train:
             plt.barh(np.arange(len(sorted_k)), [values[k][0] for k in sorted_k], label='train', zorder=1)
-        plt.scatter([values[k][1] for k in sorted_k], np.arange(len(sorted_k)), label='test', zorder=2)
+            plt.scatter([values[k][1] for k in sorted_k], np.arange(len(sorted_k)), label='test', zorder=2)
+        else:
+            plt.barh(np.arange(len(sorted_k)), [values[k][1] for k in sorted_k], label='test', zorder=2)
         plt.yticks(np.arange(len(sorted_k)), sorted_k)
         if baseline:
             plt.axvline(load_evaluation_json(BASELINE_UNTRAINED)[metric][1], c='k', linestyle=':')
