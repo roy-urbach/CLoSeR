@@ -392,10 +392,10 @@ def sorted_barplot(model_regex, metric_regex, sort_by_train=True, show_top=None,
             plt.barh(np.arange(len(sorted_k)), [values[k][1] for k in sorted_k], label='test', zorder=2)
         plt.yticks(np.arange(len(sorted_k)), sorted_k)
         if baseline:
-            plt.axvline(load_evaluation_json(BASELINE_UNTRAINED)[metric][1], c='k', linestyle=':')
+            plt.axvline(load_evaluation_json(baseline)[metric][1], c='k', linestyle=':')
         plt.legend()
         if baseline:
-            plt.gca().set_xlim(left=load_evaluation_json(BASELINE_UNTRAINED)[metric][1])
+            plt.gca().set_xlim(left=load_evaluation_json(baseline)[metric][1])
             # plt.xticks(np.linspace(0, 1, 11))
             # plt.xlim(load_evaluation_json(BASELINE_UNTRAINED)[metric][1], 1)
         plt.grid(axis='x', zorder=0, alpha=0.2, linewidth=2)
