@@ -626,4 +626,7 @@ def compare_measures(*models, names=None, log=False, mask=None, grid=True, fig=N
             plt.minorticks_on()
             plt.grid(axis='y')
             plt.grid(axis='y', which='minor', linestyle=':')
+
+        if k == CrossPathMeasures.CKA:
+            plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
     plt.tight_layout()
