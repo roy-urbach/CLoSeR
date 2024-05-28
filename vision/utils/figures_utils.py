@@ -604,7 +604,7 @@ def plot_measures(model_regex, mask=None, save=False):
             savefig(f"figures/{measure}")
 
 
-def compare_measures(*models, names=None, log=False, mask=None, **kwargs):
+def compare_measures(*models, names=None, log=False, mask=None, grid=True, **kwargs):
     from measures.utils import CrossPathMeasures, load_measures_json
     if names is None:
         names = models
@@ -616,4 +616,6 @@ def compare_measures(*models, names=None, log=False, mask=None, **kwargs):
         f_log = lambda arr: np.log(arr) if log else arr
         dct_to_multiviolin({name: f_log(remove(load_measures_json(model)[k.name]))
                             for name, model in zip(names, models)}, fig=fig, **kwargs)
+        if grid:
+            plt.grid()
     plt.tight_layout()
