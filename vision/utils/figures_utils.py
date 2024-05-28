@@ -625,4 +625,5 @@ def compare_measures(*models, names=None, log=False, mask=None, grid=True, fig=N
         if grid:
             plt.minorticks_on()
             plt.grid(axis='y')
+            plt.grid(axis='y', which='minor', linestyle=':')
     plt.tight_layout()
