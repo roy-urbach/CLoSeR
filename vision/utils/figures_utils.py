@@ -365,7 +365,7 @@ def plot_history(model_regex, window=10, name_to_name=lambda m: m, log=True, key
 
 
 def sorted_barplot(model_regex, metric_regex, sort_by_train=True, show_top=None, regex_suptitle=True,
-                   negative_regex=None, print_err=False, baseline=None):
+                   negative_regex=None, print_err=False, baseline=None, plot_train=True):
     archive = load_classfications_by_regex(model_regex, convert_name=False, negative_regex=negative_regex,
                                            print_err=print_err)
     n_models = len(archive)
