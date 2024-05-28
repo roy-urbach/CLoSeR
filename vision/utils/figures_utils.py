@@ -608,7 +608,7 @@ def plot_measures(model_regex, mask=None, save=False):
             savefig(f"figures/{measure}")
 
 
-def compare_measures(*models, names=None, log=False, mask=None, grid=True, fig=None, **kwargs):
+def compare_measures(*models, names=None, log=False, mask=None, grid=True, fig=None, xs=None, **kwargs):
     from measures.utils import CrossPathMeasures, load_measures_json
     if names is None:
         names = models
@@ -621,7 +621,7 @@ def compare_measures(*models, names=None, log=False, mask=None, grid=True, fig=N
         remove = lambda arr: np.where(np.eye(len(arr)) > 0, np.nan, arr) if mask is None else np.where(mask, arr, np.nan)
         f_log = lambda arr: np.log(arr) if log else arr
         dct_to_multiviolin({name: f_log(remove(load_measures_json(model)[k.name]))
-                            for name, model in zip(names, models)}, fig=fig, **kwargs)
+                            for name, model in zip(names, models)}, fig=fig, xs=xs **kwargs)
         if grid:
             plt.minorticks_on()
             plt.grid(axis='y')
