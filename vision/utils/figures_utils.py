@@ -623,5 +623,6 @@ def compare_measures(*models, names=None, log=False, mask=None, grid=True, fig=N
         dct_to_multiviolin({name: f_log(remove(load_measures_json(model)[k.name]))
                             for name, model in zip(names, models)}, fig=fig, **kwargs)
         if grid:
-            plt.grid()
+            plt.minorticks_on()
+            plt.grid(axis='y')
     plt.tight_layout()
