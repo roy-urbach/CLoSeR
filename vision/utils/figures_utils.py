@@ -618,7 +618,7 @@ def compare_measures(*models, names=None, log=False, mask=None, grid=True, fig=N
     for i, k in enumerate(CrossPathMeasures):
         plt.subplot(row, cols, i+1)
         plt.title("log "*log + k.name)
-        remove = lambda arr: np.where(np.eye(len(arr)) > 0, np.nan, arr) if mask is None else np.where(mask, np.nan, arr)
+        remove = lambda arr: np.where(np.eye(len(arr)) > 0, np.nan, arr) if mask is None else np.where(mask, arr, np.nan)
         f_log = lambda arr: np.log(arr) if log else arr
         dct_to_multiviolin({name: f_log(remove(load_measures_json(model)[k.name]))
                             for name, model in zip(names, models)}, fig=fig, **kwargs)
