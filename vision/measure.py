@@ -14,7 +14,7 @@ def main():
 
     args = parse()
     args.json = ".".join(args.json.split(".")[:-1]) if args.json.endswith(".json") else args.json
-    measuring_fn = f'models/{args.json}/is_evaluating'
+    measuring_fn = f'models/{args.json}/is_measuring'
 
     import os
     if os.path.exists(measuring_fn):
