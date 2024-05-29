@@ -1,3 +1,5 @@
+import numpy as np
+
 from measures.utils import load_measures_json
 from utils.plot_utils import *
 from utils import plot_utils
@@ -620,7 +622,9 @@ def compare_measures(*models, names=None, log=False, mask=None, grid=True, fig=N
         plt.title("log "*log + k.name)
         remove = lambda arr: np.where(np.eye(len(arr)) > 0, np.nan, arr) if mask is None else np.where(mask, arr, np.nan)
         f_log = lambda arr: np.log(arr) if log else arr
-        dct_to_multiviolin({name: f_log(remove(load_measures_json(model)[k.name]))
+        get_measure_single = lambda model: f_log(remove(load_measures_json(model)[k.name]))
+        get_measure = lambda model: np.concatenate([get_measure_single(m) for m in model]) if isinstance(model, list) else get_measure_single(model)
+        dct_to_multiviolin({name: get_measure(model)
                             for name, model in zip(names, models)}, fig=fig, xs=xs, **kwargs)
         if grid:
             plt.minorticks_on()
