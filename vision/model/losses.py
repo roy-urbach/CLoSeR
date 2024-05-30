@@ -579,3 +579,33 @@ class CrossEntropyAgreement(tf.keras.losses.Loss):
             minus_entropy_mean_probs = tf.einsum('dn,dn->n', mean_probs, log_mean_probs)
             loss = loss + self.w_ent_mean * tf.reduce_mean(minus_entropy_mean_probs)
         return loss
+
+
+class LogLikelihoodIterativeSoftmax(Loss):
+    def __init__(self, *args, a=None, temperature=10, **kwargs):
+        super(LogLikelihoodIterativeSoftmax, self).__init__(*args, **kwargs)
+        self.temperature = temperature
+        self.a = a
+
+    def call(self, y_true, y_pred):
+        # b = tf.shape(y_pred)[0]
+        # dim = tf.shape(y_pred)[1]
+        n = tf.shape(y_pred)[2]
+        loss = 0.
+
+        for i in range(n):
+            for j in range(i+1, n):
+                if i == j:
+                    continue
+                if self.a is not None and not self.a[i][j] and not self.a[j][i]:
+                    continue
+
+                sqr_dist = tf.reduce_sum(tf.pow(y_pred[..., i] - y_pred[..., j], 2), axis=1)      # (B, B)
+                logits = -sqr_dist / self.temperature
+                diag_logits = tf.linalg.diag_part(logits)   # (B, )
+                for side in range(2):
+                    if self.a is None or (self.a is None and (self.a[i][j] if not side else self.a[j][i])):
+                        log_z = tf.math.reduce_logsumexp(logits, axis=side)
+                        log_likelihood = diag_logits - log_z
+                        loss = loss - tf.reduce_mean(log_likelihood)
+        return loss
