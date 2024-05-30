@@ -600,7 +600,7 @@ class LogLikelihoodIterativeSoftmax(Loss):
                 if self.a is not None and not self.a[i][j] and not self.a[j][i]:
                     continue
 
-                sqr_dist = tf.reduce_sum(tf.pow(y_pred[..., i] - y_pred[..., j], 2), axis=1)      # (B, B)
+                sqr_dist = tf.reduce_sum(tf.pow(y_pred[:, None, ..., i] - y_pred[None, ..., j], 2), axis=-1)      # (B, B)
                 logits = -sqr_dist / self.temperature
                 diag_logits = tf.linalg.diag_part(logits)   # (B, )
                 for side in range(2):
