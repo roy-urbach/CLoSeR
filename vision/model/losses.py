@@ -608,4 +608,4 @@ class LogLikelihoodIterativeSoftmax(Loss):
                         log_z = tf.math.reduce_logsumexp(logits, axis=side)
                         log_likelihood = diag_logits - log_z
                         loss = loss - tf.reduce_mean(log_likelihood)
-        return loss
+        return loss / (n ** 2 if self.a is None else tf.reduce_sum(self.a))
