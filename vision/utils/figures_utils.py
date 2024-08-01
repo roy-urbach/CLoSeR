@@ -487,7 +487,8 @@ def plot_mesh_accuracy(res, name=r'$f^{ensemble}_{logistic}$', only_mesh=True, x
 
 
 def plot_lines_different_along_d(model_format, seeds=SEEDS, name="logistic", save=False, measure=False, mask=None,
-                                 args=PS, arg=None, mean=False, legend=True, fig=None, c_shift=0, ds=EXTENDED_DS, **kwargs):
+                                 args=PS, arg=None, mean=False, legend=True, fig=None, c_shift=0, train=False,
+                                 ds=EXTENDED_DS, **kwargs):
     if isinstance(args, str):
         args = eval(args)
     if isinstance(ds, str):
@@ -505,9 +506,10 @@ def plot_lines_different_along_d(model_format, seeds=SEEDS, name="logistic", sav
     ax = None
     fig = plt.figure() if fig is None else fig
     plt.suptitle(model_format + " " + name + f" different {arg}")
+    only_test = measure or not train
     for i in range(2):
-        if measure and not i: continue
-        ax = plt.subplot(2-measure,1,i+1-measure, sharey=ax)
+        if only_test and not i: continue
+        ax = plt.subplot(2-only_test,1,i+1-only_test, sharey=ax)
         plt.title(["Train", "Test"][i])
         if arg:
             for ind, identity in enumerate(args):

@@ -605,7 +605,7 @@ class LogLikelihoodIterativeSoftmax(Loss):
                 diag_logits = tf.linalg.diag_part(logits)   # (B, )
                 for side in range(2):
                     if self.a is None or (self.a is not None and (self.a[i][j] if not side else self.a[j][i])):
-                        log_z = tf.math.reduce_logsumexp(logits, axis=side)
-                        log_likelihood = diag_logits - log_z
+                        log_z = tf.math.reduce_logsumexp(logits, axis=side)     # (B, )
+                        log_likelihood = diag_logits - log_z                    # (B, )
                         loss = loss - tf.reduce_mean(log_likelihood)
         return loss / (tf.cast(n ** 2, dtype=loss.dtype) if self.a is None else tf.reduce_sum(tf.cast(self.a, dtype=loss.dtype)))
