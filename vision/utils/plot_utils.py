@@ -47,10 +47,13 @@ def savefig(fn):
     print(f"saved figure as {fn}")
 
 
-def violinplot_with_CI(arr, x, c='C0', widths=0.5):
-    vi = plt.violinplot(arr, [x], showextrema=False, showmeans=False, widths=widths)
-    for pc in vi['bodies']:
-        pc.set_facecolor(c)
+def violinplot_with_CI(arr, x, c='C0', widths=0.5, bars=False):
+    if bars:
+       plt.bar(x, arr.mean(), c=c)
+    else:
+        vi = plt.violinplot(arr, [x], showextrema=False, showmeans=False, widths=widths)
+        for pc in vi['bodies']:
+            pc.set_facecolor(c)
     mean = arr.mean()
     std = arr.std(ddof=1)
     n = arr.size
