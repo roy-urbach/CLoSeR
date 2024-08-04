@@ -488,7 +488,7 @@ def plot_mesh_accuracy(res, name=r'$f^{ensemble}_{logistic}$', only_mesh=True, x
 
 def plot_lines_different_along_d(model_format, seeds=SEEDS, name="logistic", save=False, measure=False, mask=None,
                                  args=PS, arg=None, mean=False, legend=True, fig=None, c_shift=0, train=False,
-                                 ds=EXTENDED_DS, **kwargs):
+                                 ds=EXTENDED_DS, baseline=0.41, **kwargs):
     if isinstance(args, str):
         args = eval(args)
     if isinstance(ds, str):
@@ -542,8 +542,8 @@ def plot_lines_different_along_d(model_format, seeds=SEEDS, name="logistic", sav
         plt.ylabel("Accuracy") if not measure else plt.ylabel(name)
         plt.xticks(ds, ds_to_labels(ds))
         plt.grid(alpha=0.3)
-        if not measure:
-            plt.axhline(0.4, linestyle=':', c='k')
+        if not measure and baseline:
+            plt.axhline(baseline, linestyle=':', c='k')
     plt.tight_layout()
     if save:
         savefig(f"figures/{model_format}_along_d_{arg}")
