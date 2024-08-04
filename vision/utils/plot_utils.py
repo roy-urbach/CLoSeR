@@ -47,9 +47,9 @@ def savefig(fn):
     print(f"saved figure as {fn}")
 
 
-def violinplot_with_CI(arr, x, c='C0', widths=0.5, bars=False):
-    if bars:
-       plt.bar(x, arr.mean(), c=c)
+def violinplot_with_CI(arr, x, c='C0', widths=0.5, bar=False):
+    if bar:
+       plt.bar([x], arr.mean(), color=c)
     else:
         vi = plt.violinplot(arr, [x], showextrema=False, showmeans=False, widths=widths)
         for pc in vi['bodies']:
