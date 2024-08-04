@@ -47,11 +47,11 @@ def savefig(fn):
     print(f"saved figure as {fn}")
 
 
-def violinplot_with_CI(arr, x, c='C0', widths=0.5, bar=False):
+def violinplot_with_CI(arr, x, c='C0', widths=0.5, bar=False, **kwargs):
     if bar:
-       plt.bar(x, arr.mean(), color=c)
+       plt.bar(x, arr.mean(), color=c, **kwargs)
     else:
-        vi = plt.violinplot(arr, [x], showextrema=False, showmeans=False, widths=widths)
+        vi = plt.violinplot(arr, [x], showextrema=False, showmeans=False, widths=widths, **kwargs)
         for pc in vi['bodies']:
             pc.set_facecolor(c)
     mean = arr.mean()
