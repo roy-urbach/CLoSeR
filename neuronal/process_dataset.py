@@ -14,6 +14,7 @@ def process_session(index):
     manifest_path = os.path.join(cache_dir, "manifest.json")
 
     cache = EcephysProjectCache.from_warehouse(manifest=manifest_path)
+    print("got cache")
 
     session = cache.get_session_data(index,
                                      isi_violations_maximum=np.inf,
@@ -21,15 +22,19 @@ def process_session(index):
                                      presence_ratio_minimum=-np.inf
                                      )
 
+    print("got session")
+
     session_dir = str(session.ecephys_session_id)
 
     for name in ["natural_movie_one", "natural_movie_three"]:
+        print(f"running {name}")
         stim = session.stimulus_presentations
         movie_stim = stim[stim.stimulus_name == name]
         starts = movie_stim.start_time[stim.frame == 0]
         ends = movie_stim.stop_time[
             movie_stim.frame == (np.where(movie_stim.frame.to_numpy() == 'null', 0, movie_stim.frame.to_numpy())).max()]
         for repeat, (start, end) in enumerate(zip(starts, ends)):
+            print(f"running {repeat} repeat")
             spikes_mask = {k: (v >= start) & (v <= end) for k, v in session.spike_times.items()}
             filtered_spike_times = {str(k): v[spikes_mask[k]] for k, v in session.spike_times.items()}
             filtered_spike_amplitudes = {str(k): v[spikes_mask[k]] for k, v in session.spike_amplitudes.items() if
