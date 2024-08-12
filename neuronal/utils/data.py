@@ -35,7 +35,7 @@ class Session:
         self.trials = {}
         for stimulus in os.listdir(self._path):
             if "." in stimulus: continue
-            self.trials[stimulus] = [Trial(self.id, stimulus, trial_num)
+            self.trials[stimulus] = [Trial(self, stimulus, trial_num)
                                      for trial_num in sorted(os.listdir(os.path.join(self._path, stimulus)))]
 
         self.units = pd.read_csv(os.path.join(self._path, "units.csv"))
@@ -58,10 +58,11 @@ class Session:
 
 
 class Trial:
-    def __init__(self, session_id, stimulus, trial_num, binsize=0.02):
-        self._path = os.path.join(DATA_DIR, session_id, stimulus, trial_num)
+    def __init__(self, session, stimulus, trial_num, binsize=0.02):
+        self.session = session
+        self.session_id = self.session.id
+        self._path = os.path.join(DATA_DIR, self.session_id, stimulus, trial_num)
         self.stimulus = stimulus
-        self.session_id = session_id
         self.trial_num = trial_num
         self.spike_bins = None
         self.spike_times = None
@@ -102,13 +103,20 @@ class Trial:
             self.frame_start = frame_times['start']
             self.frame_end = frame_times['end']
 
-    def get_spike_times(self):
-        self._load_spike_times()
-        return self.spike_times
+    def _filter_by_area(self, dct, area=None):
+        if area is None:
+            return dct
+        else:
+            area_units = self.session.get_area_units(area)
+            return {unit: spikes for unit, spikes in dct.items() if unit in area_units}
 
-    def get_spike_amplitudes(self):
+    def get_spike_times(self, area=None):
+        self._load_spike_times()
+        return self._filter_by_area(self.spike_times, area=area)
+
+    def get_spike_amplitudes(self, area=None):
         self._load_spike_amplitudes()
-        return self.spike_amplitudes
+        return self._filter_by_area(self.spike_amplitudes, area=area)
 
     def get_running_speed(self):
         self._load_running_speed()
@@ -131,8 +139,9 @@ class Trial:
         # if self.spike_bins is None:
         #     if os.path.join()
 
-    def get_spike_bins(self):
-        pass
+    def get_spike_bins(self, area=None):
+        self._load_spike_bins()
+        return self._filter_by_area(self.spike_bins, area=area)
 
     def __repr__(self):
         return f"<Trial {self.trial_num} (session {self.session_id}, stim {self.stimulus})>"
