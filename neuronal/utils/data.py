@@ -27,7 +27,7 @@ class Session:
             self.metadata = json.load(f)
 
         with open(os.path.join(self._path, "start_time.txt"), 'r') as f:
-            self.start_time = eval(f.read().strip())
+            self.start_time = f.read().strip()
 
         # Load trials
         self.trials = {}
