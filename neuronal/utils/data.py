@@ -47,6 +47,12 @@ class Session:
         else:
             return {k: v[:] for k, v in self.trials.items()}
 
+    def get_units(self):
+        return self.units
+
+    def get_area_units(self, area):
+        return self.units[self.units.ecephys_structure_acronym == area].unit_id.to_numpy()
+
     def __repr__(self):
         return f"<Session {self.id}>"
 
