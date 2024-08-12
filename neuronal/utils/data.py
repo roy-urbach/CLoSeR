@@ -43,7 +43,7 @@ class Session:
             return {k: v[:] for k, v in self.trials.items()}
 
     def __repr__(self):
-        return f"Session {self.id}"
+        return f"<Session {self.id}>"
 
 
 class Trial:
@@ -70,7 +70,7 @@ class Trial:
         self.frame_end = frame_times['end']
 
     def __repr__(self):
-        return f"Trial {self.trial_num} ({self.session_id}_{self.stimulus})"
+        return f"<Trial {self.trial_num} (session {self.session_id}, stim {self.stimulus})>"
 
 
 
