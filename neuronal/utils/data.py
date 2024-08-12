@@ -4,7 +4,7 @@ import os
 import pandas as pd
 
 
-DATA_DIR = "data"
+DATA_DIR = "neuronal/data"
 
 
 def loadz(npz_path):
