@@ -1,15 +1,17 @@
 import os
 import numpy as np
 
+from utils.data import DATA_DIR
+
 
 def process_session(index):
     from allensdk.brain_observatory.ecephys.ecephys_project_cache import EcephysProjectCache
 
-    output_dir = '../../../../jonatham/allen_institute_data/ecephys_cache_dir/'
+    cache_dir = '../../../../jonatham/allen_institute_data/ecephys_cache_dir/'
     assert f"session_{index}" in os.listdir(
-        output_dir), f"session {index} not in {output_dir}, instead {os.listdir(output_dir)}"
+        cache_dir), f"session {index} not in {cache_dir}, instead {os.listdir(cache_dir)}"
 
-    manifest_path = os.path.join(output_dir, "manifest.json")
+    manifest_path = os.path.join(cache_dir, "manifest.json")
 
     cache = EcephysProjectCache.from_warehouse(manifest=manifest_path)
 
@@ -36,7 +38,7 @@ def process_session(index):
                 ~ ((session.running_speed.start_time > end) | (start > session.running_speed.end_time))]
             filtered_invalid_times = session.invalid_times[
                 ~ ((session.invalid_times.start_time > end) | (start > session.invalid_times.stop_time))]
-            path = [session_dir, name, str(repeat)]
+            path = [DATA_DIR, session_dir, name, str(repeat)]
             os.makedirs(os.path.join(*path), exist_ok=True)
             with open(os.path.join(*path, "spike_times.npz"), 'wb') as f:
                 np.savez(f, **filtered_spike_times)
@@ -60,17 +62,17 @@ def process_session(index):
                 np.savez(f, start=frames_start, end=frames_end)
             print("printed frame times")
 
-    session.units.to_csv(os.path.join(session_dir, "units.csv"))
+    session.units.to_csv(os.path.join(DATA_DIR, session_dir, "units.csv"))
     print("saved units")
-    session.probes.to_csv(os.path.join(session_dir, "probes.csv"))
+    session.probes.to_csv(os.path.join(DATA_DIR, session_dir, "probes.csv"))
     print("saved probes")
 
     import json
-    with open(os.path.join(session_dir, "metadata.json"), 'w') as f:
+    with open(os.path.join(DATA_DIR, session_dir, "metadata.json"), 'w') as f:
         json.dump({k: v for k, v in session.metadata.items() if "start_time" not in k}, f, indent=4)
     print("saved metadata")
 
-    with open(os.path.join(session_dir, "start_time.txt"), 'w') as f:
+    with open(os.path.join(DATA_DIR, session_dir, "start_time.txt"), 'w') as f:
         f.write(str(session.session_start_time))
     print("saved start time")
 
