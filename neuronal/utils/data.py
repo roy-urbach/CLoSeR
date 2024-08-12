@@ -38,9 +38,9 @@ class Session:
 
     def get_trials(self, stimulus=None):
         if stimulus is not None:
-            return {k: v.copy() for k, v in self.trials.get(stimulus, {}).items()}
+            return self.trials.get(stimulus, [])[:]
         else:
-            return {k: {subk: subv.copy() for subk, subv in v.items()} for k, v in self.trials.items()}
+            return {k: v[:] for k, v in self.trials.items()}
 
 
 class Trial:
