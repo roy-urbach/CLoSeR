@@ -76,12 +76,12 @@ class Trial:
     def _load_spike_times(self):
         if self.spike_times is None:
             self.spike_times = loadz(os.path.join(self._path, "spike_times.npz"))
-            self.spike_times = {int(k): v for k, v in self.spike_times}
+            self.spike_times = {int(k): v for k, v in self.spike_times.items()}
 
     def _load_spike_amplitudes(self):
         if self.spike_amplitudes is None:
             self.spike_amplitudes = loadz(os.path.join(self._path, "spike_amplitudes.npz"))
-            self.spike_amplitudes = {int(k): v for k, v in self.spike_amplitudes}
+            self.spike_amplitudes = {int(k): v for k, v in self.spike_amplitudes.items()}
 
     def _load_running_speed(self):
         if self.running_speed is None:
