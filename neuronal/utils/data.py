@@ -42,6 +42,9 @@ class Session:
         else:
             return {k: v[:] for k, v in self.trials.items()}
 
+    def __repr__(self):
+        return f"Session {self.id}"
+
 
 class Trial:
     def __init__(self, session_id, stimulus, trial_num):
@@ -65,6 +68,9 @@ class Trial:
         frame_times = loadz(os.path.join(self._path, "frame_times.npz"))
         self.frame_start = frame_times['start']
         self.frame_end = frame_times['end']
+
+    def __repr__(self):
+        return f"Trial {self.trial_num} ({self.session_id}_{self.stimulus})"
 
 
 
