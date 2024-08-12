@@ -1,7 +1,7 @@
 import os
 import numpy as np
 
-from neuronal.utils.data import DATA_DIR
+from utils.data import DATA_DIR
 
 
 def process_session(index):

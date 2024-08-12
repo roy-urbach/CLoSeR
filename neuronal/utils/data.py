@@ -1,5 +1,5 @@
 import numpy as np
-from neuronal.utils.consts import *
+from utils.consts import *
 import os
 import pandas as pd
 
