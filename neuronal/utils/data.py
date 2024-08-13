@@ -2,8 +2,9 @@ import numpy as np
 import os
 import pandas as pd
 
+from neuronal.utils.consts import NEURONAL_BASE_DIR
 
-DATA_DIR = "data"
+DATA_DIR = f"{NEURONAL_BASE_DIR}/data"
 
 
 def loadz(npz_path):
