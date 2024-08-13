@@ -147,7 +147,7 @@ class Trial:
                 self.bins[bins_per_frame] = np.concatenate([(self.get_frame_start()[..., None] + diff[:, None] * np.linspace(0., 1., bins_per_frame+1)[None, :-1]).flatten(),
                                                             self.get_frame_end()[-1:]])
                 self.spike_bins[bins_per_frame] = {unit: np.histogram(spike_times, self.bins)[0] > 0
-                                   for unit, spike_times in self.get_spike_times()}
+                                   for unit, spike_times in self.get_spike_times().items()}
                 with open(binned_path, 'wb') as f:
                     np.savez(f, **self.spike_bins)
                 with open(bins_path, "wb") as f:
