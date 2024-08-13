@@ -72,7 +72,6 @@ class Trial:
         self.invalid_times = None
         self.frame_start = None
         self.frame_end = None
-        self.bins_per_frame = None
 
     def _load_spike_times(self):
         if self.spike_times is None:
@@ -137,16 +136,16 @@ class Trial:
 
     def _load_spike_bins(self, bins_per_frame=3):
         if bins_per_frame not in self.spike_bins:
-            binned_path = os.path.join(self._path, f"spikes_binned_bpf_{self.bins_per_frame}.npz")
-            bins_path = os.path.join(self._path, f"spike_bins_bpf_{self.bins_per_frame}.npy")
+            binned_path = os.path.join(self._path, f"spikes_binned_bpf_{bins_per_frame}.npz")
+            bins_path = os.path.join(self._path, f"spike_bins_bpf_{bins_per_frame}.npy")
 
             if os.path.exists(binned_path):
                 self.spike_bins[bins_per_frame] = loadz(binned_path)
                 self.bins[bins_per_frame] = np.load(bins_path, allow_pickle=True)
             else:
                 diff = np.concatenate([self.get_frame_start(), self.get_frame_end()[-1:]])
-                self.bins[bins_per_frame] = np.concatenate([(self.get_frame_start()[..., None] + diff[:, None] * np.linspace(0., 1., self.bins_per_frame)[None, :-1]).flatten(),
-                                       self.get_frame_end()[-1:]])
+                self.bins[bins_per_frame] = np.concatenate([(self.get_frame_start()[..., None] + diff[:, None] * np.linspace(0., 1., bins_per_frame)[None, :-1]).flatten(),
+                                                            self.get_frame_end()[-1:]])
                 self.spike_bins[bins_per_frame] = {unit: np.histogram(spike_times, self.bins)[0] > 0
                                    for unit, spike_times in self.get_spike_times()}
                 with open(binned_path, 'wb') as f:
