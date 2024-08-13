@@ -150,7 +150,7 @@ class Trial:
                 self.spike_bins[bins_per_frame] = {unit: np.histogram(spike_times, self.bins[bins_per_frame])[0] > 0
                                    for unit, spike_times in self.get_spike_times().items()}
                 with open(binned_path, 'wb') as f:
-                    np.savez(f, **{int(unit): spikes for unit, spikes in self.spike_bins[bins_per_frame].items()})
+                    np.savez(f, **{str(unit): spikes for unit, spikes in self.spike_bins[bins_per_frame].items()})
                 with open(bins_path, "wb") as f:
                     np.save(f, self.bins[bins_per_frame])
 
