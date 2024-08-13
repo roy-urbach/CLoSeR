@@ -58,20 +58,21 @@ class Session:
 
 
 class Trial:
-    def __init__(self, session, stimulus, trial_num, binsize=0.02):
+    def __init__(self, session, stimulus, trial_num):
         self.session = session
         self.session_id = self.session.id
         self._path = os.path.join(DATA_DIR, self.session_id, stimulus, trial_num)
         self.stimulus = stimulus
         self.trial_num = trial_num
-        self.spike_bins = None
+        self.spike_bins = {}
+        self.bins = {}
         self.spike_times = None
         self.spike_amplitudes = None
         self.running_speed = None
         self.invalid_times = None
         self.frame_start = None
         self.frame_end = None
-        self.binsize = binsize
+        self.bins_per_frame = None
 
     def _load_spike_times(self):
         if self.spike_times is None:
@@ -134,14 +135,36 @@ class Trial:
         self._load_frame_end()
         return self.frame_end
 
-    def _load_spike_bins(self):
-        pass
-        # if self.spike_bins is None:
-        #     if os.path.join()
+    def _load_spike_bins(self, bins_per_frame=3):
+        if bins_per_frame not in self.spike_bins:
+            binned_path = os.path.join(self._path, f"spikes_binned_bpf_{self.bins_per_frame}.npz")
+            bins_path = os.path.join(self._path, f"spike_bins_bpf_{self.bins_per_frame}.npy")
 
-    def get_spike_bins(self, area=None):
-        self._load_spike_bins()
-        return self._filter_by_area(self.spike_bins, area=area)
+            if os.path.exists(binned_path):
+                self.spike_bins[bins_per_frame] = loadz(binned_path)
+                self.bins[bins_per_frame] = np.load(bins_path, allow_pickle=True)
+            else:
+                diff = np.concatenate(self.get_frame_start(), self.get_frame_end()[-1:])
+                self.bins[bins_per_frame] = np.concatenate([(self.get_frame_start()[..., None] + diff[:, None] * np.linspace(0., 1., self.bins_per_frame)[None, :-1]).flatten(),
+                                       self.get_frame_end()[-1:]])
+                self.spike_bins[bins_per_frame] = {unit: np.histogram(spike_times, self.bins)[0] > 0
+                                   for unit, spike_times in self.get_spike_times()}
+                with open(binned_path, 'wb') as f:
+                    np.savez(f, **self.spike_bins)
+                with open(bins_path, "wb") as f:
+                    np.save(f, self.bins)
+
+    def get_spike_bins(self, area=None, bins_per_frame=3):
+        self._load_spike_bins(bins_per_frame)
+        return self._filter_by_area(self.spike_bins[bins_per_frame], area=area)
+
+    def get_bins(self, bins_per_frame=None):
+        if bins_per_frame is None:
+            assert len(self.bins) == 1
+            return list(self.bins)[0]
+        else:
+            self._load_spike_bins(bins_per_frame)
+            return self.bins[bins_per_frame]
 
     def __repr__(self):
         return f"<Trial {self.trial_num} (session {self.session_id}, stim {self.stimulus})>"
