@@ -16,11 +16,7 @@ def process_session(index):
     cache = EcephysProjectCache.from_warehouse(manifest=manifest_path)
     print("got cache")
 
-    session = cache.get_session_data(index,
-                                     isi_violations_maximum=np.inf,
-                                     amplitude_cutoff_maximum=np.inf,
-                                     presence_ratio_minimum=-np.inf
-                                     )
+    session = cache.get_session_data(index)
 
     print("got session")
 
