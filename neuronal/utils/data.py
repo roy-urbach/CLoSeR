@@ -144,7 +144,7 @@ class Trial:
                 self.spike_bins[bins_per_frame] = loadz(binned_path)
                 self.bins[bins_per_frame] = np.load(bins_path, allow_pickle=True)
             else:
-                diff = np.concatenate(self.get_frame_start(), self.get_frame_end()[-1:])
+                diff = np.concatenate([self.get_frame_start(), self.get_frame_end()[-1:]])
                 self.bins[bins_per_frame] = np.concatenate([(self.get_frame_start()[..., None] + diff[:, None] * np.linspace(0., 1., self.bins_per_frame)[None, :-1]).flatten(),
                                        self.get_frame_end()[-1:]])
                 self.spike_bins[bins_per_frame] = {unit: np.histogram(spike_times, self.bins)[0] > 0
