@@ -141,6 +141,7 @@ class Trial:
 
             if os.path.exists(binned_path):
                 self.spike_bins[bins_per_frame] = loadz(binned_path)
+                self.spike_bins[bins_per_frame] = {int(unit): spikes for unit, spikes in self.spike_bins[bins_per_frame].items()}
                 self.bins[bins_per_frame] = np.load(bins_path, allow_pickle=True)
             else:
                 diff = np.diff(np.concatenate([self.get_frame_start(), self.get_frame_end()[-1:]]))
@@ -149,7 +150,7 @@ class Trial:
                 self.spike_bins[bins_per_frame] = {unit: np.histogram(spike_times, self.bins[bins_per_frame])[0] > 0
                                    for unit, spike_times in self.get_spike_times().items()}
                 with open(binned_path, 'wb') as f:
-                    np.savez(f, **self.spike_bins[bins_per_frame])
+                    np.savez(f, **{int(unit): spikes for unit, spikes in self.spike_bins[bins_per_frame].items()})
                 with open(bins_path, "wb") as f:
                     np.save(f, self.bins[bins_per_frame])
 
