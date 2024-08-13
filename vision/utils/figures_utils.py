@@ -1,7 +1,11 @@
 import numpy as np
+import matplotlib.pyplot as plt
+import scipy
 
-from measures.utils import load_measures_json
-from utils.plot_utils import *
+from utils.plot_utils import calculate_square_rows_cols, simpleaxis, savefig, dct_to_multiviolin
+from utils.utils import cosine_sim
+from vision.evaluation.utils import load_evaluation_json
+from vision.measures.utils import load_measures_json
 from utils import plot_utils
 import re
 from utils.io_utils import load_json
@@ -35,6 +39,7 @@ class ClassifierLatex(Enum):
     ENSEMBLE = "full embedding" # r'$f_\mu$'
     MEAN_ENSEMBLE = r'$\bar{f}_{\mu_p}$'
 
+
 def Acc(string=r'$f$'):
     return r"$Acc($" + string + r"$)$"
 
@@ -49,7 +54,7 @@ def name_to_d(name, naive=True, mapping={}, frac=True):
             if PATCHES:
                 d = f"{int(load_json(name)['model_kwargs']['pathways_kwargs']['d'] * PATCHES)}/{PATCHES}"
             else:
-                from model.model import load_model_from_json
+                from vision.model.model import load_model_from_json
                 model = load_model_from_json(name, load=False)
                 pathways_layer = model.get_layer(model.name + '_pathways')
                 if frac:
@@ -59,8 +64,6 @@ def name_to_d(name, naive=True, mapping={}, frac=True):
             mapping[name] = d
             return d
 
-
-from evaluation.utils import save_evaluation_json, load_evaluation_json, get_evaluation_time
 
 def load_classfications_by_regex(model_regex, name_to_d_naive=False, convert_name=True, negative_regex=None, print_err=True):
     base_path = 'models'
@@ -280,11 +283,6 @@ def all_plot_regex(model_regex, ensemble_types=("logistic", '.*linear_.*', '.*kn
     plot_pathways_distribution_over_d(model_regex, plot_train=plot_pathway_train)
 
 
-from utils.data import Data
-from evaluation.evaluation import classify_head_eval
-from evaluation.utils import load_evaluation_json, save_evaluation_json
-
-
 def plot_pathways_vs_masked_images(model_name, num_pathways=10):
     eval_dct = load_evaluation_json(model_name)
     reg_image_res = []
@@ -295,7 +293,7 @@ def plot_pathways_vs_masked_images(model_name, num_pathways=10):
         reg_image_res.append(eval_dct[cur_name])
         reg_pathway_res.append(eval_dct[f"pathway{pathway_num}_linear"])
 
-    from utils.plot_utils import basic_scatterplot, set_ticks_style, simpleaxis, legend
+    from utils.plot_utils import basic_scatterplot, simpleaxis, legend
     fig = plt.figure(figsize=(4, 2.5))
     plt.suptitle(model_name + " pathways accuracy\n\n")
     ax = plt.subplot(1, 1, 1)
@@ -332,7 +330,7 @@ def regex_models(regex):
 
 def plot_history(model_regex, window=10, name_to_name=lambda m: m, log=True, keys=None,
                  log_keys={'embedding'}, plot_train=True, plot_val=True, name_to_c=None, save=None):
-    from utils.tf_utils import load_history
+    from vision.utils.tf_utils import load_history
     models = regex_models(model_regex)
     models_names = []
     orig_names = []
@@ -551,7 +549,7 @@ def plot_lines_different_along_d(model_format, seeds=SEEDS, name="logistic", sav
 
 
 def plot_positional_encoding(model, cosine=True, save=False):
-    from model.model import load_model_from_json
+    from vision.model.model import load_model_from_json
     if isinstance(model, str):
         model = load_model_from_json(model, optimizer_state=False, skip_mismatch=True)
     embd = model.get_layer(model.name + '_patchenc').position_embedding
@@ -600,7 +598,7 @@ def plot_positional_encoding(model, cosine=True, save=False):
 
 
 def plot_measures(model_regex, mask=None, save=False):
-    from measures.utils import CrossPathMeasures, load_measures_json
+    from vision.measures.utils import CrossPathMeasures, load_measures_json
     models = regex_models(model_regex)
     dcts = {model: load_measures_json(model) for model in models}
     for measure in CrossPathMeasures:
@@ -613,7 +611,7 @@ def plot_measures(model_regex, mask=None, save=False):
 
 
 def compare_measures(*models, names=None, log=False, mask=None, grid=True, fig=None, xs=None, **kwargs):
-    from measures.utils import CrossPathMeasures, load_measures_json
+    from vision.measures.utils import CrossPathMeasures, load_measures_json
     if names is None:
         names = models
     if fig is None:

@@ -6,6 +6,7 @@ import random
 
 from utils.io_utils import load_json
 from utils.utils import printd
+from vision.utils.consts import VISION_MODELS_DIR
 
 CUSTOM_OBJECTS = {}
 
@@ -60,7 +61,7 @@ def load_model(fn):
 
 
 def load_checkpoint(model):
-    checkpoint_name = f'/models/{model.name}/weights.ckpt'
+    checkpoint_name = f'/{VISION_MODELS_DIR}/{model.name}/weights.ckpt'
     if os.path.exists(checkpoint_name):
         printd("checkpoint found. loading...", end='\t')
         model.load(checkpoint_name)
@@ -70,9 +71,9 @@ def load_checkpoint(model):
 
 
 def history_fn_name(model):
-    return f"models/{model}/checkpoints/history.json"
+    return f"{VISION_MODELS_DIR}/{model}/checkpoints/history.json"
 
 
 def load_history(model):
-    return load_json(history_fn_name(model), base_path="")
+    return load_json(history_fn_name(model))
 

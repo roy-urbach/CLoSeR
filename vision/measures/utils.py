@@ -1,8 +1,9 @@
-from model.model import load_model_from_json
+from vision.model.model import load_model_from_json
 from utils.io_utils import load_json, save_json, get_file_time
 from utils.utils import get_class, counter
 import numpy as np
 from enum import Enum, auto
+from vision.utils.consts import VISION_MODELS_DIR
 
 MEASURES_FILE_NAME = 'measures'
 
@@ -20,7 +21,7 @@ class CrossPathMeasures(Enum):
 
 
 def load_measures_json(model_name, tolist=False):
-    dct_with_list = load_json(MEASURES_FILE_NAME, base_path=f'models/{model_name}')
+    dct_with_list = load_json(f'{VISION_MODELS_DIR}/{model_name}/{MEASURES_FILE_NAME}')
     if not tolist and dct_with_list is not None:
         dct = {k: np.array(v) for k, v in dct_with_list.items()}
     else:
@@ -30,11 +31,11 @@ def load_measures_json(model_name, tolist=False):
 
 def save_measures_json(model_name, dct):
     dct = {k: v.tolist() if isinstance(v, np.ndarray) else v for k, v in dct.items()}
-    save_json(MEASURES_FILE_NAME, dct, base_path=f'models/{model_name}')
+    save_json(f'{VISION_MODELS_DIR}/{model_name}/{MEASURES_FILE_NAME}', dct)
 
 
 def get_measuring_time(model_name, raw=True):
-    return get_file_time(f'models/{model_name}/{MEASURES_FILE_NAME}.json', raw=raw)
+    return get_file_time(f'{VISION_MODELS_DIR}/{model_name}/{MEASURES_FILE_NAME}.json', raw=raw)
 
 
 def measure_model(model, iterations=50, b=128):
@@ -43,17 +44,17 @@ def measure_model(model, iterations=50, b=128):
     if isinstance(model, str):
         model = load_model_from_json(model)
 
-    import utils.data
+    import vision.utils.data
     kwargs = load_json(model.name)
-    dataset = get_class(kwargs.get('dataset', 'Cifar10'), utils.data)(**kwargs.get("data_kwargs", {}))
+    dataset = get_class(kwargs.get('dataset', 'Cifar10'), vision.utils.data)(**kwargs.get("data_kwargs", {}))
     test_embd = model.predict(dataset.get_x_test())[0]
 
     n = test_embd.shape[2]
 
     loss = model.loss[model.name + "_embedding"]
-    from model.losses import GeneralPullPushGraphLoss
+    from vision.model.losses import GeneralPullPushGraphLoss
     if not issubclass(loss.__class__, GeneralPullPushGraphLoss):
-        from model.losses import CommunitiesLoss
+        from vision.model.losses import CommunitiesLoss
         loss = CommunitiesLoss(n, 1)
 
     res_dct = {k: [] for k in CrossPathMeasures}

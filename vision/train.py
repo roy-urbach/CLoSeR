@@ -1,5 +1,8 @@
 import argparse
-from utils.io_utils import *
+import os
+
+from vision.utils.consts import VISION_MODELS_DIR
+from vision.utils.io_utils import load_json
 
 
 def parse():
@@ -24,7 +27,7 @@ def run():
     import sys
     sys.stdout.flush()
 
-    training_fn = f"models/{model_name}/is_training"
+    training_fn = f"{VISION_MODELS_DIR}/{model_name}/is_training"
     if os.path.exists(training_fn):
         print("already training")
         return

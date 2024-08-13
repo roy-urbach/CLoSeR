@@ -1,4 +1,4 @@
-from utils.tf_utils import serialize
+from vision.utils.tf_utils import serialize
 import tensorflow as tf
 from tensorflow.keras.losses import Loss
 import numpy as np

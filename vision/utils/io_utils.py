@@ -1,51 +1,19 @@
-import json
 import os
+import utils.io_utils as general_io_utlis
+from vision.utils.consts import VISION_CONFIG_DIR, VISION_MODELS_DIR
 
 
-def load_json(fn, base_path='config'):
-    if not fn.endswith('json'):
-        fn = fn + '.json'
-    fn = os.path.join(base_path, fn)
-    if os.path.exists(fn):
-        with open(fn, 'r') as f:
-            dct = json.load(f)
-        return dct
-    else:
-        return None
+def load_json(fn, base_path=VISION_CONFIG_DIR):
+    return general_io_utlis.load_json(os.path.join(base_path, fn))
 
 
-def save_json(fn, dct, base_path='config/', indent=4, **kwargs):
-    if not fn.endswith('json'):
-        fn = fn + '.json'
-    fn = os.path.join(base_path, fn)
-    with open(fn, 'w') as f:
-        json.dump(dct, f, indent=indent, **kwargs)
-    print(f"saved as {fn}")
-    return fn
+def save_json(fn, dct, base_path=VISION_CONFIG_DIR, indent=4, **kwargs):
+    return general_io_utlis.save_json(os.path.join(base_path, fn), dct, indendt=indent, **kwargs)
 
 
 def load_output(model_name):
-    fn = f'models/{model_name}/output.o'
-    if os.path.exists(fn):
-        with open(fn, 'r') as f:
-            lines = f.readlines()
-        return lines
-    else:
-        return None
-
-
-def get_file_time(fn, raw=True):
-    if os.path.exists(fn):
-        mtime = os.path.getmtime(fn)
-        if raw:
-            return mtime
-        else:
-            from time import ctime
-            return ctime(mtime)
-    else:
-        return None
+    return general_io_utlis.load_output(f"{VISION_MODELS_DIR}/{model_name}")
 
 
 def get_output_time(model_name, raw=True):
-    fn = f'models/{model_name}/output.o'
-    return get_file_time(fn, raw=raw)
+    return general_io_utlis.get_output_time(f"{VISION_MODELS_DIR}/{model_name}", raw=raw)

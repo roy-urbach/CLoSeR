@@ -1,4 +1,5 @@
-from measures.utils import save_measures_json, measure_model, get_measuring_time, load_measures_json
+from vision.measures.utils import save_measures_json, measure_model, get_measuring_time, load_measures_json
+from vision.utils.consts import VISION_MODELS_DIR
 
 
 def main():
@@ -14,7 +15,7 @@ def main():
 
     args = parse()
     args.json = ".".join(args.json.split(".")[:-1]) if args.json.endswith(".json") else args.json
-    measuring_fn = f'models/{args.json}/is_measuring'
+    measuring_fn = f'{VISION_MODELS_DIR}/{args.json}/is_measuring'
 
     import os
     if os.path.exists(measuring_fn):

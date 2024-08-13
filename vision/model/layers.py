@@ -1,11 +1,9 @@
-import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers as tf_layers
 from tensorflow.keras import backend as K
 
-from utils.tf_utils import set_seed, serialize
-from utils.utils import *
+from vision.utils.tf_utils import set_seed, serialize
 
 
 # ViT layers

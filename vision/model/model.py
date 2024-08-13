@@ -1,15 +1,13 @@
-from model.callbacks import SaveOptimizerCallback, ErasePreviousCallback, SaveHistory
-from model.layers import *
-from model.losses import *
-from utils.data import *
-from utils.io_utils import load_json, save_json
-from utils.tf_utils import get_model_fn, get_weights_fn
+from vision.model.callbacks import SaveOptimizerCallback, ErasePreviousCallback, SaveHistory
+from vision.model.layers import *
+from vision.model.losses import *
+import vision.utils.data
+from vision.utils.io_utils import load_json
+from vision.utils.tf_utils import get_weights_fn
 from utils.utils import *
-import utils.data
 from tensorflow.keras import layers
 from tensorflow import keras
 import tensorflow as tf
-from model.optimizers import *
 import os
 
 
@@ -68,8 +66,8 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
         pathways = SplitPathways(num_patches, name=name + '_pathways', **pathways_kwargs)(encoded_patches)
         pathways = [tf.squeeze(path, axis=-2) for path in tf.split(pathways, pathways.shape[-2], axis=-2)]
 
-    import model.encoders
-    Encoder = get_class(encoder, model.encoders)
+    import vision.model.encoders
+    Encoder = get_class(encoder, vision.model.encoders)
     out_reg = KoLeoRegularizer(koleo_lambda) if koleo_lambda else (tf.keras.regularizers.L2(l2) if l2 else None)
     enc_init = lambda i: Encoder(name=name+f'_enc{i if i is not None else ""}',
                                  kernel_regularizer=kernel_regularizer, out_regularizer=out_reg, **encoder_kwargs)
@@ -140,7 +138,7 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
         losses[model.name + "_predembd"] = LateralPredictiveLoss(graph=model.get_layer(model.name + "_predembd").pred_graph)
 
     if metrics_kwargs:
-        import model.metrics as metrics_file
+        import vision.model.metrics as metrics_file
         metrics[model.name + "_embedding"] = get_class(metrics_kwargs['name'], metrics_file)(metrics_kwargs.get('kwargs', {}))
 
     if pathway_classification:
@@ -159,11 +157,11 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
 
 
 def train(model_name, model_kwargs, loss=ContrastiveSoftmaxLoss, data_kwargs={}, loss_kwargs={},
-          optimizer_kwargs={}, dataset=Cifar10, batch_size=128, num_epochs=150, **kwargs):
+          optimizer_kwargs={}, dataset=vision.utils.data.Cifar10, batch_size=128, num_epochs=150, **kwargs):
     print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
     printd("Getting dataset...", end='\t')
-    dataset = get_class(dataset, utils.data)(**data_kwargs)
+    dataset = get_class(dataset, vision.utils.data)(**data_kwargs)
     printd("Done!")
 
     model, max_epoch = load_or_create_model(model_name, dataset.get_shape(), model_kwargs, loss=loss,
@@ -199,8 +197,8 @@ def create_and_compile_model(model_name, input_shape, model_kwargs, loss=Contras
     if print_log:
         printd("Done!")
 
-    import model.losses
-    loss = get_class(loss, model.losses)
+    import vision.model.losses
+    loss = get_class(loss, vision.model.losses)
 
     if print_log:
         printd("Compiling model...", end='\t')
@@ -262,8 +260,8 @@ def load_model_from_json(model_name, load=True, optimizer_state=True, skip_misma
     else:
 
         def call(model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={}, optimizer_kwargs={},
-                 dataset=Cifar10, data_kwargs={}, **kwargs):
-            dataset = get_class(dataset, utils.data)(**data_kwargs)
+                 dataset=vision.utils.data.Cifar10, data_kwargs={}, **kwargs):
+            dataset = get_class(dataset, vision.utils.data)(**data_kwargs)
             model, _ = load_or_create_model(model_name, dataset.get_shape(), model_kwargs, loss=loss,
                                             loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
                                             load=load, optimizer_state=optimizer_state, skip_mismatch=skip_mismatch, **kwargs)

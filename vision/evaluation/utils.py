@@ -1,19 +1,18 @@
-from utils.io_utils import load_json, save_json, get_file_time
+from utils.io_utils import load_json, save_json
+from utils.io_utils import get_file_time
+from vision.utils.consts import VISION_MODELS_DIR
 
 RESULTS_FILE_NAME = 'classification_eval'
 
 
 def load_evaluation_json(model_name):
-    base_path = f'models/{model_name}'
-    results = load_json(RESULTS_FILE_NAME, base_path=base_path)
+    results = load_json(f'{VISION_MODELS_DIR}/{model_name}/{RESULTS_FILE_NAME}')
     return results
 
 
 def save_evaluation_json(model_name, dct):
-    base_path = f'models/{model_name}'
-    save_json(RESULTS_FILE_NAME, dct, base_path=base_path)
+    save_json(f'{VISION_MODELS_DIR}/{model_name}', dct)
 
 
 def get_evaluation_time(model_name, raw=True):
-    fn = f'models/{model_name}/{RESULTS_FILE_NAME}.json'
-    return get_file_time(fn, raw=raw)
+    return get_file_time(f'{VISION_MODELS_DIR}/{model_name}/{RESULTS_FILE_NAME}.json', raw=raw)

@@ -1,4 +1,4 @@
-from utils.figures_utils import *
+from vision.utils.figures_utils import *
 import argparse
 
 

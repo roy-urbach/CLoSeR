@@ -1,5 +1,6 @@
 from matplotlib import pyplot as plt
 from utils.utils import *
+import numpy as np
 import matplotlib as mpl
 mpl.rc('image', cmap='gray')
 

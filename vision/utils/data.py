@@ -2,7 +2,8 @@ import tensorflow as tf
 
 
 class Data:
-    def __init__(self, x_train, y_train, x_test, y_test, val_split=0.1, normalize=False, img_normalize=False, flatten_y=True):
+    def __init__(self, x_train, y_train, x_test, y_test, val_split=0.1, normalize=False,
+                 img_normalize=False, flatten_y=True):
         self.x_train = x_train
         self.y_train = y_train
         self.x_test = x_test
@@ -57,6 +58,7 @@ class Data:
 
 class Cifar10(Data):
     LABELS = ["airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck"]
+
     def __init__(self, *args, **kwargs):
         (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
         super().__init__(x_train, y_train, x_test,  y_test, *args, **kwargs)

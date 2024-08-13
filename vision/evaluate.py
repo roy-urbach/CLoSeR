@@ -1,11 +1,13 @@
-from evaluation.ensemble import EnsembleVotingMethods
-from evaluation.evaluation import classify_head_eval_ensemble
-from evaluation.utils import save_evaluation_json, load_evaluation_json, get_evaluation_time
-from model.model import load_model_from_json
-from utils.data import Cifar10, Data
+from typing import Optional
+
+from vision.evaluation.ensemble import EnsembleVotingMethods
+from vision.evaluation.evaluation import classify_head_eval_ensemble
+from vision.evaluation.utils import save_evaluation_json, load_evaluation_json, get_evaluation_time
+from vision.model.model import load_model_from_json
+from vision.utils.data import Cifar10, Data
 from utils.io_utils import load_json
 from utils.utils import get_class, printd
-from utils import data
+from vision.utils import data
 import numpy as np
 
 
@@ -55,7 +57,8 @@ def main():
     return res
 
 
-def evaluate(model, knn=False, linear=True, ensemble=True, ensemble_knn=False, save_results=False, override=False, dataset=Cifar10(), **kwargs):
+def evaluate(model, knn=False, linear=True, ensemble=True, ensemble_knn=False, save_results=False, override=False,
+             dataset:Optional[Data]=Cifar10(), **kwargs):
 
     if not override:
         from utils.io_utils import get_output_time

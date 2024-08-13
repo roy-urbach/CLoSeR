@@ -1,4 +1,11 @@
-region_dict = {'cortex': ['VISp', 'VISl', 'VISrl', 'VISam', 'VISpm', 'VIS', 'VISal', 'VISmma', 'VISmmp', 'VISli'],
+from utils.consts import MODELS_DIR, CONFIG_DIR
+
+NEURONAL_BASE_DIR = "neuronal"
+
+NEURONAL_MODELS_DIR = f"{NEURONAL_BASE_DIR}/{MODELS_DIR}"
+NEURONAL_CONFIG_DIR = f"{NEURONAL_BASE_DIR}/{CONFIG_DIR}"
+
+AREAS_DICT = {'cortex': ['VISp', 'VISl', 'VISrl', 'VISam', 'VISpm', 'VIS', 'VISal', 'VISmma', 'VISmmp', 'VISli'],
                'thalamus': ['LGd', 'LD', 'LP', 'VPM', 'TH', 'MGm', 'MGv', 'MGd', 'PO', 'LGv', 'VL',
                             'VPL', 'POL', 'Eth', 'PoT', 'PP', 'PIL', 'IntG', 'IGL', 'SGN', 'VPL', 'PF', 'RT'],
                'hippocampus': ['CA1', 'CA2', 'CA3', 'DG', 'SUB', 'POST', 'PRE', 'ProS', 'HPF'],
