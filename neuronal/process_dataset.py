@@ -59,7 +59,7 @@ def process_session(index):
             filtered_invalid_times.to_csv(os.path.join(*path, "invalid_times.csv"))
             print("saved invalid times")
 
-            stimulus_rows = (movie_stim.start_time >= start) & (movie_stim.start_time <= end)
+            stimulus_rows = (movie_stim.start_time >= start) & (movie_stim.start_time < end)
             frames_start = movie_stim.start_time[stimulus_rows].to_numpy()
             frames_end = movie_stim.stop_time[stimulus_rows].to_numpy()
 
