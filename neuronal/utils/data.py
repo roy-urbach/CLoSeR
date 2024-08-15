@@ -134,8 +134,8 @@ class Trial:
         self._load_frame_end()
         return self.frame_end
 
-    def _load_spike_bins(self, bins_per_frame=3):
-        if bins_per_frame not in self.spike_bins:
+    def _load_spike_bins(self, bins_per_frame=3, override=False):
+        if bins_per_frame not in self.spike_bins or override:
             binned_path = os.path.join(self._path, f"spikes_binned_bpf_{bins_per_frame}.npz")
             bins_path = os.path.join(self._path, f"spike_bins_bpf_{bins_per_frame}.npy")
 
@@ -154,8 +154,8 @@ class Trial:
                 with open(bins_path, "wb") as f:
                     np.save(f, self.bins[bins_per_frame])
 
-    def get_spike_bins(self, area=None, bins_per_frame=3):
-        self._load_spike_bins(bins_per_frame)
+    def get_spike_bins(self, area=None, bins_per_frame=3, **kwargs):
+        self._load_spike_bins(bins_per_frame, **kwargs)
         return self._filter_by_area(self.spike_bins[bins_per_frame], area=area)
 
     def get_bins(self, bins_per_frame=None):
