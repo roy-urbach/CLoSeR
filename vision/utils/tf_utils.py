@@ -39,7 +39,7 @@ def get_model_fn(model_or_name):
     else:
         assert hasattr(model_or_name, 'name')
         model_name = model_or_name.name
-    fn = os.path.join('models', model_name, 'model.h5')
+    fn = os.path.join(VISION_MODELS_DIR, model_name, 'model.h5')
     return fn
 
 
@@ -49,7 +49,7 @@ def get_weights_fn(model_or_name):
     else:
         assert hasattr(model_or_name, 'name')
         model_name = model_or_name.name
-    fn = os.path.join('models', model_name, "checkpoints", 'model_weights_{epoch}')
+    fn = os.path.join(VISION_MODELS_DIR, model_name, "checkpoints", 'model_weights_{epoch}')
     return fn
 
 

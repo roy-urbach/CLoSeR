@@ -1,7 +1,8 @@
-from vision.model.callbacks import SaveOptimizerCallback, ErasePreviousCallback, SaveHistory
-from vision.model.layers import *
-from vision.model.losses import *
+from utils.model.callbacks import SaveOptimizerCallback, ErasePreviousCallback, SaveHistory
+from utils.model.layers import *
+from utils.model.losses import *
 import vision.utils.data
+from vision.utils.consts import VISION_MODELS_DIR
 from vision.utils.io_utils import load_json
 from vision.utils.tf_utils import get_weights_fn
 from utils.utils import *
@@ -66,8 +67,8 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
         pathways = SplitPathways(num_patches, name=name + '_pathways', **pathways_kwargs)(encoded_patches)
         pathways = [tf.squeeze(path, axis=-2) for path in tf.split(pathways, pathways.shape[-2], axis=-2)]
 
-    import vision.model.encoders
-    Encoder = get_class(encoder, vision.model.encoders)
+    import utils.model.encoders
+    Encoder = get_class(encoder, utils.model.encoders)
     out_reg = KoLeoRegularizer(koleo_lambda) if koleo_lambda else (tf.keras.regularizers.L2(l2) if l2 else None)
     enc_init = lambda i: Encoder(name=name+f'_enc{i if i is not None else ""}',
                                  kernel_regularizer=kernel_regularizer, out_regularizer=out_reg, **encoder_kwargs)
@@ -138,7 +139,7 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
         losses[model.name + "_predembd"] = LateralPredictiveLoss(graph=model.get_layer(model.name + "_predembd").pred_graph)
 
     if metrics_kwargs:
-        import vision.model.metrics as metrics_file
+        import utils.model.metrics as metrics_file
         metrics[model.name + "_embedding"] = get_class(metrics_kwargs['name'], metrics_file)(metrics_kwargs.get('kwargs', {}))
 
     if pathway_classification:
@@ -197,8 +198,8 @@ def create_and_compile_model(model_name, input_shape, model_kwargs, loss=Contras
     if print_log:
         printd("Done!")
 
-    import vision.model.losses
-    loss = get_class(loss, vision.model.losses)
+    import utils.model.losses
+    loss = get_class(loss, utils.model.losses)
 
     if print_log:
         printd("Compiling model...", end='\t')
@@ -214,8 +215,8 @@ def load_or_create_model(model_name, *args, load=True, optimizer_state=True, ski
     max_epoch = 0
     if load:
         model_fn = None
-        if os.path.exists(f"models/{model_name}/checkpoints"):
-            for fn in os.listdir(f'models/{model_name}/checkpoints'):
+        if os.path.exists(f"{VISION_MODELS_DIR}/{model_name}/checkpoints"):
+            for fn in os.listdir(f'{VISION_MODELS_DIR}/{model_name}/checkpoints'):
                 match = re.match(r"model_weights_(\d+)\.index", fn)
                 if match:
                     epoch = int(match.group(1))
