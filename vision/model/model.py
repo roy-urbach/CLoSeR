@@ -2,6 +2,7 @@ from utils.model.callbacks import SaveOptimizerCallback, ErasePreviousCallback, 
 from utils.model.layers import *
 from utils.model.losses import *
 import vision.utils.data
+from vision.model.layers import SplitPathwaysVision
 from vision.utils.consts import VISION_MODELS_DIR
 from vision.utils.io_utils import load_json
 from vision.utils.tf_utils import get_weights_fn
@@ -64,7 +65,7 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
     if classifier and not classifier_pathways:
         pathways = [encoded_patches]
     else:
-        pathways = SplitPathways(num_patches, name=name + '_pathways', **pathways_kwargs)(encoded_patches)
+        pathways = SplitPathwaysVision(num_patches, name=name + '_pathways', **pathways_kwargs)(encoded_patches)
         pathways = [tf.squeeze(path, axis=-2) for path in tf.split(pathways, pathways.shape[-2], axis=-2)]
 
     import utils.model.encoders
