@@ -26,3 +26,7 @@ SESSIONS = ('758798717',
             '742951821')
 
 NATURAL_MOVIES = ("natural_movie_one", "natural_movie_three")
+NATURAL_MOVIES_FRAMES = {NATURAL_MOVIES[0]: 900,
+                         NATURAL_MOVIES[1]: 3600}
+NATURAL_MOVIES_TRIALS = {NATURAL_MOVIES[0]: 20,
+                         NATURAL_MOVIES[1]: 10}

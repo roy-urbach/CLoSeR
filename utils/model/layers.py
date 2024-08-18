@@ -300,14 +300,17 @@ class ConvNet:
 
 @serialize
 class SplitPathways(tf.keras.layers.Layer):
-    def __init__(self, num_features, token_per_path=False, n=2, d=0.5, intersection=True, fixed=False,
+    # Receives (B, ..., S, DIM)
+    # Outputs (B, ..., d*S, N, DIM)
+
+    def __init__(self, num_signals, token_per_path=False, n=2, d=0.5, intersection=True, fixed=False,
                  seed=0, class_token=True, pathway_to_cls=None, **kwargs):
         super(SplitPathways, self).__init__(**kwargs)
-        assert intersection or (n*int(num_features * d)) <= num_features
+        assert intersection or (n*int(num_signals * d)) <= num_signals
         self.n = n
         self.seed = seed
         self.fixed = fixed
-        self.num_features = num_features
+        self.num_signals = num_signals
         self.token_per_path = token_per_path
         if pathway_to_cls is not None:
             if isinstance(pathway_to_cls, str):
@@ -318,7 +321,7 @@ class SplitPathways(tf.keras.layers.Layer):
                 self.pathway_to_cls = tf.zeros(n, dtype=tf.int32)
             else:
                 self.pathway_to_cls = tf.range(n, dtype=tf.int32)
-        self.num_features_per_path = int(num_features * d)
+        self.num_signals_per_path = int(num_signals * d)
         self.intersection = intersection
         self.class_token = class_token
         self.shift = (tf.reduce_max(self.pathway_to_cls) + 1) if class_token else 0

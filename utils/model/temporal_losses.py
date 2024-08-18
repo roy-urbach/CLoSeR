@@ -1,9 +1,8 @@
 import tensorflow as tf
-from tensorflow.keras.losses import Loss
 
 
-class CrossPathwayTemporalContrastiveLoss(Loss):
-    def __init__(self, *args, a=None, contrast_t=3, start_t=0, temperature=10, **kwargs):
+class CrossPathwayTemporalContrastiveLoss(tf.keras.losses.Loss):
+    def __init__(self, *args, a=None, contrast_t=1, start_t=0, temperature=10, **kwargs):
         super(CrossPathwayTemporalContrastiveLoss, self).__init__(*args, **kwargs)
         self.temperature = temperature
         self.a = a
