@@ -1,6 +1,7 @@
 import os
 import numpy as np
 
+from neuronal.utils.consts import NATURAL_MOVIES
 from neuronal.utils.data import DATA_DIR
 
 
@@ -22,7 +23,7 @@ def process_session(index):
 
     session_dir = str(session.ecephys_session_id)
 
-    for name in ["natural_movie_one", "natural_movie_three"]:
+    for name in NATURAL_MOVIES:
         print(f"running {name}")
         stim = session.stimulus_presentations
         movie_stim = stim[stim.stimulus_name == name]

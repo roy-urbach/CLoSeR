@@ -2,7 +2,7 @@ import numpy as np
 import os
 import pandas as pd
 
-from neuronal.utils.consts import NEURONAL_BASE_DIR
+from neuronal.utils.consts import NEURONAL_BASE_DIR, NATURAL_MOVIES
 from utils.data import Data
 import tensorflow as tf
 
@@ -178,7 +178,7 @@ class Trial:
 
 class SessionDataGenerator(tf.keras.utils.Sequence):
     def __init__(self, session_id, batch_size=32, frames_per_sample=10, bins_per_frame=1,
-                 stimuli=('natural_movie_one', 'natural_movie_three'), areas=None):
+                 stimuli=NATURAL_MOVIES, areas=None):
         super(SessionDataGenerator, self).__init__()
         self.session = Session(session_id)
         self.batch_size = batch_size
@@ -221,24 +221,26 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
                                                                       as_matrix=True))
 
     def __getitem__(self, idx):
-        stimuli = np.random.choice(self.stimuli, size=self.batch_size, replace=True)
-
+        stimuli_inds = np.random.randint(len(self.stimuli), size=self.batch_size)
         spikes = [] if self.areas is None else {area: [] for area in self.areas}
         trials = np.empty(self.batch_size, dtype=int)
         frames = np.empty((self.batch_size, self.frames_per_sample), dtype=int)
-        for b, stim in enumerate(stimuli):
-            trial = np.random.choice(list(range(len(self.spikes[stim]))))
+        num_trials = {stim: len(self.spikes[stim] if self.areas is None else list(self.spikes[stim].values())[0])
+                      for stim in self.stimuli}
+        for b in range(self.batch_size):
+            activity_dct_or_mat = self.spikes[self.stimuli[stimuli_inds[b]]]
+            trial = np.random.choice(list(range(num_trials[self.stimuli[stimuli_inds[b]]])))
             trials[b] = trial
             if self.areas is not None:
                 start_bin = None
                 for area in self.areas:
-                    cur_spikes = self.spikes[stim][area][trial]
+                    cur_spikes = activity_dct_or_mat[area][trial]
                     if start_bin is None:
                         start_bin = np.random.randint(0, cur_spikes.shape[-1] - self.bins_per_sample + 1)
                     sample = cur_spikes[..., start_bin:start_bin + self.bins_per_sample]
                     spikes[area].append(sample)
             else:
-                cur_spikes = self.spikes[stim][trial]
+                cur_spikes = activity_dct_or_mat[trial]
                 start_bin = np.random.randint(0, cur_spikes.shape[-1] - self.bins_per_sample)
                 sample = cur_spikes[..., start_bin:start_bin + self.bins_per_sample]
                 spikes.append(sample)
@@ -252,4 +254,4 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
         trials = tf.convert_to_tensor(np.array(trials))
         frames = tf.convert_to_tensor(np.stack(frames, axis=0))
 
-        return spikes, {"stimulus": stimuli, "trials": trials, "frames": frames}
+        return spikes, {"stimulus": stimuli_inds, "trials": trials, "frames": frames}
