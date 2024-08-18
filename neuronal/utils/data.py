@@ -156,9 +156,13 @@ class Trial:
                 with open(bins_path, "wb") as f:
                     np.save(f, self.bins[bins_per_frame])
 
-    def get_spike_bins(self, area=None, bins_per_frame=3, **kwargs):
+    def get_spike_bins(self, area=None, bins_per_frame=3, as_matrix=False, **kwargs):
         self._load_spike_bins(bins_per_frame, **kwargs)
-        return self._filter_by_area(self.spike_bins[bins_per_frame], area=area)
+        unit_to_bins = self._filter_by_area(self.spike_bins[bins_per_frame], area=area)
+        if as_matrix:
+            return np.stack([unit_to_bins[unit] for unit in sorted(unit_to_bins.keys())], axis=0)
+        else:
+            return unit_to_bins
 
     def get_bins(self, bins_per_frame=None):
         if bins_per_frame is None:
@@ -210,9 +214,11 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
                 if self.areas is not None:
                     for area in self.areas:
                         self.spikes[stimulus][area].append(trial.get_spike_bins(area=area,
-                                                                                bins_per_frame=self.bins_per_frame))
+                                                                                bins_per_frame=self.bins_per_frame,
+                                                                                as_matrix=True))
                 else:
-                    self.spikes[stimulus].append(trial.get_spike_bins(bins_per_frame=self.bins_per_frame))
+                    self.spikes[stimulus].append(trial.get_spike_bins(bins_per_frame=self.bins_per_frame,
+                                                                      as_matrix=True))
 
     def __getitem__(self, idx):
         stimuli = np.random.choice(self.stimuli, size=self.batch_size, replace=True)
