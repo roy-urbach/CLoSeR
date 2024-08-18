@@ -3,6 +3,8 @@ import os
 import pandas as pd
 
 from neuronal.utils.consts import NEURONAL_BASE_DIR
+from utils.data import Data
+import tensorflow as tf
 
 DATA_DIR = f"{NEURONAL_BASE_DIR}/data"
 
@@ -168,3 +170,80 @@ class Trial:
 
     def __repr__(self):
         return f"<Trial {self.trial_num} (session {self.session_id}, stim {self.stimulus})>"
+
+
+class SessionDataGenerator(tf.keras.utils.Sequence):
+    def __init__(self, session_id, batch_size=32, frames_per_sample=10, bins_per_frame=1,
+                 stimuli=('natural_movie_one', 'natural_movie_three'), areas=None):
+        super(SessionDataGenerator, self).__init__()
+        self.session = Session(session_id)
+        self.batch_size = batch_size
+        self.frames_per_sample = frames_per_sample
+        self.bins_per_frame = bins_per_frame
+        self.spikes = {}
+        self.areas = list(areas)
+        self.stimuli = list(stimuli)
+        self.bins_per_sample = frames_per_sample * bins_per_frame
+        self.order = None
+        self.__total_samples = None
+        self.__load_spikes()
+
+    def __len__(self):
+        if self.__total_samples is None:
+            total = 0
+            for stim, act in self.spikes.items():
+                if self.areas is not None:
+                    arr = act[self.areas[0]]
+                else:
+                    arr = act
+
+                num_trials = len(arr)
+                num_samples_in_trial = arr[0].shape[-1] - self.bins_per_sample + 1
+                total += num_trials * num_samples_in_trial
+            self.__total_samples = total
+        return self.__total_samples
+
+    def __load_spikes(self):
+        for stimulus in self.stimuli:
+            self.spikes[stimulus] = [] if self.areas is None else {area: [] for area in self.areas}
+            for trial in self.session.get_trials(stimulus):
+                if self.areas is not None:
+                    for area in self.areas:
+                        self.spikes[stimulus][area].append(trial.get_spike_bins(area=area,
+                                                                                bins_per_frame=self.bins_per_frame))
+                else:
+                    self.spikes[stimulus].append(trial.get_spike_bins(bins_per_frame=self.bins_per_frame))
+
+    def __getitem__(self, idx):
+        stimuli = np.random.choice(self.stimuli, size=self.batch_size, replace=True)
+
+        spikes = [] if self.areas is None else {area: [] for area in self.areas}
+        trials = []
+        frames = []
+        for stim in stimuli:
+            trial = np.random.choice(list(range(len(self.spikes[stim]))))
+            trials.append(trial)
+            if self.areas is not None:
+                start_bin = None
+                for area in self.areas:
+                    cur_spikes = self.spikes[stim][area][trial]
+                    if start_bin is None:
+                        start_bin = np.random.randint(0, cur_spikes.shape[-1] - self.bins_per_sample + 1)
+                    sample = cur_spikes[..., start_bin:start_bin + self.bins_per_sample]
+                    spikes[area].append(sample)
+            else:
+                cur_spikes = self.spikes[stim][trial]
+                start_bin = np.random.randint(0, cur_spikes.shape[-1] - self.bins_per_sample)
+                sample = cur_spikes[..., start_bin:start_bin + self.bins_per_sample]
+                spikes.append(sample)
+            frames.append(start_bin + np.arange(self.bins_per_sample))
+
+        if self.areas is None:
+            spikes = tf.convert_to_tensor(np.stack(spikes, axis=0))
+        else:
+            spikes = {area: tf.convert_to_tensor(np.stack(activity, axis=0)) for area, activity in spikes.items()}
+
+        trials = tf.convert_to_tensor(np.array(trials))
+        frames = tf.convert_to_tensor(np.stack(frames, axis=0))
+
+        return spikes, {"stimulus": stimuli, "trials": trials, "frames": frames}
