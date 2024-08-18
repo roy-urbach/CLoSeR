@@ -218,11 +218,11 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
         stimuli = np.random.choice(self.stimuli, size=self.batch_size, replace=True)
 
         spikes = [] if self.areas is None else {area: [] for area in self.areas}
-        trials = []
-        frames = []
-        for stim in stimuli:
+        trials = np.empty(self.batch_size, dtype=int)
+        frames = np.empty((self.batch_size, self.frames_per_sample), dtype=int)
+        for b, stim in enumerate(stimuli):
             trial = np.random.choice(list(range(len(self.spikes[stim]))))
-            trials.append(trial)
+            trials[b] = trial
             if self.areas is not None:
                 start_bin = None
                 for area in self.areas:
@@ -236,7 +236,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
                 start_bin = np.random.randint(0, cur_spikes.shape[-1] - self.bins_per_sample)
                 sample = cur_spikes[..., start_bin:start_bin + self.bins_per_sample]
                 spikes.append(sample)
-            frames.append(start_bin + np.arange(self.bins_per_sample))
+            frames[b] = start_bin + np.arange(self.bins_per_sample)
 
         if self.areas is None:
             spikes = tf.convert_to_tensor(np.stack(spikes, axis=0))
