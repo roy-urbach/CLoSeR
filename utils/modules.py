@@ -7,19 +7,19 @@ class Modules(Enum):
     NEURONAL = "neuronal"
 
     def get_models_path(self):
-        return import_variable(self.value + "/utils/consts", "MODULE_MODELS_DIR")
+        return import_variable("consts", self.value + "/utils", "MODULE_MODELS_DIR")
 
     def get_config_path(self):
-        return import_variable(self.value + "/utils/consts", "MODULE_CONFIG_DIR")
+        return import_variable("consts", self.value + "/utils", "MODULE_CONFIG_DIR")
 
     def get_class_from_data(self, cls):
-        return import_variable(self.value + "/value/utils/data", cls)
+        return import_variable("data", self.value + "/utils", cls)
 
     def create_model(self, *args, **kwargs):
-        return import_variable(self.value + "/model/model", "create_model")(*args, **kwargs)
+        return import_variable("model", self.value + "/model", "create_model")(*args, **kwargs)
 
     def compile_model(self, *args, **kwargs):
-        return import_variable(self.value + "/model/model", "compile_model")(*args, **kwargs)
+        return import_variable("model", self.value + "/model", "compile_model")(*args, **kwargs)
 
     @staticmethod
     def add_method(f):
@@ -42,11 +42,9 @@ class Modules(Enum):
         return f
 
 
-def import_variable(module_name, variable_name):
+def import_variable(module_path, module_name, variable_name):
     import importlib.util
-
-    spec = importlib.util.spec_from_file_location(module_name, module_name)
+    spec = importlib.util.spec_from_file_location(module_name, os.path.join(module_path, module_name) + '.py')
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-
     return getattr(module, variable_name)
