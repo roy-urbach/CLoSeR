@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from utils.model.model import Modules
+from utils.modules import Modules
 from utils.tf_utils import history_fn_name
 
 

@@ -1,7 +1,7 @@
 import argparse
 import os
 
-from utils.model.model import Modules
+from utils.modules import Modules
 
 
 def parse():

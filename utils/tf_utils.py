@@ -1,11 +1,10 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow import keras
 import os
 import random
 
 from utils.io_utils import load_json
-from utils.model.model import Modules
+from utils.modules import Modules
 from utils.utils import printd
 
 CUSTOM_OBJECTS = {}

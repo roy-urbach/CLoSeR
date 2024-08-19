@@ -3,7 +3,8 @@ import matplotlib.pyplot as plt
 import scipy
 
 from utils.figure_utils import load_classfications_by_regex, plot_metrics_along_d, name_to_d, regex_models
-from utils.model.model import Modules, load_model_from_json
+from utils.model.model import load_model_from_json
+from utils.modules import Modules
 from utils.plot_utils import calculate_square_rows_cols, simpleaxis, savefig, dct_to_multiviolin
 from utils.utils import cosine_sim
 from utils import plot_utils
