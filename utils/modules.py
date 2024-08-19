@@ -7,19 +7,19 @@ class Modules(Enum):
     NEURONAL = "neuronal"
 
     def get_models_path(self):
-        return import_variable("consts", self.value + "/utils", "MODULE_MODELS_DIR")
+        return import_variable(self.value + "/utils", "consts", "MODULE_MODELS_DIR")
 
     def get_config_path(self):
-        return import_variable("consts", self.value + "/utils", "MODULE_CONFIG_DIR")
+        return import_variable(self.value + "/utils", "consts", "MODULE_CONFIG_DIR")
 
     def get_class_from_data(self, cls):
-        return import_variable("data", self.value + "/utils", cls)
+        return import_variable(self.value + "/utils", "data", cls)
 
     def create_model(self, *args, **kwargs):
-        return import_variable("model", self.value + "/model", "create_model")(*args, **kwargs)
+        return import_variable(self.value + "/model", "model", "create_model")(*args, **kwargs)
 
     def compile_model(self, *args, **kwargs):
-        return import_variable("model", self.value + "/model", "compile_model")(*args, **kwargs)
+        return import_variable(self.value + "/model", "model", "compile_model")(*args, **kwargs)
 
     @staticmethod
     def add_method(f):
