@@ -93,7 +93,7 @@ def load_or_create_model(model_name, module: Modules, *args, load=True, optimize
 
 
 def load_model_from_json(model_name, module: Modules, load=True, optimizer_state=True, skip_mismatch=False):
-    dct = module.load_json(model_name)
+    dct = module.load_json(model_name, config=True)
     if dct is None:
         return None
     else:
