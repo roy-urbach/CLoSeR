@@ -4,7 +4,6 @@ import pandas as pd
 from enum import Enum
 
 from neuronal.utils.consts import NEURONAL_BASE_DIR, NATURAL_MOVIES, NATURAL_MOVIES_FRAMES, NATURAL_MOVIES_TRIALS
-from utils.data import Data
 import tensorflow as tf
 
 DATA_DIR = f"{NEURONAL_BASE_DIR}/data"
@@ -32,15 +31,18 @@ def loadz(npz_path):
 
 
 class Session:
-    def __init__(self, id):
-        self.id = id
+    def __init__(self, session_id):
+        self.session_id = session_id
         self.metadata = None
         self.start_time = None
         self.trials = None
         self.units = None
         self.probes = None
-        self._path = os.path.join(DATA_DIR, self.id)
+        self._path = os.path.join(DATA_DIR, self.session_id)
         self._load()
+
+    def get_id(self):
+        return self.session_id
 
     def _load(self):
         import json
@@ -73,13 +75,13 @@ class Session:
         return self.units[self.units.ecephys_structure_acronym == area].unit_id.to_numpy()
 
     def __repr__(self):
-        return f"<Session {self.id}>"
+        return f"<Session {self.session_id}>"
 
 
 class Trial:
     def __init__(self, session, stimulus, trial_num):
         self.session = session
-        self.session_id = self.session.id
+        self.session_id = self.session.get_id()
         self._path = os.path.join(DATA_DIR, self.session_id, stimulus, trial_num)
         self.stimulus = stimulus
         self.trial_num = trial_num
@@ -208,6 +210,13 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
         self.order = None
         self.__total_samples = None
         self.__load_spikes()
+
+    @staticmethod
+    def is_generator():
+        return True
+
+    def get_validation(self):
+        raise NotImplementedError("Didn't implement SessionDataGenerator.get_validation yet")
 
     def __len__(self):
         if self.__total_samples is None:

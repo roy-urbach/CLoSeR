@@ -1,0 +1,135 @@
+from enum import Enum
+from utils.io_utils import load_json
+from utils.model.callbacks import SaveOptimizerCallback, SaveHistory, ErasePreviousCallback
+from utils.modules import Modules
+from utils.tf_utils import get_weights_fn
+from utils.utils import printd, get_class
+import os
+import tensorflow as tf
+import re
+
+
+def create_and_compile_model(model_name, input_shape, model_kwargs, loss, module:Modules, loss_kwargs={},
+                             optimizer_kwargs={}, metrics_kwargs={}, print_log=False, **kwargs):
+    if print_log:
+        printd("Creating model...", end='\t')
+    m = module.create_model(model_name, input_shape=input_shape, **model_kwargs, **kwargs)
+    if print_log:
+        printd("Done!")
+
+    import utils.model.losses
+    loss = get_class(loss, utils.model.losses)
+
+    if print_log:
+        printd("Compiling model...", end='\t')
+    module.value.model.compile_model(m, loss=loss, loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
+                                     metrics_kwargs=metrics_kwargs, **kwargs)
+
+    return m
+
+
+def load_or_create_model(model_name, module: Modules, *args, load=True, optimizer_state=True,
+                         skip_mismatch=False, pretrained_name=None, **kwargs):
+    import re
+
+    model = create_and_compile_model(model_name, *args, **kwargs)
+    max_epoch = 0
+    if load:
+        model_fn = None
+        dir_path = os.path.join(module.get_models_path(), f"{model_name}/checkpoints")
+        if os.path.exists(dir_path):
+            for fn in os.listdir(dir_path):
+                match = re.match(r"model_weights_(\d+)\.index", fn)
+                if match:
+                    epoch = int(match.group(1))
+                    if epoch > max_epoch:
+                        max_epoch = epoch
+                        model_fn = f"model_weights_{max_epoch}"
+            if model_fn:
+                print(f"loading checkpoint {model_fn}")
+                if optimizer_state:
+                    load_optimizer(model, module)
+                model.load_weights(os.path.join(dir_path, model_fn),
+                                   skip_mismatch=skip_mismatch, by_name=skip_mismatch)
+        if not max_epoch:
+            print("didn't find previous checkpoint")
+
+    if pretrained_name is not None and not max_epoch:
+        print(f"trying to load from {pretrained_name}")
+        pretrained_model = load_model_from_json(pretrained_name, module)
+        for i, l in enumerate(model.layers):
+            if len(l.weights) == 0:
+                continue
+            pretrained_layer_name = l.name.replace(model.name, pretrained_model.name)
+            loaded_w = False
+            for layer in pretrained_model.layers:
+                if layer.name == pretrained_layer_name:
+                    try:
+                        l.set_weights([w.numpy() for w in layer.weights])
+                        print(f"loaded layer {l.name}")
+                    except Exception as err:
+                        print(f"could load layer {l.name}, got exception {err}")
+                    loaded_w = True
+                    break
+            if not loaded_w:
+                print(f"couldn't load layer {l.name}, name didn't exist")
+    return model, max_epoch
+
+
+def load_model_from_json(model_name, module: Modules, load=True, optimizer_state=True, skip_mismatch=False):
+    dct = module.load_json(model_name)
+    if dct is None:
+        return None
+    else:
+        def call(dataset, data_kwargs={}, **kwargs):
+            dataset = module.get_class_from_data(dataset)(**data_kwargs)
+            model, _ = load_or_create_model(model_name, module, shape=dataset.get_shape(),
+                                            load=load, optimizer_state=optimizer_state, skip_mismatch=skip_mismatch,
+                                            **kwargs)
+            return model
+
+        return call(**dct)
+
+
+def load_optimizer(model, module: Modules):
+    import os
+    import pickle
+    grad_vars = model.trainable_weights
+    zero_grads = [tf.zeros_like(w) for w in grad_vars]
+    model.optimizer.apply_gradients(zip(zero_grads, grad_vars))
+    with open(os.path.join(module.get_models_path(), model.name, "checkpoints", 'optimizer.pkl'), 'rb') as f:
+        weight_values = pickle.load(f)
+    model.optimizer.set_weights(weight_values)
+
+
+def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_size=128, num_epochs=150, **kwargs):
+    print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+
+    printd("Getting dataset...", end='\t')
+    dataset = module.get_class_from_data(dataset)(**data_kwargs)
+    printd("Done!")
+
+    model, max_epoch = load_or_create_model(model_name, module, shape=dataset.get_shape(), print_log=True, **kwargs)
+
+    # TODO: regression callback?
+
+    if num_epochs > max_epoch:
+        printd(f"Fitting the model (with {model.count_params()} parameters)!")
+        history = model.fit(
+            x=dataset.get_x_train() if not dataset.is_generator() else None,
+            y=dataset.get_y_train() if not dataset.is_generator() else None,
+            generator=dataset if dataset.is_generator() else None,
+            validation_generator=dataset.get_validation() if dataset.is_generator() else None,
+            batch_size=batch_size,
+            epochs=num_epochs,
+            initial_epoch=max_epoch,
+            validation_split=dataset.get_val_split() if not dataset.is_generator() else None,
+            callbacks=[tf.keras.callbacks.ModelCheckpoint(filepath=get_weights_fn(model, module),
+                                                          save_weights_only=True,
+                                                          save_best_only=False,
+                                                          verbose=1),
+                       SaveOptimizerCallback(module), ErasePreviousCallback(module), SaveHistory(module)]
+        )
+        printd("Done!")
+    return model
+

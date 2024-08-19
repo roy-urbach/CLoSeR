@@ -83,6 +83,7 @@ class FileLock(object):
         self.file_name = file_name
         self.timeout = timeout
         self.delay = delay
+        self.fd = None
 
     def acquire(self):
         """ Acquire the lock, if possible. If the lock is in use, it check again
@@ -95,7 +96,7 @@ class FileLock(object):
             try:
                 self.fd = os.open(self.lockfile, os.O_CREAT | os.O_EXCL | os.O_RDWR)
                 self.is_locked = True  # moved to ensure tag only when locked
-                break;
+                break
             except OSError as e:
                 if e.errno != errno.EEXIST:
                     raise
@@ -137,3 +138,15 @@ class FileLock(object):
             lying around.
         """
         self.release()
+
+
+def smooth(arr, window=10):
+    arr = np.array(arr)
+    n = len(arr)
+    sub_arr = arr[:n-(n % window)]
+    y = sub_arr.reshape((-1, window)).mean(axis=-1)
+    x = np.arange(len(y)) * window + (window-1)/2
+    if n % window:
+        x = np.concatenate([x, [n - window/2]])
+        y = np.concatenate([y, [arr[-window:].mean()]])
+    return x, y

@@ -15,6 +15,10 @@ class Data:
             self.y_train = self.y_train.flatten()
             self.y_test = self.y_test.flatten()
 
+    @staticmethod
+    def is_generator():
+        return False
+
     def image_normalize_data(self):
         self.x_train = self.x_train / 255
         self.x_test = self.x_test / 255

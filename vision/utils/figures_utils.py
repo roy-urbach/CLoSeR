@@ -2,13 +2,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy
 
+from utils.figure_utils import load_classfications_by_regex, plot_metrics_along_d, name_to_d, regex_models
+from utils.model.model import Modules, load_model_from_json
 from utils.plot_utils import calculate_square_rows_cols, simpleaxis, savefig, dct_to_multiviolin
 from utils.utils import cosine_sim
-from vision.evaluation.utils import load_evaluation_json
-from vision.measures.utils import load_measures_json
 from utils import plot_utils
 import re
-from utils.io_utils import load_json
 import os
 from scipy import stats
 
@@ -44,90 +43,18 @@ def Acc(string=r'$f$'):
     return r"$Acc($" + string + r"$)$"
 
 
-def name_to_d(name, naive=True, mapping={}, frac=True):
-    if naive:
-        return eval(re.findall("0\.\d+", name)[-1])
-    else:
-        if name in mapping:
-            return mapping[name]
-        else:
-            if PATCHES:
-                d = f"{int(load_json(name)['model_kwargs']['pathways_kwargs']['d'] * PATCHES)}/{PATCHES}"
-            else:
-                from vision.model.model import load_model_from_json
-                model = load_model_from_json(name, load=False)
-                pathways_layer = model.get_layer(model.name + '_pathways')
-                if frac:
-                    d = f"{pathways_layer.num_patches_per_path}/{pathways_layer.num_patches}"
-                else:
-                    d = pathways_layer.num_patches_per_path / pathways_layer.num_patches
-            mapping[name] = d
-            return d
-
-
-def load_classfications_by_regex(model_regex, name_to_d_naive=False, convert_name=True, negative_regex=None, print_err=True):
-    base_path = 'models'
-    archive = {}
-    for m in os.listdir(base_path):
-        if re.match(model_regex, m) and (negative_regex is None or not re.match(negative_regex, m)):
-            try:
-                eval_json = load_evaluation_json(m)
-            except Exception as err:
-                if print_err: print(f"Couldn't load {m} because of {err.__str__()}")
-                continue
-            if eval_json is not None:
-                if convert_name:
-                    m = name_to_d(m, naive=name_to_d_naive)
-                archive[m] = eval_json
-    return archive
-
-
 def metric_to_label(metric):
     return {"logistic": r"$f^{ensemble}_{logistic}$",
             "ensemble_linear_ArgmaxMeanProb": r"$f^{ensemble}_{mean prob}$"}.get(metric, metric)
 
 
-def plot_metrics_along_d(model_regex, metric_regex=("logistic", '.*linear_.*', '.*knn.*'), name_to_d_naive=False, measures=False):
-    archive = load_classfications_by_regex(model_regex, name_to_d_naive=name_to_d_naive)
-    best = max([max([v[-1] for v in val.values()]) for val in archive.values()])
-    print(best)
-    sorted_keys = np.array([k for k in sorted(archive.keys(), key=lambda k: eval(k))])
-    eval_keys = np.array([eval(k) for k in sorted_keys])
-    keys_labels = [r'$\frac{{{0}}}{{{1}}}$'.format(*k.split('/')) for k in sorted_keys]
-
-    ax = None
-    relevant_metrics = set(classi for dct in archive.values() for classi in dct if
-                           any([re.match(regex, classi) for regex in metric_regex]))
-    rows, cols = calculate_square_rows_cols(len(relevant_metrics))
-    plt.figure(figsize=(4 * cols, 3 * rows))
-    plt.suptitle(model_regex)
-    subplot = 1
-    for classi in relevant_metrics:
-        ax = plt.subplot(rows, cols, subplot, sharey=ax)
-        plt.title(classi)
-        for i in range(2):
-            plt.scatter(eval_keys, [archive[k].get(classi, {i: np.nan})[i] for k in sorted_keys],
-                        label=metric_to_label(classi) + [' train', ' test'][i])
-        plt.axhline(0.4, linestyle=":", c='g', label=BASELINE_NAME)
-        if not classi.startswith('k'): plot_utils.legend(loc='upper right' if best > 0.5 else "lower right")
-        plt.xlabel("d")
-        plt.ylabel("accuracy")
-        plt.grid(alpha=0.2)
-        subplot += 1
-        plt.xlim(0, 1)
-        plt.xticks(eval_keys, keys_labels)
-        simpleaxis(ax)
-    plt.tight_layout()
-    plt.show()
-    return archive
-
 
 def plot_pathways_distribution_over_d(model_regex, name_to_d_naive=False, plot_train=False):
-    archive = load_classfications_by_regex(model_regex, name_to_d_naive=name_to_d_naive)
+    archive = load_classfications_by_regex(model_regex, module=Modules.VISION, name_to_d_naive=name_to_d_naive)
     plt.figure(figsize=(8, 3))
     ax = None
     for subplot, name in enumerate(("linear", "knn")):
-        best = max([max([v[-1] for v in val.values()]) for val in archive.values()])
+        # best = max([max([v[-1] for v in val.values()]) for val in archive.values()])
         pathways_res = {
             d: np.stack([archive[d].get(k, [np.nan] * 2) for k in archive[d] if k.startswith('pathway') and name in k],
                         axis=-1)
@@ -180,15 +107,14 @@ def gather_train_test_res(model_regex, convert_name_to_d=False):
             continue
         try:
             if convert_name_to_d:
-                key = name_to_d(m, naive=False)
+                key = name_to_d(m, module=Modules.VISION, naive=False, patches=PATCHES)
             else:
                 key = m
         except ValueError:
             continue
         except AttributeError:
             continue
-        from utils.io_utils import load_output
-        output = load_output(m)
+        output = Modules.VISION.load_output(m)
         if output:
             res = {'train': [], 'val': []}
             res_acc = {'train': [], 'val': []}
@@ -219,7 +145,7 @@ def plot_train_test(model_regex, convert_name_to_d=False, conversion_f=lambda x:
         plt.title(model_regex + f" {name}")
         if convert_name_to_d:
             sorted_keys = np.array([k for k in sorted(dct.keys(), key=lambda k: eval(k))])
-            eval_keys = np.array([eval(k) for k in sorted_keys])
+            # eval_keys = np.array([eval(k) for k in sorted_keys])
             keys_labels = [r'$\frac{{{0}}}{{{1}}}$'.format(*k.split('/')) for k in sorted_keys]
         else:
             sorted_keys = sorted(dct.keys())
@@ -251,7 +177,7 @@ def plot_train_test(model_regex, convert_name_to_d=False, conversion_f=lambda x:
 
 
 def check_correlation_regex(model_regex, metric_regex, cutoff=6/64, name_to_d_naive=False):
-    archive = load_classfications_by_regex(model_regex, name_to_d_naive=name_to_d_naive)
+    archive = load_classfications_by_regex(model_regex, module=Modules.VISION, name_to_d_naive=name_to_d_naive)
     sorted_keys = np.array([k for k in sorted(archive.keys(), key=lambda k: eval(k))])
     eval_keys = np.array([eval(k) for k in sorted_keys])
     mask_before = eval_keys <= cutoff
@@ -263,7 +189,7 @@ def check_correlation_regex(model_regex, metric_regex, cutoff=6/64, name_to_d_na
 
 
 def check_correlation_regex_dist(model_regex, cutoff=6 / 64, name_to_d_naive=False):
-    archive = load_classfications_by_regex(model_regex, name_to_d_naive=name_to_d_naive)
+    archive = load_classfications_by_regex(model_regex, module=Modules.VISION, name_to_d_naive=name_to_d_naive)
     pathways_res = {
         d: np.stack([archive[d].get(k, [np.nan] * 2)[-1] for k in archive[d] if k.startswith('pathway')], axis=-1)
         for d in archive if any([k.startswith('pathway') for k in archive[d]])}
@@ -279,12 +205,14 @@ def check_correlation_regex_dist(model_regex, cutoff=6 / 64, name_to_d_naive=Fal
 
 
 def all_plot_regex(model_regex, ensemble_types=("logistic", '.*linear_.*', '.*knn.*'), plot_pathway_train=False):
-    archive = plot_metrics_along_d(model_regex, metric_regex=ensemble_types)
+    archive = plot_metrics_along_d(model_regex, module=Modules.VISION,
+                                   metric_regex=ensemble_types, metric_to_label=metric_to_label,
+                                   baseline_name=BASELINE_NAME)
     plot_pathways_distribution_over_d(model_regex, plot_train=plot_pathway_train)
 
 
 def plot_pathways_vs_masked_images(model_name, num_pathways=10):
-    eval_dct = load_evaluation_json(model_name)
+    eval_dct = Modules.VISION.load_evaluation_json(model_name)
     reg_image_res = []
     reg_pathway_res = []
 
@@ -312,96 +240,6 @@ def plot_pathways_vs_masked_images(model_name, num_pathways=10):
     plt.show()
 
 
-def smooth(arr, window=10):
-    arr = np.array(arr)
-    n = len(arr)
-    sub_arr = arr[:n-(n % window)]
-    y = sub_arr.reshape((-1, window)).mean(axis=-1)
-    x = np.arange(len(y)) * window + (window-1)/2
-    if n % window:
-        x = np.concatenate([x, [n - window/2]])
-        y = np.concatenate([y, [arr[-window:].mean()]])
-    return x, y
-
-
-def regex_models(regex):
-    return list(filter(lambda m: re.match(regex, m), os.listdir("models")))
-
-
-def plot_history(model_regex, window=10, name_to_name=lambda m: m, log=True, keys=None,
-                 log_keys={'embedding'}, plot_train=True, plot_val=True, name_to_c=None, save=None):
-    from vision.utils.tf_utils import load_history
-    models = regex_models(model_regex)
-    models_names = []
-    orig_names = []
-    histories = {}
-    for model in models:
-        history = load_history(model)
-        if history:
-            orig_names.append(model)
-            models_names.append(name_to_name(model))
-            for k, v in history.items():
-                k = k.replace(model+'_', "")
-                histories.setdefault(k, {})[name_to_name(model)] = v
-    for k, v in histories.items():
-        if k.startswith("val") or k == "loss": continue
-        if keys is not None and k not in keys: continue
-        plt.figure()
-        plt.title(model_regex + " " + k)
-        for i, (model_name, value) in enumerate(v.items()):
-            if plot_train:
-                plt.plot(*smooth(value, window), label=model_name,
-                         c=f"C{i}" if name_to_c is None else name_to_c(orig_names[i]))
-            if plot_val:
-                plt.plot(*smooth(histories["val_"+k][model_name], window), label=model_name if not plot_train else None,
-                         c=f"C{i}" if name_to_c is None else name_to_c(orig_names[i]), linestyle=':' if plot_train else '-')
-        if log and any([key in k for key in log_keys]):
-            plt.yscale("log")
-        plt.legend()
-        plt.xlabel("epoch")
-        plt.ylabel(k)
-        if save:
-            savefig(f"figures/{k}.png")
-
-
-def sorted_barplot(model_regex, metric_regex, sort_by_train=True, show_top=None, regex_suptitle=True,
-                   negative_regex=None, print_err=False, baseline=None, plot_train=True):
-    archive = load_classfications_by_regex(model_regex, convert_name=False, negative_regex=negative_regex,
-                                           print_err=print_err)
-    n_models = len(archive)
-    metrics = set(metric for dct in archive.values() for metric in dct.keys() if re.match(metric_regex, metric))
-    rows, cols = calculate_square_rows_cols(len(metrics))
-    plt.figure(figsize=(cols * 5, rows * 3))
-    if regex_suptitle:
-        plt.suptitle(model_regex)
-    for subplot, metric in enumerate(sorted(metrics)):
-        plt.subplot(rows, cols, subplot + 1)
-        plt.title(metric)
-        values = {k: archive[k].get(metric, [np.nan] * 2) for k in archive}
-
-        keys = np.array(sorted(archive.keys()))
-        values_to_sort_by = np.array([values[k][0 if sort_by_train else 1] for k in keys])
-        nan_mask = ~np.isnan(values_to_sort_by)
-        sorted_k = keys[nan_mask][np.argsort(values_to_sort_by[nan_mask])]
-        if show_top is not None:
-            sorted_k = sorted_k[-show_top:]
-        if plot_train:
-            plt.barh(np.arange(len(sorted_k)), [values[k][0] for k in sorted_k], label='train', zorder=1)
-            plt.scatter([values[k][1] for k in sorted_k], np.arange(len(sorted_k)), label='test', zorder=2)
-        else:
-            plt.barh(np.arange(len(sorted_k)), [values[k][1] for k in sorted_k], label='test', zorder=2)
-        plt.yticks(np.arange(len(sorted_k)), sorted_k)
-        if baseline:
-            plt.axvline(load_evaluation_json(baseline)[metric][1], c='k', linestyle=':')
-        plt.legend()
-        if baseline:
-            plt.gca().set_xlim(left=load_evaluation_json(baseline)[metric][1])
-            # plt.xticks(np.linspace(0, 1, 11))
-            # plt.xlim(load_evaluation_json(BASELINE_UNTRAINED)[metric][1], 1)
-        plt.grid(axis='x', zorder=0, alpha=0.2, linewidth=2)
-    if len(metrics) > 1: plt.tight_layout()
-
-
 from json import JSONDecodeError
 from itertools import product
 
@@ -418,8 +256,9 @@ def gather_results_over_all_args(model_format, name='logistic', seeds=[1], args=
                 **{k: v for k, v in zip(names, [args[arg_ind][cur_ind] for arg_ind, cur_ind in enumerate(inds)])},
                 seed=seed)
             try:
-                dct = load_measures_json(model_name) if measure else load_evaluation_json(model_name)
+                dct = Modules.VISION.load_measures_json(model_name) if measure else Modules.VISION.load_evaluation_json(model_name)
             except JSONDecodeError as err:
+                dct = None
                 print(model_name)
             if dct is None:
                 val = np.nan
@@ -449,7 +288,7 @@ def gather_results_over_all_args_pathways_mean(model_format, name_format='pathwa
             model_name = model_format.format(
                 **{k: v for k, v in zip(names, [args[arg_ind][cur_ind] for arg_ind, cur_ind in enumerate(inds)])},
                 seed=seed)
-            dct = load_measures_json(model_name) if measure else load_evaluation_json(model_name)
+            dct = Modules.VISION.load_measures_json(model_name) if measure else Modules.VISION.load_evaluation_json(model_name)
             val = np.mean(
                 [dct[name_format.format(path)] for path in range(args[names.index("P")] if "P" in names else P)],
                 axis=0)
@@ -549,11 +388,10 @@ def plot_lines_different_along_d(model_format, seeds=SEEDS, name="logistic", sav
 
 
 def plot_positional_encoding(model, cosine=True, save=False):
-    from vision.model.model import load_model_from_json
     if isinstance(model, str):
-        model = load_model_from_json(model, optimizer_state=False, skip_mismatch=True)
+        model = load_model_from_json(model, module=Modules.VISION, optimizer_state=False, skip_mismatch=True)
     embd = model.get_layer(model.name + '_patchenc').position_embedding
-    class_token = model.get_layer(model.name + '_patchenc').class_token.numpy()
+    # class_token = model.get_layer(model.name + '_patchenc').class_token.numpy()
     num_patches = model.get_layer(model.name + '_pathways').num_patches
     n_pathways = model.get_layer(model.name + "_pathways").n
     indices_shape = [int(np.sqrt(num_patches))] * 2
@@ -598,9 +436,9 @@ def plot_positional_encoding(model, cosine=True, save=False):
 
 
 def plot_measures(model_regex, mask=None, save=False):
-    from vision.measures.utils import CrossPathMeasures, load_measures_json
-    models = regex_models(model_regex)
-    dcts = {model: load_measures_json(model) for model in models}
+    from vision.measures.utils import CrossPathMeasures
+    models = regex_models(model_regex, module=Modules.VISION)
+    dcts = {model: Modules.VISION.load_measures_json(model) for model in models}
     for measure in CrossPathMeasures:
         plt.figure()
         plt.title(measure)
@@ -611,7 +449,7 @@ def plot_measures(model_regex, mask=None, save=False):
 
 
 def compare_measures(*models, names=None, log=False, mask=None, grid=True, fig=None, xs=None, **kwargs):
-    from vision.measures.utils import CrossPathMeasures, load_measures_json
+    from vision.measures.utils import CrossPathMeasures
     if names is None:
         names = models
     if fig is None:
@@ -622,7 +460,7 @@ def compare_measures(*models, names=None, log=False, mask=None, grid=True, fig=N
         plt.title("log "*log + k.name)
         remove = lambda arr: np.where(np.eye(len(arr)) > 0, np.nan, arr) if mask is None else np.where(mask, arr, np.nan)
         f_log = lambda arr: np.log(arr) if log else arr
-        get_measure_single = lambda model: f_log(remove(load_measures_json(model)[k.name]))
+        get_measure_single = lambda model: f_log(remove(Modules.VISION.load_measures_json(model)[k.name]))
         get_measure = lambda model: np.concatenate([get_measure_single(m) for m in model]) if isinstance(model, list) else get_measure_single(model)
         dct_to_multiviolin({name: get_measure(model)
                             for name, model in zip(names, models)}, fig=fig, xs=xs, **kwargs)

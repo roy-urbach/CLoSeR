@@ -3,7 +3,7 @@ from tensorflow import keras
 from tensorflow.keras import layers as tf_layers
 from tensorflow.keras import backend as K
 
-from vision.utils.tf_utils import set_seed, serialize
+from utils.tf_utils import set_seed, serialize
 
 
 # ViT layers

@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.decomposition import PCA
 
-from vision.evaluation.ensemble import EnsembleModel, EnsembleVotingMethods
+from utils.evaluation.ensemble import EnsembleModel, EnsembleVotingMethods
 from utils.utils import printd
 
 

@@ -1,6 +1,8 @@
 import argparse
 import os
 
+from utils.modules import Modules
+
 BASE_PATH = 'models'
 # QUEUE_GPU = "gsla-gpu"    # TODO: change back when it works
 # QUEUE_GPU = 'sch-gpu'
@@ -27,6 +29,8 @@ def parse():
     parser.add_argument('-b', '--batch', type=int, default=128, help='batch size')
     parser.add_argument('-e', '--epochs', type=int, default=200, help='number of epochs')
     parser.add_argument('-q', '--queue', type=str, default=QUEUE_GPU, help='name of the queue')
+    parser.add_argument('-m', '--module', type=str, default=Modules.VISION.name,
+                        choices=[Modules.VISION.name, Modules.NEURONAL.name])
     parser.add_argument('--rusage', type=int, default=RUSAGE, help='CPU mem')
     parser.add_argument('--mem', type=int, default=4, help='GPU mem')
 
@@ -58,7 +62,7 @@ def get_cmd():
         bsub_call += f" -gpu num=1:j_exclusive=no:gmem={args.mem}GB"
     else:
         bsub_call += f' -R rusage[mem={RUSAGE}]'
-    train_call = f'python3 train.py -b {args.batch} -e {args.epochs} --json {args.json}'
+    train_call = f'python3 train.py -b {args.batch} -e {args.epochs} --json {args.json} -m {args.module}'
     cmd = [*bsub_call.split(), *bsub_args, f'"{train_call}"']
     return ' '.join(cmd)
 

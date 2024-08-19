@@ -1,3 +1,4 @@
+from utils.model.losses import GeneralLossByKey
 import tensorflow as tf
 
 
@@ -37,3 +38,20 @@ class CrossPathwayTemporalContrastiveLoss(tf.keras.losses.Loss):
                     loss = loss + tf.reduce_mean(minus_log_likelihood_j)
 
         return loss / (tf.cast(n ** 2, dtype=loss.dtype) if self.a is None else tf.reduce_sum(tf.cast(self.a, dtype=loss.dtype)))
+
+
+class SparseCategoricalCrossEntropyByKey(tf.keras.losses.Loss):
+    def __init__(self, *args, from_logits=True, name='sparse_categorical_ce_{key}', **kwargs):
+        super(SparseCategoricalCrossEntropyByKey, self).__init__(*args, name=name, **kwargs)
+        self.from_logits = from_logits
+
+    def loss_func(self, y_true, y_pred):
+        return tf.keras.losses.sparse_categorical_crossentropy(y_true, y_pred, from_logits=self.from_logits)
+
+
+class MeanAbsoluteErrorByKeyLoss(GeneralLossByKey):
+    def __init__(self, *args, name='absolute_error_{key}', **kwargs):
+        super(MeanAbsoluteErrorByKeyLoss, self).__init__(*args, name=name, **kwargs)
+
+    def loss_func(self, y_true, y_pred):
+        return tf.keras.losses.mean_absolute_loss(y_true, y_pred)

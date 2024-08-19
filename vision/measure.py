@@ -1,5 +1,6 @@
-from vision.measures.utils import save_measures_json, measure_model, get_measuring_time, load_measures_json
-from vision.utils.consts import VISION_MODELS_DIR
+from utils.modules import Modules
+from vision.measures.utils import measure_model
+import os
 
 
 def main():
@@ -15,9 +16,8 @@ def main():
 
     args = parse()
     args.json = ".".join(args.json.split(".")[:-1]) if args.json.endswith(".json") else args.json
-    measuring_fn = f'{VISION_MODELS_DIR}/{args.json}/is_measuring'
+    measuring_fn = os.path.join(Modules.VISION.get_models_path(), args.json, 'is_measuring')
 
-    import os
     if os.path.exists(measuring_fn):
         print("already measuring!")
         return
@@ -35,21 +35,20 @@ def main():
 def measure(model, save_results=False, override=False, **kwargs):
     model_name = model if isinstance(model, str) else model.name
     if not override:
-        from utils.io_utils import get_output_time
-        output_time = get_output_time(model)
-        measuring_time = get_measuring_time(model)
+        output_time = Modules.VISION.get_output_time(model)
+        measuring_time = Modules.VISION.get_measuring_time(model)
 
         if output_time and measuring_time and output_time < measuring_time:
             print(f"Tried to measure, but output time is {output_time} and measuring time is {measuring_time} and override is False")
-            return load_measures_json(model_name)
+            return Modules.VISION.load_measures_json(model_name)
 
-    results = load_measures_json(model_name) if not override else {}
+    results = Modules.VISION.load_measures_json(model_name) if not override else {}
 
     if results is None:
         results = {}
     res_dct = measure_model(model, **kwargs)
     if save_results:
-        save_measures_json(model_name, res_dct)
+        Modules.VISION.save_measures_json(model_name, res_dct)
 
     return results
 

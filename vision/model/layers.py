@@ -1,5 +1,5 @@
 from utils.model.layers import SplitPathways
-from vision.utils.tf_utils import serialize
+from utils.tf_utils import serialize
 
 
 @serialize

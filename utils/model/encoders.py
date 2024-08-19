@@ -2,7 +2,7 @@ from utils.model.layers import *
 from tensorflow.keras import layers as tf_layers
 import tensorflow as tf
 
-from vision.utils.tf_utils import serialize
+from utils.tf_utils import serialize
 
 
 class ViTEncoder:

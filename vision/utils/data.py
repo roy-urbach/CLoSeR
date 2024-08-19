@@ -1,10 +1,10 @@
 import tensorflow as tf
-
+import numpy as np
 from utils.data import Data
 
 
 class Cifar10(Data):
-    LABELS = ["airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck"]
+    LABELS = np.array(["airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck"])
 
     def __init__(self, *args, **kwargs):
         (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()

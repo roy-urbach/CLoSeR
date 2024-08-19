@@ -1,9 +1,10 @@
-from vision.model.model import load_model_from_json
+from utils.model.model import load_model_from_json
+from utils.modules import Modules
 from utils.io_utils import load_json, save_json, get_file_time
 from utils.utils import get_class, counter
 import numpy as np
 from enum import Enum, auto
-from vision.utils.consts import VISION_MODELS_DIR
+import os
 
 MEASURES_FILE_NAME = 'measures'
 
@@ -20,8 +21,9 @@ class CrossPathMeasures(Enum):
     CKA = auto()
 
 
+@Modules.add_method
 def load_measures_json(model_name, tolist=False):
-    dct_with_list = load_json(f'{VISION_MODELS_DIR}/{model_name}/{MEASURES_FILE_NAME}')
+    dct_with_list = load_json(os.path.join(model_name, MEASURES_FILE_NAME))
     if not tolist and dct_with_list is not None:
         dct = {k: np.array(v) for k, v in dct_with_list.items()}
     else:
@@ -29,20 +31,22 @@ def load_measures_json(model_name, tolist=False):
     return dct
 
 
+@Modules.add_method
 def save_measures_json(model_name, dct):
     dct = {k: v.tolist() if isinstance(v, np.ndarray) else v for k, v in dct.items()}
-    save_json(f'{VISION_MODELS_DIR}/{model_name}/{MEASURES_FILE_NAME}', dct)
+    save_json(os.path.join(model_name, MEASURES_FILE_NAME), dct)
 
 
+@Modules.add_method
 def get_measuring_time(model_name, raw=True):
-    return get_file_time(f'{VISION_MODELS_DIR}/{model_name}/{MEASURES_FILE_NAME}.json', raw=raw)
+    return get_file_time(os.path.join(model_name, MEASURES_FILE_NAME) + '.json', raw=raw)
 
 
 def measure_model(model, iterations=50, b=128):
     import tensorflow as tf
 
     if isinstance(model, str):
-        model = load_model_from_json(model)
+        model = load_model_from_json(model, Modules.VISION)
 
     import vision.utils.data
     kwargs = load_json(model.name)
@@ -52,16 +56,16 @@ def measure_model(model, iterations=50, b=128):
     n = test_embd.shape[2]
 
     loss = model.loss[model.name + "_embedding"]
-    from utils.model.losses import GeneralPullPushGraphLoss
+    from vision.model.losses import GeneralPullPushGraphLoss
     if not issubclass(loss.__class__, GeneralPullPushGraphLoss):
-        from utils.model.losses import CommunitiesLoss
+        from vision.model.losses import CommunitiesLoss
         loss = CommunitiesLoss(n, 1)
 
     res_dct = {k: [] for k in CrossPathMeasures}
 
     triu_inds = np.triu_indices(b, 1)
 
-    for i in counter(range(iterations)):
+    for _ in counter(range(iterations)):
         cur_samples = test_embd[np.random.permutation(test_embd.shape[0])[:b]]
         cur_dists = np.sqrt(loss.calculate_dists(cur_samples).numpy())
         logits = loss.calculate_logits(None, dist=cur_dists**2)

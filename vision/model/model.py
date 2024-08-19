@@ -1,17 +1,12 @@
-from utils.model.callbacks import SaveOptimizerCallback, ErasePreviousCallback, SaveHistory
 from utils.model.layers import *
 from utils.model.losses import *
-import vision.utils.data
 from vision.model.layers import SplitPathwaysVision
-from vision.utils.consts import VISION_MODELS_DIR
-from vision.utils.io_utils import load_json
-from vision.utils.tf_utils import get_weights_fn
 from utils.utils import *
 from tensorflow.keras import layers
 from tensorflow import keras
 import tensorflow as tf
-import os
 
+from vision.model.losses import ContrastiveSoftmaxLoss, LateralPredictiveLoss
 
 PATHWAY_TO_CLS = None
 
@@ -156,128 +151,3 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
         losses[model.name + '_ensemble_logits'] = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         metrics[model.name + '_ensemble_logits'] = keras.metrics.SparseCategoricalAccuracy(name="accuracy")
     model.compile(optimizer=optimizer, loss=losses, metrics=metrics)
-
-
-def train(model_name, model_kwargs, loss=ContrastiveSoftmaxLoss, data_kwargs={}, loss_kwargs={},
-          optimizer_kwargs={}, dataset=vision.utils.data.Cifar10, batch_size=128, num_epochs=150, **kwargs):
-    print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
-
-    printd("Getting dataset...", end='\t')
-    dataset = get_class(dataset, vision.utils.data)(**data_kwargs)
-    printd("Done!")
-
-    model, max_epoch = load_or_create_model(model_name, dataset.get_shape(), model_kwargs, loss=loss,
-                                            loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
-                                            print_log=True, **kwargs)
-
-    # TODO: regression callback?
-
-    if num_epochs > max_epoch:
-        printd(f"Fitting the model (with {model.count_params()} parameters)!")
-        history = model.fit(
-            x=dataset.get_x_train(),
-            y=dataset.get_y_train(),
-            batch_size=batch_size,
-            epochs=num_epochs,
-            initial_epoch=max_epoch,
-            validation_split=dataset.get_val_split(),
-            callbacks=[tf.keras.callbacks.ModelCheckpoint(filepath=get_weights_fn(model),
-                                                          save_weights_only=True,
-                                                          save_best_only=False,
-                                                          verbose=1),
-                       SaveOptimizerCallback(), ErasePreviousCallback(), SaveHistory()]
-        )
-        printd("Done!")
-    return model
-
-
-def create_and_compile_model(model_name, input_shape, model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
-                             optimizer_kwargs={}, metrics_kwargs={}, print_log=False, **kwargs):
-    if print_log:
-        printd("Creating model...", end='\t')
-    m = create_model(model_name, input_shape=input_shape, **model_kwargs, **kwargs)
-    if print_log:
-        printd("Done!")
-
-    import utils.model.losses
-    loss = get_class(loss, utils.model.losses)
-
-    if print_log:
-        printd("Compiling model...", end='\t')
-    compile_model(m, loss=loss, loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs, metrics_kwargs=metrics_kwargs, **kwargs)
-
-    return m
-
-
-def load_or_create_model(model_name, *args, load=True, optimizer_state=True, skip_mismatch=False, pretrained_name=None, **kwargs):
-    import re
-
-    model = create_and_compile_model(model_name, *args, **kwargs)
-    max_epoch = 0
-    if load:
-        model_fn = None
-        if os.path.exists(f"{VISION_MODELS_DIR}/{model_name}/checkpoints"):
-            for fn in os.listdir(f'{VISION_MODELS_DIR}/{model_name}/checkpoints'):
-                match = re.match(r"model_weights_(\d+)\.index", fn)
-                if match:
-                    epoch = int(match.group(1))
-                    if epoch > max_epoch:
-                        max_epoch = epoch
-                        model_fn = f"model_weights_{max_epoch}"
-            if model_fn:
-                print(f"loading checkpoint {model_fn}")
-                if optimizer_state:
-                    load_optimizer(model)
-                model.load_weights(os.path.join("models", model_name, "checkpoints", model_fn),
-                                   skip_mismatch=skip_mismatch, by_name=skip_mismatch)
-        if not max_epoch:
-            print("didn't find previous checkpoint")
-
-    if pretrained_name is not None and not max_epoch:
-        print(f"trying to load from {pretrained_name}")
-        pretrained_model = load_model_from_json(pretrained_name)
-        for i, l in enumerate(model.layers):
-            if len(l.weights) == 0:
-                continue
-            pretrained_layer_name = l.name.replace(model.name, pretrained_model.name)
-            loaded_w = False
-            for layer in pretrained_model.layers:
-                if layer.name == pretrained_layer_name:
-                    try:
-                        l.set_weights([w.numpy() for w in layer.weights])
-                        print(f"loaded layer {l.name}")
-                    except Exception as err:
-                        print(f"could load layer {l.name}, got exception {err}")
-                    loaded_w = True
-                    break
-            if not loaded_w:
-                print(f"couldn't load layer {l.name}, name didn't exist")
-    return model, max_epoch
-
-
-def load_model_from_json(model_name, load=True, optimizer_state=True, skip_mismatch=False):
-    dct = load_json(model_name)
-    if dct is None:
-        return None
-    else:
-
-        def call(model_kwargs, loss=ContrastiveSoftmaxLoss, loss_kwargs={}, optimizer_kwargs={},
-                 dataset=vision.utils.data.Cifar10, data_kwargs={}, **kwargs):
-            dataset = get_class(dataset, vision.utils.data)(**data_kwargs)
-            model, _ = load_or_create_model(model_name, dataset.get_shape(), model_kwargs, loss=loss,
-                                            loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
-                                            load=load, optimizer_state=optimizer_state, skip_mismatch=skip_mismatch, **kwargs)
-            return model
-
-        return call(**dct)
-
-
-def load_optimizer(model):
-    import os
-    import pickle
-    grad_vars = model.trainable_weights
-    zero_grads = [tf.zeros_like(w) for w in grad_vars]
-    model.optimizer.apply_gradients(zip(zero_grads, grad_vars))
-    with open(os.path.join("models", model.name, "checkpoints", 'optimizer.pkl'), 'rb') as f:
-        weight_values = pickle.load(f)
-    model.optimizer.set_weights(weight_values)

@@ -1,19 +1,19 @@
 from typing import Optional
 
-from vision.evaluation.ensemble import EnsembleVotingMethods
-from vision.evaluation.evaluation import classify_head_eval_ensemble
-from vision.evaluation.utils import save_evaluation_json, load_evaluation_json, get_evaluation_time
-from vision.model.model import load_model_from_json
+from utils.model.model import load_model_from_json
+from utils.modules import Modules
+from utils.evaluation.ensemble import EnsembleVotingMethods
+from utils.evaluation.evaluation import classify_head_eval_ensemble
 from vision.utils.data import Cifar10, Data
-from utils.io_utils import load_json
-from utils.utils import get_class, printd
+from utils.utils import printd
 from vision.utils import data
 import numpy as np
+import os
 
 
 def get_masked_ds(model, dataset=Cifar10()):
     if isinstance(model, str):
-        model = load_model_from_json(model)
+        model = load_model_from_json(model, Modules.VISION)
     aug_layer = model.get_layer("data_augmentation")
     patch_layer = model.get_layer(model.name + '_patch')
     pathway_indices = model.get_layer(model.name + '_pathways').indices.numpy()
@@ -30,6 +30,7 @@ def main():
     def parse():
         parser = argparse.ArgumentParser(description='Evaluate a model')
         parser.add_argument('-j', '--json', type=str, help='name of the config json')
+        parser.add_argument('-m', '--module', type=str, choices=[Modules.VISION.name, Modules.NEURONAL.name])
         parser.add_argument('--knn', action=argparse.BooleanOptionalAction, default=False)
         parser.add_argument('--linear', action=argparse.BooleanOptionalAction, default=True)
         parser.add_argument('--ensemble', action=argparse.BooleanOptionalAction, default=True)
@@ -39,9 +40,9 @@ def main():
 
     args = parse()
     args.json = ".".join(args.json.split(".")[:-1]) if args.json.endswith(".json") else args.json
-    evaluating_fn = f'models/{args.json}/is_evaluating'
+    module = [module for module in Modules if module.name == argparse.module][0]
+    evaluating_fn = os.path.join(module.get_models_path(), args.json, 'is_evaluating')
 
-    import os
     if os.path.exists(evaluating_fn):
         print("already evaluating!")
         return
@@ -50,44 +51,44 @@ def main():
             f.write("Yes!")
 
     try:
-        res = evaluate(args.json, knn=args.knn, linear=args.linear, ensemble=args.ensemble, ensemble_knn=args.ensemble_knn,
+        res = evaluate(args.json, module=module, knn=args.knn, linear=args.linear, ensemble=args.ensemble, ensemble_knn=args.ensemble_knn,
                        save_results=True, dataset=None, override=args.override)
     finally:
         os.remove(evaluating_fn)
     return res
 
 
-def evaluate(model, knn=False, linear=True, ensemble=True, ensemble_knn=False, save_results=False, override=False,
+def evaluate(model, module: Modules, knn=False, linear=True, ensemble=True, ensemble_knn=False, save_results=False, override=False,
              dataset:Optional[Data]=Cifar10(), **kwargs):
 
     if not override:
         from utils.io_utils import get_output_time
-        output_time = get_output_time(model)
-        evaluation_time = get_evaluation_time(model)
+        output_time = get_output_time(model, module)
+        evaluation_time = module.get_evaluation_time(model)
 
         if output_time and evaluation_time and output_time < evaluation_time:
             print(f"Tried to evaluate, but output time is {output_time} and evaluation time is {evaluation_time} and override is False")
-            return load_evaluation_json(model)
+            return module.load_evaluation_json(model)
 
     if isinstance(model, str):
-        model_kwargs = load_json(model)
+        model_kwargs = module.load_json(model)
         assert model_kwargs is not None
-        model = load_model_from_json(model)
+        model = load_model_from_json(model, module)
         if dataset is None:
-            dataset = get_class(model_kwargs.get('dataset', 'Cifar10'), data)(**model_kwargs.get('data_kwargs', {}))
+            dataset = module.get_class_from_data(model_kwargs.get('dataset', 'Cifar10'))(**model_kwargs.get('data_kwargs', {}))
 
     x_train_embd = model.predict(dataset.get_x_train())[0]
     x_test_embd = model.predict(dataset.get_x_test())[0]
     embd_dataset = data.Data(x_train_embd, dataset.get_y_train(), x_test_embd, dataset.get_y_test())
 
-    from evaluation.evaluation import classify_head_eval
+    from utils.evaluation.evaluation import classify_head_eval
 
-    results = load_evaluation_json(model.name) if not override else {}
+    results = module.load_evaluation_json(model.name) if not override else {}
 
     if results is None:
         results = {}
 
-    save_res = lambda *inputs: save_evaluation_json(model.name, results) if save_results else None
+    save_res = lambda *inputs: module.save_evaluation_json(model.name, results) if save_results else None
 
     if knn:
         for k in [1] + list(range(5, 50, 5)):

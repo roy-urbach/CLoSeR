@@ -1,7 +1,10 @@
 import json
 import os
 
+from utils.modules import Modules
 
+
+@Modules.add_method
 def load_json(fn):
     if not fn.endswith('json'):
         fn = fn + '.json'
@@ -13,6 +16,7 @@ def load_json(fn):
         return None
 
 
+@Modules.add_method
 def save_json(fn, dct, indent=4, **kwargs):
     if not fn.endswith('json'):
         fn = fn + '.json'
@@ -22,6 +26,7 @@ def save_json(fn, dct, indent=4, **kwargs):
     return fn
 
 
+@Modules.add_method
 def load_output(model_dir):
     fn = os.path.join(model_dir, 'output.o')
     if os.path.exists(fn):
@@ -32,6 +37,7 @@ def load_output(model_dir):
         return None
 
 
+@Modules.add_method
 def get_file_time(fn, raw=True):
     if os.path.exists(fn):
         mtime = os.path.getmtime(fn)
@@ -44,6 +50,7 @@ def get_file_time(fn, raw=True):
         return None
 
 
+@Modules.add_method
 def get_output_time(model_dir, raw=True):
     fn = os.path.join(model_dir, 'output.o')
     return get_file_time(fn, raw=raw)

@@ -1,13 +1,14 @@
 import tensorflow as tf
 from tf.keras import layers
 
+from neuronal.model.losses import CrossPathwayTemporalContrastiveLoss, SparseCategoricalCrossEntropyByKey, \
+    MeanAbsoluteErrorByKeyLoss
 from neuronal.utils.data import Labels, CATEGORICAL
 from utils.model.layers import SplitPathways
-from utils.model.losses import SparseCategoricalCrossEntropyByKey, LateralPredictiveLoss, NullLoss, MeanAbsoluteErrorByKeyLoss
+from utils.model.losses import NullLoss
 from utils.model.metrics import SparseCategoricalAccuracyByKey, MeanAbsoluteErrorByKeyMetric
-from utils.model.temporal_losses import CrossPathwayTemporalContrastiveLoss
 from utils.utils import get_class
-from vision.utils.tf_utils import set_seed, serialize
+from utils.tf_utils import serialize
 import numpy as np
 
 
@@ -119,9 +120,6 @@ def compile_model(model, loss=CrossPathwayTemporalContrastiveLoss, loss_kwargs={
         losses[model.name + '_embedding'] = NullLoss()
     else:
         losses[model.name + '_embedding'] = loss(**loss_kwargs)
-
-    if (model.name + "_predembd") in [l.name for l in model.layers]:
-        losses[model.name + "_predembd"] = LateralPredictiveLoss(graph=model.get_layer(model.name + "_predembd").pred_graph)
 
     if metrics_kwargs:
         import utils.model.metrics as metrics_file

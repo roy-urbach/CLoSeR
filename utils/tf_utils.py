@@ -5,8 +5,8 @@ import os
 import random
 
 from utils.io_utils import load_json
+from utils.model.model import Modules
 from utils.utils import printd
-from vision.utils.consts import VISION_MODELS_DIR
 
 CUSTOM_OBJECTS = {}
 
@@ -28,28 +28,28 @@ def serialize(c, package=''):
     return c
 
 
-def save_model(model):
-    fn = get_model_fn(model)
+def save_model(model, module:Modules):
+    fn = get_model_fn(model, module)
     model.save(fn)
 
 
-def get_model_fn(model_or_name):
+def get_model_fn(model_or_name, module:Modules):
     if isinstance(model_or_name, str):
         model_name = model_or_name
     else:
         assert hasattr(model_or_name, 'name')
         model_name = model_or_name.name
-    fn = os.path.join(VISION_MODELS_DIR, model_name, 'model.h5')
+    fn = os.path.join(module.get_models_path(), model_name, 'model.h5')
     return fn
 
 
-def get_weights_fn(model_or_name):
+def get_weights_fn(model_or_name, module:Modules):
     if isinstance(model_or_name, str):
         model_name = model_or_name
     else:
         assert hasattr(model_or_name, 'name')
         model_name = model_or_name.name
-    fn = os.path.join(VISION_MODELS_DIR, model_name, "checkpoints", 'model_weights_{epoch}')
+    fn = os.path.join(module.get_models_path(), model_name, "checkpoints", 'model_weights_{epoch}')
     return fn
 
 
@@ -60,8 +60,9 @@ def load_model(fn):
     return reconstructed_model
 
 
+@Modules.add_method
 def load_checkpoint(model):
-    checkpoint_name = f'/{VISION_MODELS_DIR}/{model.name}/weights.ckpt'
+    checkpoint_name = os.path.join(model.name, 'weights.ckpt')
     if os.path.exists(checkpoint_name):
         printd("checkpoint found. loading...", end='\t')
         model.load(checkpoint_name)
@@ -70,10 +71,12 @@ def load_checkpoint(model):
         printd("no checkpoint found")
 
 
+@Modules.add_method
 def history_fn_name(model):
-    return f"{VISION_MODELS_DIR}/{model}/checkpoints/history.json"
+    return os.path.join(model, "checkpoints/history.json")
 
 
+@Modules.add_method
 def load_history(model):
     return load_json(history_fn_name(model))
 
