@@ -1,5 +1,6 @@
 from utils.model.layers import *
 from utils.model.losses import *
+from utils.model.model import get_optimizer
 from vision.model.layers import SplitPathwaysVision
 from utils.utils import *
 from tensorflow.keras import layers
@@ -109,21 +110,6 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
     if kwargs:
         print(f"WARNING: compile_model got spare kwargs that won't be used: {kwargs}")
 
-    if "optimizer" in optimizer_kwargs:
-        optimizer_cls_name = optimizer_kwargs.pop("optimizer")
-        try:
-            optimizer_cls = eval(optimizer_cls_name)
-        except Exception as err:
-            print(f"Tried to eval {optimizer_cls_name}, get error:", err)
-            try:
-                optimizer_cls = tf.keras.optimizers.getattr(optimizer_cls_name)
-            except Exception as err:
-                print(f"Tried to getattr tf.keras.optimizers.{optimizer_cls_name}, get error:", err)
-    print(f"using optimizer {optimizer_cls}")
-    optimizer = optimizer_cls(**{k: eval(v) if isinstance(v, str) and v.startswith("tf.") else v
-                                 for k, v in optimizer_kwargs.items()})
-    serialize(optimizer.__class__, 'Custom')
-
     losses = {}
     metrics = {}
     if classifier:
@@ -150,4 +136,6 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
     if ensemble_classification:
         losses[model.name + '_ensemble_logits'] = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         metrics[model.name + '_ensemble_logits'] = keras.metrics.SparseCategoricalAccuracy(name="accuracy")
+
+    optimizer = get_optimizer(optimizer_cls=optimizer_cls, optimizer_kwargs=optimizer_kwargs)
     model.compile(optimizer=optimizer, loss=losses, metrics=metrics)

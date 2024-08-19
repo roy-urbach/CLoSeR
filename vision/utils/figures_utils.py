@@ -99,7 +99,7 @@ def plot_pathways_distribution_over_d(model_regex, name_to_d_naive=False, plot_t
 
 def gather_train_test_res(model_regex, convert_name_to_d=False):
     import re
-    base_path = 'models'
+    base_path = Modules.VISION.get_models_path()
     archive_loss = {}
     archive_acc = {}
     for m in os.listdir(base_path):

@@ -7,6 +7,7 @@ from neuronal.utils.data import Labels, CATEGORICAL
 from utils.model.layers import SplitPathways
 from utils.model.losses import NullLoss
 from utils.model.metrics import SparseCategoricalAccuracyByKey, MeanAbsoluteErrorByKeyMetric
+from utils.model.model import get_optimizer
 from utils.utils import get_class
 from utils.tf_utils import serialize
 import numpy as np
@@ -99,21 +100,6 @@ def compile_model(model, loss=CrossPathwayTemporalContrastiveLoss, loss_kwargs={
     if kwargs:
         print(f"WARNING: compile_model got spare kwargs that won't be used: {kwargs}")
 
-    if "optimizer" in optimizer_kwargs:
-        optimizer_cls_name = optimizer_kwargs.pop("optimizer")
-        try:
-            optimizer_cls = eval(optimizer_cls_name)
-        except Exception as err:
-            print(f"Tried to eval {optimizer_cls_name}, get error:", err)
-            try:
-                optimizer_cls = tf.keras.optimizers.getattr(optimizer_cls_name)
-            except Exception as err:
-                print(f"Tried to getattr tf.keras.optimizers.{optimizer_cls_name}, get error:", err)
-    print(f"using optimizer {optimizer_cls}")
-    optimizer = optimizer_cls(**{k: eval(v) if isinstance(v, str) and v.startswith("tf.") else v
-                                 for k, v in optimizer_kwargs.items()})
-    serialize(optimizer.__class__, 'Custom')
-
     losses = {}
     metrics = {}
     if classifier:
@@ -147,4 +133,6 @@ def compile_model(model, loss=CrossPathwayTemporalContrastiveLoss, loss_kwargs={
         for label in Labels:
             losses[model.name + f'_ensemble_logits_{label.value.name}'] = label_class_loss[label.value.name](label.value.name, from_logits=True)
             metrics[model.name + f'_ensemble_logits_{label.value.name}'] = label_class_metric[label.value.name](label.value.name, name="accuracy")
+
+    optimizer = get_optimizer(optimizer_cls=optimizer_cls, optimizer_kwargs=optimizer_kwargs)
     model.compile(optimizer=optimizer, loss=losses, metrics=metrics)

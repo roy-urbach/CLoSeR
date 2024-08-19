@@ -1,9 +1,28 @@
 from utils.model.callbacks import SaveOptimizerCallback, SaveHistory, ErasePreviousCallback
 from utils.modules import Modules
-from utils.tf_utils import get_weights_fn
+from utils.tf_utils import get_weights_fn, serialize
 from utils.utils import printd, get_class
 import os
 import tensorflow as tf
+
+
+def get_optimizer(**kwargs):
+    if "optimizer" in kwargs:
+        optimizer_cls_name = kwargs.pop("optimizer")
+        try:
+            optimizer_cls = eval(optimizer_cls_name)
+        except Exception as err:
+            print(f"Tried to eval {optimizer_cls_name}, get error:", err)
+            try:
+                optimizer_cls = tf.keras.optimizers.getattr(optimizer_cls_name)
+            except Exception as err:
+                print(f"Tried to getattr tf.keras.optimizers.{optimizer_cls_name}, get error:", err)
+                raise err
+    print(f"using optimizer {optimizer_cls}")
+    optimizer = optimizer_cls(**{k: eval(v) if isinstance(v, str) and v.startswith("tf.") else v
+                                 for k, v in kwargs.items()})
+    serialize(optimizer.__class__, 'Custom')
+    return optimizer
 
 
 def create_and_compile_model(model_name, input_shape, model_kwargs, loss, module:Modules, loss_kwargs={},
@@ -19,8 +38,8 @@ def create_and_compile_model(model_name, input_shape, model_kwargs, loss, module
 
     if print_log:
         printd("Compiling model...", end='\t')
-    module.value.model.compile_model(m, loss=loss, loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
-                                     metrics_kwargs=metrics_kwargs, **kwargs)
+    module.compile_model(m, loss=loss, loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
+                         metrics_kwargs=metrics_kwargs, **kwargs)
 
     return m
 

@@ -18,6 +18,9 @@ class Modules(Enum):
     def create_model(self, *args, **kwargs):
         return import_variable(self.value + "/model/model", "create_model")(*args, **kwargs)
 
+    def compile_model(self, *args, **kwargs):
+        return import_variable(self.value + "/model/model", "compile_model")(*args, **kwargs)
+
     @staticmethod
     def add_method(f):
         """
