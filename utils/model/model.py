@@ -1,12 +1,9 @@
-from enum import Enum
-from utils.io_utils import load_json
 from utils.model.callbacks import SaveOptimizerCallback, SaveHistory, ErasePreviousCallback
 from utils.modules import Modules
 from utils.tf_utils import get_weights_fn
 from utils.utils import printd, get_class
 import os
 import tensorflow as tf
-import re
 
 
 def create_and_compile_model(model_name, input_shape, model_kwargs, loss, module:Modules, loss_kwargs={},
@@ -83,7 +80,7 @@ def load_model_from_json(model_name, module: Modules, load=True, optimizer_state
     else:
         def call(dataset, data_kwargs={}, **kwargs):
             dataset = module.get_class_from_data(dataset)(**data_kwargs)
-            model, _ = load_or_create_model(model_name, module, shape=dataset.get_shape(),
+            model, _ = load_or_create_model(model_name, module, input_shape=dataset.get_shape(),
                                             load=load, optimizer_state=optimizer_state, skip_mismatch=skip_mismatch,
                                             **kwargs)
             return model
@@ -109,7 +106,7 @@ def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_
     dataset = module.get_class_from_data(dataset)(**data_kwargs)
     printd("Done!")
 
-    model, max_epoch = load_or_create_model(model_name, module, shape=dataset.get_shape(), print_log=True, **kwargs)
+    model, max_epoch = load_or_create_model(model_name, module, input_shape=dataset.get_shape(), print_log=True, **kwargs)
 
     # TODO: regression callback?
 
