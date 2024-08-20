@@ -12,7 +12,7 @@ class CrossPathwayTemporalContrastiveLoss(tf.keras.losses.Loss):
 
     def call(self, y_true, y_pred):
         # y_pred shape (B, P, DIM, T)
-        n = tf.shape(y_pred)[-1]
+        n = tf.shape(y_pred)[1]
         loss = 0.
 
         for i in range(n):
