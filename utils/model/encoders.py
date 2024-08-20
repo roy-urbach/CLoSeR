@@ -42,10 +42,20 @@ class BasicRNN(tf.keras.layers.Layer):
         self.rnn = BasicRNNLayer(name=name + "_internal", kernel_regularizer=kernel_regularizer, **kwargs)
         self.out_proj = tf.keras.layer.Dense(out_dim, name=name + "_out", kernel_regularizer=kernel_regularizer,
                                              activity_regularizer=out_regularizer) if out_dim is not None else None
+        self.initial_state = None
+
+    def build(self, input_shape):
+        self.initial_state = self.add_weight(
+            name='initial_state',
+            shape=(self.rnn.internal_state_size,),
+            initializer='zeros',
+            trainable=False
+        )
+        super().build(input_shape)
 
     def call(self, inputs):
         # inputs shape =  (B, N, T)
-        initial_state = tf.zeros((tf.shape(inputs)[0], self.rnn.internal_state_size), dtype=inputs.dtype)
+        initial_state = tf.tile(self.initial_state, [tf.shape(inputs)[0], 1])
 
         inputs = tf.unstack(inputs, axis=-1)
 
@@ -77,3 +87,4 @@ class BasicRNN(tf.keras.layers.Layer):
         # else:
         #     out = states
         # return out
+    #tf.constant(tf.zeros(self.rnn.internal_state_size, dtype=)
