@@ -102,8 +102,7 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
             outputs.append(layers.Dense(label.value.dimension, activation=None,
                                         kernel_regularizer=kernel_regularizer,
                                         name=name + f'_ensemble_logits_{label.value.name}')(
-                tf.reshape(embedding if classifier else tf.stop_gradient(embedding),
-                           (-1, np.multiply.reduce(embedding.shape[1:])))))
+                tf.reshape(embedding_for_classification, (-1, np.multiply.reduce(embedding_for_classification.shape[1:])))))
 
     # Create the Keras model.
     model = tf.keras.Model(inputs=inputs, outputs=outputs, name=name)
