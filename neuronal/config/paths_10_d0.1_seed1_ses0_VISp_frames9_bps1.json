@@ -11,7 +11,7 @@
    "dataset":"SessionDataGenerator",
    "data_kwargs": {
       "areas": ["VISp"],
-      "session_id": "SESSIONS[0]",
+      "session_id": 0,
       "frames_per_sample": 9,
       "bins_per_frame": 1,
       "batch_size": 32

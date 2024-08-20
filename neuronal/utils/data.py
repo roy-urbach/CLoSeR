@@ -203,6 +203,9 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
                  stimuli=NATURAL_MOVIES, areas=None, train=True, val=False, test=False):
         super(SessionDataGenerator, self).__init__()
         self.session_id = streval(session_id)
+        if self.session_id not in SESSIONS:
+            assert self.session_id in np.arange(len(SESSIONS))
+            self.session_id = SESSIONS[self.session_id]
         self.session = Session(session_id)
         self.batch_size = batch_size
         self.frames_per_sample = frames_per_sample
