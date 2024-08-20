@@ -238,7 +238,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
                            stimuli=self.stimuli, areas=self.areas, train=self.train, val=self.val, test=self.test)
         self_kwargs.update(**kwargs)
         clone = SessionDataGenerator(**self_kwargs)
-        clone.name_to_label = {k: v for k, v in self.name_to_label}
+        clone.name_to_label = {k: v for k, v in self.name_to_label.items()}
         return clone
 
     def get_train(self):
