@@ -1,14 +1,10 @@
-from typing import Dict
-
 import tensorflow as tf
 from tensorflow.keras import layers
 
-from neuronal.model.losses import CrossPathwayTemporalContrastiveLoss, SparseCategoricalCrossEntropyByKey, \
-    MeanAbsoluteErrorByKeyLoss
+from neuronal.model.losses import CrossPathwayTemporalContrastiveLoss
 from neuronal.utils.data import Labels, CATEGORICAL
 from utils.model.layers import SplitPathways
 from utils.model.losses import NullLoss
-from utils.model.metrics import SparseCategoricalAccuracyByKey, MeanAbsoluteErrorByKeyMetric
 from utils.model.model import get_optimizer
 from utils.utils import get_class
 import numpy as np

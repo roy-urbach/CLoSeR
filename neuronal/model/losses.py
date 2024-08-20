@@ -11,7 +11,7 @@ class CrossPathwayTemporalContrastiveLoss(tf.keras.losses.Loss):
         self.start_t = start_t
 
     def call(self, y_true, y_pred):
-        # y_pred shape (B, T, DIM, P)
+        # y_pred shape (B, P, DIM, T)
         n = tf.shape(y_pred)[-1]
         loss = 0.
 
@@ -19,20 +19,20 @@ class CrossPathwayTemporalContrastiveLoss(tf.keras.losses.Loss):
             for j in range(i+1, n):
                 if self.a is not None and not self.a[i][j] and not self.a[j][i]:
                     continue
-                anchor_i = y_pred[:, self.start_t + self.contrast_t:, :, i]      # (B, T-cont_t-start_t, DIM)
-                anchor_j = y_pred[:, self.start_t + self.contrast_t:, :, j]    # (B, T-cont_t-start_t, DIM)
-                pos_temped_sqr_dist = (tf.linalg.norm(anchor_i - anchor_j, axis=-1) ** 2) / self.temperature
+                anchor_i = y_pred[:, i, :, self.start_t + self.contrast_t:]      # (B, DIM, T-cont_t-start_t)
+                anchor_j = y_pred[:, j, :, self.start_t + self.contrast_t:]    # (B, DIM, T-cont_t-start_t)
+                pos_temped_sqr_dist = (tf.linalg.norm(anchor_i - anchor_j, axis=-2) ** 2) / self.temperature  # (B, T-cont_t-start_t)
 
                 if self.a is None or (self.a is not None and self.a[i][j]):
-                    negative_j = y_pred[:, self.start_t:-self.contrast_t, :, j]  # (B, T-cont_t-start_t, DIM)
-                    neg_temped_sqr_dist_i = (tf.linalg.norm(anchor_i - negative_j, axis=-1) ** 2) / self.temperature
+                    negative_j = y_pred[:, j, :, self.start_t:-self.contrast_t]  # (B, DIM, T-cont_t-start_t)
+                    neg_temped_sqr_dist_i = (tf.linalg.norm(anchor_i - negative_j, axis=-2) ** 2) / self.temperature
                     zi = tf.exp(-pos_temped_sqr_dist) + tf.exp(-neg_temped_sqr_dist_i)
                     minus_log_likelihood_i = pos_temped_sqr_dist + tf.math.log(zi)   # (B, T-cont_t-start_t)
                     loss = loss + tf.reduce_mean(minus_log_likelihood_i)
 
                 if self.a is None or (self.a is not None and self.a[j][i]):
-                    negative_i = y_pred[:, self.start_t:-self.contrast_t, :, i]  # (B, T-cont_t-start_t, DIM)
-                    neg_temped_sqr_dist_j = (tf.linalg.norm(anchor_j - negative_i, axis=-1) ** 2) / self.temperature
+                    negative_i = y_pred[:, i, :, self.start_t:-self.contrast_t]  # (B, DIM, T-cont_t-start_t)
+                    neg_temped_sqr_dist_j = (tf.linalg.norm(anchor_j - negative_i, axis=-2) ** 2) / self.temperature
                     zj = tf.exp(-pos_temped_sqr_dist) + tf.exp(-neg_temped_sqr_dist_j)
                     minus_log_likelihood_j = pos_temped_sqr_dist + tf.math.log(zj) # (B, T-cont_t-start_t)
                     loss = loss + tf.reduce_mean(minus_log_likelihood_j)
