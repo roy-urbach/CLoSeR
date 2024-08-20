@@ -36,7 +36,7 @@ class MLPEncoder(MLP):
 
 
 class BasicRNN(tf.keras.layers.Layer):
-    def __init__(self, residual=True, out_dim=None, name='rnn', kernel_regularizer=None, out_regularizer=None,
+    def __init__(self, residual=False, out_dim=None, name='rnn', kernel_regularizer=None, out_regularizer=None,
                  **kwargs):
         super().__init__(name=name)
         self.residual = residual
