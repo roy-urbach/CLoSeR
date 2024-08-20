@@ -36,7 +36,8 @@ class MLPEncoder(MLP):
 
 
 class BasicRNN:
-    def __init__(self, out_dim=None, name='rnn', **kwargs):
+    def __init__(self, residual=True, out_dim=None, name='rnn', **kwargs):
+        self.residual = residual
         self.rnn = BasicRNNLayer(name=name + "_internal", **kwargs)
         self.out_proj = tf.keras.layer.Dense(out_dim, name=name + "_out") if out_dim is not None else None
 
@@ -45,7 +46,7 @@ class BasicRNN:
         internal_state = tf.constant(tf.zeros((tf.shape(inputs)[0], self.rnn.internal_state_size), dtype=inputs.dtype))
         states = []
         for t in range(tf.shape(inputs)[-1]):
-            internal_state = self.rnn(inputs[..., t], internal_state)
+            internal_state = self.rnn(inputs[..., t], internal_state) + (internal_state if self.residual else 0)
             states.append(internal_state)
         states = tf.stack(states, axis=1)  # (B, T, INTERNAL_DIM)
         if self.out_proj is not None:

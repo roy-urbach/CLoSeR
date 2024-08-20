@@ -70,7 +70,7 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
     Encoder = get_class(encoder, utils.model.encoders)
     out_reg = tf.keras.regularizers.L2(l2) if l2 else None
     enc_init = lambda i: Encoder(name=name + f'_enc{i if i is not None else ""}',
-                                 frames=frames, kernel_regularizer=kernel_regularizer,
+                                 kernel_regularizer=kernel_regularizer,
                                  out_regularizer=out_reg, **encoder_kwargs)
     encoders = [enc_init(i) for i in range(len(pathways))] if encoder_per_path else [enc_init(None)] * len(pathways)
 
