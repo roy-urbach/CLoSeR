@@ -3,7 +3,6 @@ import os
 
 from utils.modules import Modules
 
-BASE_PATH = 'models'
 # QUEUE_GPU = "gsla-gpu"    # TODO: change back when it works
 # QUEUE_GPU = 'sch-gpu'
 # QUEUE_GPU = 'gpu-short'
@@ -31,6 +30,7 @@ def parse():
     parser.add_argument('-q', '--queue', type=str, default=QUEUE_GPU, help='name of the queue')
     parser.add_argument('-m', '--module', type=str, default=Modules.VISION.name,
                         choices=Modules.get_cmd_module_options())
+    parser.add_argument('-s', '--seed', type=int, default=None, help='seed to change to')
     parser.add_argument('--rusage', type=int, default=RUSAGE, help='CPU mem')
     parser.add_argument('--mem', type=int, default=4, help='GPU mem')
 
@@ -40,11 +40,22 @@ def parse():
 
 def get_cmd():
     args, bsub_args = parse()
+    module = Modules.get_module(args.module)
     if args.json.endswith('.json'):
         model_name = args.json[:-len('.json')]
     else:
         model_name = args.json
-    path = os.path.join(BASE_PATH, model_name)
+
+    assert module.load_json(model_name, config=True) is not None
+
+    if args.seed is not None:
+        import re
+        dct = module.load_json(model_name, config=True)
+        dct['model_kwargs']['pathways_kwargs']['seed'] = args.seed
+        model_name = re.sub(r"seed\d+", f"seed{args.seed}", model_name)
+        module.save_json(model_name, dct, config=True)
+
+    path = os.path.join(module.get_models_path(), model_name)
     if not os.path.exists(path):
         os.mkdir(path)
     if not os.path.exists(os.path.join(path, "checkpoints")):
@@ -52,7 +63,7 @@ def get_cmd():
     output_name = os.path.join(path, 'output')
     error_name = os.path.join(path, 'error')
 
-    training_fn = f"{path}/is_training"
+    training_fn = os.path.join(path, "is_training")
     if os.path.exists(training_fn):
         print("already training")
         return f'echo "{model_name} already trained"'
@@ -62,8 +73,7 @@ def get_cmd():
         bsub_call += f" -gpu num=1:j_exclusive=no:gmem={args.mem}GB"
     else:
         bsub_call += f' -R rusage[mem={RUSAGE}]'
-    train_call = f'python3 {Modules.get_module(args.module).value}/train.py"'
-    train_call += f' -b {args.batch} -e {args.epochs} --json {args.json} -m {args.module}'
+    train_call = f'python3 train.py -b {args.batch} -e {args.epochs} --json {args.json} -m {args.module}'
     cmd = [*bsub_call.split(), *bsub_args, f'"{train_call}"']
     return ' '.join(cmd)
 
