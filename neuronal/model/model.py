@@ -60,19 +60,18 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
     if classifier and not classifier_pathways:
         pathways = [augmented]
     else:
-        pathways = SplitPathwaysNeuronal(units, name=name + '_pathways', **pathways_kwargs)(augmented)  # (B, d*S, N, T)
-        pathways = [tf.squeeze(path, axis=-2) for path in
-                    tf.split(pathways, pathways.shape[-2], axis=-2)]  # List[(B, d*S, T)]
+        pathways = SplitPathwaysNeuronal(units, name='pathways', **pathways_kwargs)(augmented)  # (B, d*S, N, T)
+        pathways = tf.unstack(pathways, axis=-2)  # List[(B, d*S, T)]
 
     import utils.model.encoders
     Encoder = get_class(encoder, utils.model.encoders)
     out_reg = tf.keras.regularizers.L2(l2) if l2 else None
-    enc_init = lambda i: Encoder(name=name + f'_enc{i if i is not None else ""}',
+    enc_init = lambda i: Encoder(name=f'enc{i if i is not None else ""}',
                                  kernel_regularizer=kernel_regularizer,
                                  out_regularizer=out_reg, **encoder_kwargs)
     encoders = [enc_init(i) for i in range(len(pathways))] if encoder_per_path else [enc_init(None)] * len(pathways)
 
-    embedding = tf.keras.layers.Concatenate(name=name + '_embedding', axis=-1)([encoder(pathway)[..., None]
+    embedding = tf.keras.layers.Concatenate(name='embedding', axis=-1)([encoder(pathway)[..., None]
                                                                                 for encoder, pathway in
                                                                                 zip(encoders, pathways)])
     # (B, T, DIM, P)
@@ -92,7 +91,7 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
         for path in pathways_to_classify:
             cur_embd = embedding_for_classification[..., path]
             for label in Labels:
-                cur_name = name + '_logits' + (
+                cur_name = 'logits' + (
                     str(path) if pathway_classification_allpaths else '') + f'_{label.value.name}'
                 pathway_logits = layers.Dense(label.value.dimension, activation=None,
                                               kernel_regularizer=kernel_regularizer, name=cur_name)(cur_embd)
@@ -101,7 +100,7 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
         for label in Labels:
             outputs.append(layers.Dense(label.value.dimension, activation=None,
                                         kernel_regularizer=kernel_regularizer,
-                                        name=name + f'_ensemble_logits_{label.value.name}')(
+                                        name=f'ensemble_logits_{label.value.name}')(
                 tf.reshape(embedding_for_classification, (-1, np.multiply.reduce(embedding_for_classification.shape[1:])))))
 
     # Create the Keras model.
@@ -120,14 +119,14 @@ def compile_model(model, dataset, loss=CrossPathwayTemporalContrastiveLoss, loss
     losses = {}
     metrics = {}
     if classifier:
-        losses[model.name + '_embedding'] = NullLoss()
+        losses['embedding'] = NullLoss()
     else:
-        losses[model.name + '_embedding'] = loss(**loss_kwargs)
-    dataset.update_name_to_label(model.name + '_embedding', Labels.STIMULUS)    # The label is irrelevant here
+        losses['embedding'] = loss(**loss_kwargs)
+    dataset.update_name_to_label('embedding', Labels.STIMULUS)    # The label is irrelevant here
 
     if metrics_kwargs:
         import utils.model.metrics as metrics_file
-        metrics[model.name + "_embedding"] = get_class(metrics_kwargs['name'], metrics_file)(
+        metrics["embedding"] = get_class(metrics_kwargs['name'], metrics_file)(
             metrics_kwargs.get('kwargs', {}))
 
     label_class_loss = {
@@ -141,20 +140,20 @@ def compile_model(model, dataset, loss=CrossPathwayTemporalContrastiveLoss, loss
         if pathway_classification_allpaths:
             for path in range(model.get_layer(model.name + "_pathways").n):
                 for label in Labels:
-                    dataset.update_name_to_label(model.name + f'_logits{path}_{label.value.name}', label)
-                    losses[model.name + f'_logits{path}_{label.value.name}'] = label_class_loss[label.value.name]()
-                    metrics[model.name + f'_logits{path}_{label.value.name}'] = label_class_metric[label.value.name]()
+                    dataset.update_name_to_label(f'logits{path}_{label.value.name}', label)
+                    losses[f'logits{path}_{label.value.name}'] = label_class_loss[label.value.name]()
+                    metrics[f'logits{path}_{label.value.name}'] = label_class_metric[label.value.name]()
         else:
             for label in Labels:
-                dataset.update_name_to_label(model.name + f'_logits_{label.value.name}', label)
-                losses[model.name + f'_logits_{label.value.name}'] = label_class_loss[label.value.name]()
-                metrics[model.name + f'_logits_{label.value.name}'] = label_class_metric[label.value.name]()
+                dataset.update_name_to_label(f'logits_{label.value.name}', label)
+                losses[f'logits_{label.value.name}'] = label_class_loss[label.value.name]()
+                metrics[f'logits_{label.value.name}'] = label_class_metric[label.value.name]()
 
     if ensemble_classification:
         for label in Labels:
-            dataset.update_name_to_label(model.name + f'_ensemble_logits_{label.value.name}', label)
-            losses[model.name + f'_ensemble_logits_{label.value.name}'] = label_class_loss[label.value.name]()
-            metrics[model.name + f'_ensemble_logits_{label.value.name}'] = label_class_metric[label.value.name]()
+            dataset.update_name_to_label(f'_ensemble_logits_{label.value.name}', label)
+            losses[f'ensemble_logits_{label.value.name}'] = label_class_loss[label.value.name]()
+            metrics[f'ensemble_logits_{label.value.name}'] = label_class_metric[label.value.name]()
 
     optimizer = get_optimizer(optimizer_cls=optimizer_cls, **optimizer_kwargs)
     model.compile(optimizer=optimizer, loss=losses, metrics=metrics)
