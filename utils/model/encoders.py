@@ -48,7 +48,11 @@ class BasicRNN(tf.keras.layers.Layer):
         internal_state = tf.zeros((tf.shape(inputs)[0], self.rnn.internal_state_size), dtype=inputs.dtype)
         states = []
         for t in range(tf.shape(inputs)[-1]):
-            internal_state = self.rnn(inputs[..., t], internal_state) + (internal_state if self.residual else 0)
+            cur_calc = self.rnn(inputs[..., t], internal_state)
+            if self.residual:
+                internal_state = tf.stop_gradient(internal_state) + cur_calc
+            else:
+                internal_state = cur_calc
             states.append(internal_state)
         states = tf.stack(states, axis=1)  # (B, T, INTERNAL_DIM)
         if self.out_proj is not None:
