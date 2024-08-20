@@ -40,7 +40,7 @@ class CrossPathwayTemporalContrastiveLoss(tf.keras.losses.Loss):
         return loss / (tf.cast(n ** 2, dtype=loss.dtype) if self.a is None else tf.reduce_sum(tf.cast(self.a, dtype=loss.dtype)))
 
 
-class SparseCategoricalCrossEntropyByKey(tf.keras.losses.Loss):
+class SparseCategoricalCrossEntropyByKey(GeneralLossByKey):
     def __init__(self, *args, from_logits=True, name='sparse_categorical_ce_{key}', **kwargs):
         super(SparseCategoricalCrossEntropyByKey, self).__init__(*args, name=name, **kwargs)
         self.from_logits = from_logits
