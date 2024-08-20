@@ -339,9 +339,10 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
             frames[b] = (start_bin + self.bins_per_sample - 1) / NATURAL_MOVIES_FRAMES[cur_stimulus]
 
         if self.areas_in_spikes():
-            spikes = tf.convert_to_tensor(np.stack(spikes, axis=0))     # (B, N, T)
-        else:
             spikes = {area: tf.convert_to_tensor(np.stack(activity, axis=0)) for area, activity in spikes.items()}
+        else:
+            spikes = tf.convert_to_tensor(np.stack(spikes, axis=0))     # (B, N, T)
+
 
         trials = tf.convert_to_tensor(np.array(trials))
         frames = tf.convert_to_tensor(np.stack(frames, axis=0))
