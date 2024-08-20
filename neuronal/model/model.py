@@ -128,6 +128,7 @@ def compile_model(model, dataset, loss=CrossPathwayTemporalContrastiveLoss, loss
         losses[model.name + '_embedding'] = NullLoss()
     else:
         losses[model.name + '_embedding'] = loss(**loss_kwargs)
+    dataset.update_name_to_label(model.name + '_embedding', Labels.STIMULUS)    # The label is irrelevant here
 
     if metrics_kwargs:
         import utils.model.metrics as metrics_file
