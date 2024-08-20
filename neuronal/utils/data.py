@@ -204,11 +204,13 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
         self.batch_size = batch_size
         self.frames_per_sample = frames_per_sample
         self.bins_per_frame = bins_per_frame
-        self.spikes = {}
+        self.spikes = {}    # {stim: {area: List[trial_activity_mat]}} if areas else {stim: List[trial_activity_mat]}
         self.areas = list(areas) if areas is not None else areas
+        self.single_area = areas[0] if len(areas) == 1 else None
         self.stimuli = list(stimuli)
         self.bins_per_sample = frames_per_sample * bins_per_frame
         self.order = None
+        self.num_units = None
 
         assert not (test and val)
         self.train = train
@@ -242,7 +244,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
         if self.__total_samples is None:
             total = 0
             for stim, act in self.spikes.items():
-                if self.areas is not None:
+                if self.areas_in_spikes() is not None:
                     arr = act[self.areas[0]]
                 else:
                     arr = act
@@ -255,7 +257,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
 
     def __load_spikes(self):
         for stimulus in self.stimuli:
-            self.spikes[stimulus] = [] if self.areas is None else {area: [] for area in self.areas}
+            self.spikes[stimulus] = {area: [] for area in self.areas} if self.areas_in_spikes() else []
 
             trials = self.session.get_trials(stimulus)
             normed_inds = np.arange(0, 1, len(trials)+1)
@@ -269,46 +271,69 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
                 # If we want the full session
                 trial_mask = np.full_like(normed_inds, True)
 
+            self.num_units = {area: None for area in self.areas} if self.areas_in_spikes() else None
+
             for i, trial in trials:
                 if not trial_mask[i]: continue
                 if self.areas is not None:
-                    for area in self.areas:
-                        self.spikes[stimulus][area].append(trial.get_spike_bins(area=area,
-                                                                                bins_per_frame=self.bins_per_frame,
-                                                                                as_matrix=True))
+                    if self.single_area:
+                        self.spikes[stimulus].append(trial.get_spike_bins(area=self.single_area,
+                                                                          bins_per_frame=self.bins_per_frame,
+                                                                          as_matrix=True))
+                        if self.num_units is None:
+                            self.num_units = len(self.spikes[stimulus][-1])
+                    else:
+                        for area in self.areas:
+                            self.spikes[stimulus][area].append(trial.get_spike_bins(area=area,
+                                                                                    bins_per_frame=self.bins_per_frame,
+                                                                                    as_matrix=True))
+                            if self.num_units[area] is None:
+                                self.num_units[area] = len(self.spikes[stimulus][area][-1])
+
                 else:
                     self.spikes[stimulus].append(trial.get_spike_bins(bins_per_frame=self.bins_per_frame,
                                                                       as_matrix=True))
+                    if self.num_units is None:
+                        self.num_units = len(self.spikes[stimulus][-1])
+
+    def get_shape(self):
+        if self.areas_in_spikes():
+            return {area: (self.num_units[area], self.bins_per_sample) for area in self.areas}
+        else:
+            return self.num_units, self.bins_per_sample
+
+    def areas_in_spikes(self):
+        return self.areas is not None and not self.single_area
 
     def __getitem__(self, idx):
         stimuli_inds = np.random.randint(len(self.stimuli), size=self.batch_size)
-        spikes = [] if self.areas is None else {area: [] for area in self.areas}
+        spikes = {area: [] for area in self.areas} if self.areas_in_spikes() else []
         trials = np.empty(self.batch_size, dtype=int)
         frames = np.empty(self.batch_size, dtype=int)
-        num_trials = {stim: len(self.spikes[stim] if self.areas is None else list(self.spikes[stim].values())[0])
+        num_trials = {stim: len(list(self.spikes[stim].values())[0] if self.areas_in_spikes() else self.spikes[stim])
                       for stim in self.stimuli}
         for b in range(self.batch_size):
             cur_stimulus = self.stimuli[stimuli_inds[b]]
             activity_dct_or_mat = self.spikes[cur_stimulus]
             trial = np.random.choice(list(range(num_trials[cur_stimulus])))
             trials[b] = trial
-            if self.areas is not None:
+            if self.areas_in_spikes():
                 start_bin = None
                 for area in self.areas:
                     cur_spikes = activity_dct_or_mat[area][trial]
                     if start_bin is None:
                         start_bin = np.random.randint(0, cur_spikes.shape[-1] - self.bins_per_sample + 1)
-                    sample = cur_spikes[..., start_bin:start_bin + self.bins_per_sample]
+                    sample = cur_spikes[..., start_bin:start_bin + self.bins_per_sample]    # (N, T)
                     spikes[area].append(sample)
             else:
                 cur_spikes = activity_dct_or_mat[trial]
                 start_bin = np.random.randint(0, cur_spikes.shape[-1] - self.bins_per_sample)
-                sample = cur_spikes[..., start_bin:start_bin + self.bins_per_sample]
+                sample = cur_spikes[..., start_bin:start_bin + self.bins_per_sample]    # (N, T)
                 spikes.append(sample)
             frames[b] = (start_bin + self.bins_per_sample - 1) / NATURAL_MOVIES_FRAMES[cur_stimulus]
 
-        if self.areas is None:
-            spikes = tf.convert_to_tensor(np.stack(spikes, axis=0))
+        if self.areas_in_spikes():
+            spikes = tf.convert_to_tensor(np.stack(spikes, axis=0))     # (B, N, T)
         else:
             spikes = {area: tf.convert_to_tensor(np.stack(activity, axis=0)) for area, activity in spikes.items()}
 

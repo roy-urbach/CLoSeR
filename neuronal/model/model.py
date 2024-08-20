@@ -9,7 +9,6 @@ from utils.model.losses import NullLoss
 from utils.model.metrics import SparseCategoricalAccuracyByKey, MeanAbsoluteErrorByKeyMetric
 from utils.model.model import get_optimizer
 from utils.utils import get_class
-from utils.tf_utils import serialize
 import numpy as np
 
 
@@ -26,12 +25,14 @@ class SplitPathwaysNeuronal(SplitPathways):
     """
 
     def __init__(self, num_units, n=2, d=0.5, intersection=True, fixed=False, seed=0, **kwargs):
+        if isinstance(num_units, dict):
+            raise NotImplementedError()
         super(SplitPathwaysNeuronal, self).__init__(num_signals=num_units, n=n, d=d, intersection=intersection,
                                                     fixed=fixed, seed=seed, class_token=False, **kwargs)
         self.num_units = num_units
 
 
-def create_neuronal_model(name='neuronal_model', frames=9, bins_per_frame=1, units=100,
+def create_neuronal_model(input_shape, name='neuronal_model', bins_per_frame=1,
                           classifier=False, l2=False, kernel_regularizer=None,
                           encoder='BasicRNN', encoder_per_path=False,
                           pathway_classification=True, pathway_classification_allpaths=False,
@@ -40,7 +41,15 @@ def create_neuronal_model(name='neuronal_model', frames=9, bins_per_frame=1, uni
     if isinstance(kernel_regularizer, str) and kernel_regularizer.startswith("tf."):
         kernel_regularizer = eval(kernel_regularizer)
 
-    inputs = layers.Input(shape=(frames * bins_per_frame, units))
+    inputs = layers.Input(shape=input_shape)
+    if isinstance(input_shape, dict):
+        units = {area: units for area, (units, bins_per_sample) in input_shape.items()}
+        bins_per_sample = list(input_shape.values())[0][-1]
+    else:
+        units, bins_per_sample = input_shape
+
+    frames = int(bins_per_sample / bins_per_frame)
+
     # Augment data.
     augmented = get_neuronal_data_augmentation(bins_per_frame, **augmentation_kwargs)(inputs)
 
@@ -55,7 +64,8 @@ def create_neuronal_model(name='neuronal_model', frames=9, bins_per_frame=1, uni
     Encoder = get_class(encoder, utils.model.encoders)
     out_reg = tf.keras.regularizers.L2(l2) if l2 else None
     enc_init = lambda i: Encoder(name=name+f'_enc{i if i is not None else ""}',
-                                 kernel_regularizer=kernel_regularizer, out_regularizer=out_reg, **encoder_kwargs)
+                                 frames=frames, kernel_regularizer=kernel_regularizer,
+                                 out_regularizer=out_reg, **encoder_kwargs)
     encoders = [enc_init(i) for i in range(len(pathways))] if encoder_per_path else [enc_init(None)] * len(pathways)
 
     embedding = tf.keras.layers.Concatenate(name=name + '_embedding', axis=-1)([encoder(pathway)[..., None]
