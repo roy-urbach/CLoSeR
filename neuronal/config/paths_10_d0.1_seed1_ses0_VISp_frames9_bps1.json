@@ -9,7 +9,7 @@
       }
    },
    "dataset":"SessionDataGenerator",
-   "dataset_kwargs": {
+   "data_kwargs": {
       "areas": ["VISp"],
       "session_id": "SESSIONS[0]",
       "frames_per_sample": 9,
