@@ -14,19 +14,19 @@ AREAS_DICT = {'cortex': ['VISp', 'VISl', 'VISrl', 'VISam', 'VISpm', 'VIS', 'VISa
                'hippocampus': ['CA1', 'CA2', 'CA3', 'DG', 'SUB', 'POST', 'PRE', 'ProS', 'HPF'],
                'midbrain': ['MB', 'SCig', 'SCiw', 'SCsg', 'SCzo', 'PPT', 'APN', 'NOT', 'MRN', 'OP', 'LT', 'RPF', 'CP']}
 
-SESSIONS = ('758798717',
-            '756029989',
-            '737581020',
-            '715093703',
-            '757216464',
-            '719161530',
-            '754312389',
-            '732592105',
-            '739448407',
-            '797828357',
-            '743475441',
-            '721123822',
-            '742951821')
+SESSIONS = (58798717,
+            756029989,
+            737581020,
+            715093703,
+            757216464,
+            719161530,
+            754312389,
+            732592105,
+            739448407,
+            797828357,
+            743475441,
+            721123822,
+            742951821)
 
 NATURAL_MOVIES = ("natural_movie_one", "natural_movie_three")
 NATURAL_MOVIES_FRAMES = {NATURAL_MOVIES[0]: 900,
