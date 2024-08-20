@@ -27,14 +27,14 @@ class CrossPathwayTemporalContrastiveLoss(tf.keras.losses.Loss):
                     negative_j = y_pred[:, self.start_t:-self.contrast_t, :, j]  # (B, T-cont_t-start_t, DIM)
                     neg_temped_sqr_dist_i = (tf.linalg.norm(anchor_i - negative_j, axis=-1) ** 2) / self.temperature
                     zi = tf.exp(-pos_temped_sqr_dist) + tf.exp(-neg_temped_sqr_dist_i)
-                    minus_log_likelihood_i = pos_temped_sqr_dist + tf.log(zi)   # (B, T-cont_t-start_t)
+                    minus_log_likelihood_i = pos_temped_sqr_dist + tf.math.log(zi)   # (B, T-cont_t-start_t)
                     loss = loss + tf.reduce_mean(minus_log_likelihood_i)
 
                 if self.a is None or (self.a is not None and self.a[j][i]):
                     negative_i = y_pred[:, self.start_t:-self.contrast_t, :, i]  # (B, T-cont_t-start_t, DIM)
                     neg_temped_sqr_dist_j = (tf.linalg.norm(anchor_j - negative_i, axis=-1) ** 2) / self.temperature
                     zj = tf.exp(-pos_temped_sqr_dist) + tf.exp(-neg_temped_sqr_dist_j)
-                    minus_log_likelihood_j = pos_temped_sqr_dist + tf.log(zj) # (B, T-cont_t-start_t)
+                    minus_log_likelihood_j = pos_temped_sqr_dist + tf.math.log(zj) # (B, T-cont_t-start_t)
                     loss = loss + tf.reduce_mean(minus_log_likelihood_j)
 
         return loss / (tf.cast(n ** 2, dtype=loss.dtype) if self.a is None else tf.reduce_sum(tf.cast(self.a, dtype=loss.dtype)))
