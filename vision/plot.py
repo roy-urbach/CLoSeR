@@ -9,7 +9,7 @@ def parse():
     parser.add_argument('--action', choices=['h', 'p', 'd', 'm'], default=True)
     parser.add_argument('--kwargs', type=str, default="{}")
     parser.add_argument('-m', '--module', type=str, default=Modules.VISION.name,
-                        choices=[Modules.VISION.name, Modules.NEURONAL.name])
+                        choices=Modules.get_cmd_module_options())
     parsed_args = parser.parse_known_args()
     return parsed_args
 
@@ -19,7 +19,7 @@ if __name__ == "__main__":
     import matplotlib
     matplotlib.use('Agg')
 
-    module = [module for module in Modules if module.name == argparse.module][0]
+    module = Modules.get_module(parsed_args.module)
 
     kwargs = eval(parsed_args.kwargs)
     if parsed_args.action == 'h':

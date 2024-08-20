@@ -10,7 +10,7 @@ def parse():
     parser.add_argument('-e', '--epochs', type=int, default=100, help='number of epochs')
     parser.add_argument('-j', '--json', type=str, help='name of the config json')
     parser.add_argument('-m', '--module', type=str, default=Modules.VISION.name,
-                        choices=[Modules.VISION.name, Modules.NEURONAL.name])
+                        choices=Modules.get_cmd_module_options())
 
     args = parser.parse_known_args()
     return args
@@ -19,7 +19,7 @@ def parse():
 def run():
     args = parse()[0]
     model_name = args.json.split('.json')[0]
-    module = [module for module in Modules if module.name == argparse.module][0]
+    module = Modules.get_module(args.module)
     kwargs = module.load_json(args.json)
 
     txt = '\n'.join([str(s) for s in [model_name, args.__dict__, kwargs]])

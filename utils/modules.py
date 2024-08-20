@@ -50,6 +50,22 @@ class Modules(Enum):
         setattr(Modules, f.__name__, new_method)
         return f
 
+    @staticmethod
+    def get_module(module_name):
+        relevant_modules = [module for module in Modules if module_name in (module.name, module.value.name)]
+        if not len(relevant_modules):
+            raise ValueError(f"No module named {module_name}")
+        else:
+            return relevant_modules[0]
+
+    @staticmethod
+    def get_cmd_module_options():
+        lst = []
+        for module in Modules:
+            lst.append(module.name)
+            lst.append(module.value.name)
+        return lst
+
 
 def import_variable(module_path, module_name, variable_name):
     import importlib.util

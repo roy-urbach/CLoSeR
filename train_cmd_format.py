@@ -30,7 +30,7 @@ def parse():
     parser.add_argument('-e', '--epochs', type=int, default=200, help='number of epochs')
     parser.add_argument('-q', '--queue', type=str, default=QUEUE_GPU, help='name of the queue')
     parser.add_argument('-m', '--module', type=str, default=Modules.VISION.name,
-                        choices=[Modules.VISION.name, Modules.NEURONAL.name])
+                        choices=Modules.get_cmd_module_options())
     parser.add_argument('--rusage', type=int, default=RUSAGE, help='CPU mem')
     parser.add_argument('--mem', type=int, default=4, help='GPU mem')
 
@@ -62,7 +62,8 @@ def get_cmd():
         bsub_call += f" -gpu num=1:j_exclusive=no:gmem={args.mem}GB"
     else:
         bsub_call += f' -R rusage[mem={RUSAGE}]'
-    train_call = f'python3 train.py -b {args.batch} -e {args.epochs} --json {args.json} -m {args.module}'
+    train_call = f'python3 {Modules.get_module(args.module).value}/train.py"'
+    train_call += f' -b {args.batch} -e {args.epochs} --json {args.json} -m {args.module}'
     cmd = [*bsub_call.split(), *bsub_args, f'"{train_call}"']
     return ' '.join(cmd)
 

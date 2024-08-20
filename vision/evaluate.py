@@ -30,7 +30,7 @@ def main():
     def parse():
         parser = argparse.ArgumentParser(description='Evaluate a model')
         parser.add_argument('-j', '--json', type=str, help='name of the config json')
-        parser.add_argument('-m', '--module', type=str, choices=[Modules.VISION.name, Modules.NEURONAL.name])
+        parser.add_argument('-m', '--module', type=str, default=Modules.VISION, choices=Modules.get_cmd_module_options())
         parser.add_argument('--knn', action=argparse.BooleanOptionalAction, default=False)
         parser.add_argument('--linear', action=argparse.BooleanOptionalAction, default=True)
         parser.add_argument('--ensemble', action=argparse.BooleanOptionalAction, default=True)
@@ -40,7 +40,7 @@ def main():
 
     args = parse()
     args.json = ".".join(args.json.split(".")[:-1]) if args.json.endswith(".json") else args.json
-    module = [module for module in Modules if module.name == argparse.module][0]
+    module = Modules.get_module(args.module)
     evaluating_fn = os.path.join(module.get_models_path(), args.json, 'is_evaluating')
 
     if os.path.exists(evaluating_fn):
