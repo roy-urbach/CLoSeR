@@ -352,9 +352,9 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
         trials = tf.convert_to_tensor(np.array(trials))
         frames = tf.convert_to_tensor(np.stack(frames, axis=0))
 
-        labels = {Labels.STIMULUS.value.name: stimuli_inds,
-                  Labels.TRIAL.value.name: trials,
-                  Labels.FRAME.value.name: frames}
+        labels = {Labels.STIMULUS: stimuli_inds,
+                  Labels.TRIAL: trials,
+                  Labels.FRAME: frames}
 
         y = {}
         for name, label in self.name_to_label.items():
