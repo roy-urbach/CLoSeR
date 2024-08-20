@@ -1,6 +1,8 @@
 from enum import Enum
 import os
 
+from utils.utils import get_class
+
 
 class Modules(Enum):
     VISION = "vision"
@@ -14,6 +16,13 @@ class Modules(Enum):
 
     def get_class_from_data(self, cls):
         return import_variable(self.value + "/utils", "data", cls)
+
+    def get_loss(self, loss):
+        try:
+            return import_variable(self.value + '/model', "loss", loss)
+        except Exception:
+            import utils.model.losses
+            return get_class(loss, utils.model.losses)
 
     def create_model(self, *args, **kwargs):
         return import_variable(self.value + "/model", "model", "create_model")(*args, **kwargs)

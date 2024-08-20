@@ -33,8 +33,7 @@ def create_and_compile_model(model_name, input_shape, model_kwargs, loss, module
     if print_log:
         printd("Done!")
 
-    import utils.model.losses
-    loss = get_class(loss, utils.model.losses)
+    loss = module.get_loss(loss)
 
     if print_log:
         printd("Compiling model...", end='\t')
