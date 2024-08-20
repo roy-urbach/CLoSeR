@@ -153,7 +153,7 @@ def compile_model(model, dataset, loss=CrossPathwayTemporalContrastiveLoss, loss
 
     if ensemble_classification:
         for label in Labels:
-            dataset.update_name_to_label(f'_ensemble_logits_{label.value.name}', label)
+            dataset.update_name_to_label(f'ensemble_logits_{label.value.name}', label)
             losses[f'ensemble_logits_{label.value.name}'] = label_class_loss[label.value.name]()
             metrics[f'ensemble_logits_{label.value.name}'] = label_class_metric[label.value.name]()
 
