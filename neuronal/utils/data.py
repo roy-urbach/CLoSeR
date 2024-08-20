@@ -206,7 +206,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
         if self.session_id not in SESSIONS:
             assert self.session_id in np.arange(len(SESSIONS))
             self.session_id = SESSIONS[self.session_id]
-        self.session = Session(session_id)
+        self.session = Session(self.session_id)
         self.batch_size = batch_size
         self.frames_per_sample = frames_per_sample
         self.bins_per_frame = bins_per_frame
