@@ -30,7 +30,7 @@ def create_and_compile_model(model_name, input_shape, model_kwargs, loss, module
                              optimizer_kwargs={}, metrics_kwargs={}, print_log=False, **kwargs):
     if print_log:
         printd("Creating model...", end='\t')
-    m = module.create_model(model_name=model_name, input_shape=input_shape, **model_kwargs, **kwargs)
+    m = module.create_model(name=model_name, input_shape=input_shape, **model_kwargs, **kwargs)
     if print_log:
         printd("Done!")
 
