@@ -64,27 +64,10 @@ class BasicRNN(tf.keras.layers.Layer):
         else:
             states = tf.scan(lambda state, inp: self.rnn(inp, state), inputs, initializer=initial_state)
 
-        states = tf.stack(states, axis=1)
+        stacked_states = tf.stack(states, axis=1)
+
         if self.out_proj is not None:
-            out = self.out_proj(states)    # (B, T, OUTDIM)
+            out = self.out_proj(stacked_states)    # (B, T, OUTDIM)
         else:
-            out = states
+            out = stacked_states
         return out
-        #
-        #
-        # internal_state = tf.zeros((tf.shape(inputs)[0], self.rnn.internal_state_size), dtype=inputs.dtype)
-        # states = []
-        # for t in range(tf.shape(inputs)[-1]):
-        #     cur_calc = self.rnn(inputs[..., t], internal_state)
-        #     if self.residual:
-        #         internal_state = tf.stop_gradient(internal_state) + cur_calc
-        #     else:
-        #         internal_state = cur_calc
-        #     states.append(internal_state)
-        # states = tf.stack(states, axis=1)  # (B, T, INTERNAL_DIM)
-        # if self.out_proj is not None:
-        #     out = self.out_proj(states)    # (B, T, OUTDIM)
-        # else:
-        #     out = states
-        # return out
-    #tf.constant(tf.zeros(self.rnn.internal_state_size, dtype=)
