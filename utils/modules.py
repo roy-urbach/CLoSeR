@@ -19,7 +19,7 @@ class Modules(Enum):
 
     def get_loss(self, loss):
         try:
-            return import_variable(self.value + '/model', "loss", loss)
+            return import_variable(self.value + '/model', "losses", loss)
         except Exception:
             import utils.model.losses
             return get_class(loss, utils.model.losses)
