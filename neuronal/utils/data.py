@@ -250,7 +250,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
         if self.__total_samples is None:
             total = 0
             for stim, act in self.spikes.items():
-                if self.areas_in_spikes() is not None:
+                if self.areas_in_spikes():
                     arr = act[self.areas[0]]
                 else:
                     arr = act
