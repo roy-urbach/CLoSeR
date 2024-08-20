@@ -45,13 +45,14 @@ class BasicRNN(tf.keras.layers.Layer):
 
     def call(self, inputs):
         # inputs shape =  (B, N, T)
-        inputs = tf.unstack(inputs, axis=-1)
         initial_state = tf.zeros((tf.shape(inputs)[0], self.rnn.internal_state_size), dtype=inputs.dtype)
+
+        inputs = tf.unstack(inputs, axis=-1)
 
         if self.residual:
             raise NotImplementedError("Naive implementation falls for some reason")
         else:
-            states = tf.scan(lambda state, input: self.rnn_layer(input, state), inputs, initializer=initial_state)
+            states = tf.scan(lambda state, inp: self.rnn_layer(inp, state), inputs, initializer=initial_state)
 
         states = tf.stack(states, axis=1)
         if self.out_proj is not None:
