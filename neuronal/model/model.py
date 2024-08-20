@@ -81,7 +81,7 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
     last_step_embedding = embedding[..., -bins_per_frame:]
     embedding_for_classification = last_step_embedding if classifier else tf.stop_gradient(last_step_embedding)
     embedding_for_classification = tf.reshape(embedding_for_classification,
-                                              (list(tf.shape(embedding_for_classification)[:2]) + [-1]))    # (B, P, DIMS*bins_per_frame)
+                                              (tf.shape(embedding_for_classification)[0], len(pathways), embedding.shape[-2] * bins_per_frame))    # (B, P, DIMS*bins_per_frame)
     path_divide_embedding = tf.unstack(embedding_for_classification, axis=1)
 
     # classification heads, with stop_grad unless classifier=True
