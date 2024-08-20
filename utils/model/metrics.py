@@ -18,7 +18,7 @@ class MeanConfidence(tf.keras.metrics.Metric):
         return self.mean_conf
 
 
-class SparseCategoricalAccuracyByKey(tf.keras.metric.SparseCategoricalAccuracy):
+class SparseCategoricalAccuracyByKey(tf.keras.metrics.SparseCategoricalAccuracy):
     def __init__(self, key, *args, name='sparse_categorical_accuracy_{key}', **kwargs):
         name = name.format(key=key) if '{key}' in name else name
         super(SparseCategoricalAccuracyByKey, self).__init__(*args, name=name, **kwargs)
