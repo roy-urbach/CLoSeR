@@ -197,8 +197,9 @@ class Trial:
 
 class SessionDataGenerator(tf.keras.utils.Sequence):
     def __init__(self, session_id, batch_size=32, frames_per_sample=10, bins_per_frame=1,
-                 stimuli=NATURAL_MOVIES, areas=None):
+                 stimuli=NATURAL_MOVIES, areas=None, train=True, val=False, test=False):
         super(SessionDataGenerator, self).__init__()
+        self.session_id = session_id
         self.session = Session(session_id)
         self.batch_size = batch_size
         self.frames_per_sample = frames_per_sample
@@ -208,6 +209,12 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
         self.stimuli = list(stimuli)
         self.bins_per_sample = frames_per_sample * bins_per_frame
         self.order = None
+
+        assert not (test and val)
+        self.train = train
+        self.test = test
+        self.val = val
+
         self.__total_samples = None
         self.__load_spikes()
 
@@ -215,8 +222,21 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
     def is_generator():
         return True
 
+    def clone(self, **kwargs):
+        self_kwargs = dict(session_id=self.session_id, batch_size=self.batch_size,
+                           frames_per_sample=self.frames_per_sample, bins_per_frame=self.bins_per_frame,
+                           stimuli=self.stimuli, areas=self.areas, train=self.train, val=self.val, test=self.test)
+        self_kwargs.update(**kwargs)
+        return SessionDataGenerator(**self_kwargs)
+
+    def get_train(self):
+        return self.clone(train=True, val=False, test=False)
+
     def get_validation(self):
-        raise NotImplementedError("Didn't implement SessionDataGenerator.get_validation yet")
+        return self.clone(train=False, val=True, test=False)
+
+    def get_test(self):
+        return self.clone(train=False, val=False, test=True)
 
     def __len__(self):
         if self.__total_samples is None:
@@ -236,7 +256,21 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
     def __load_spikes(self):
         for stimulus in self.stimuli:
             self.spikes[stimulus] = [] if self.areas is None else {area: [] for area in self.areas}
-            for trial in self.session.get_trials(stimulus):
+
+            trials = self.session.get_trials(stimulus)
+            normed_inds = np.arange(0, 1, len(trials)+1)
+            if self.train:
+                trial_mask = normed_inds <= 0.6
+            elif self.val:
+                trial_mask = (normed_inds >= 0.6) & (normed_inds < 0.8)
+            elif self.test:
+                trial_mask = normed_inds >= 0.8
+            else:
+                # If we want the full session
+                trial_mask = np.full_like(normed_inds, True)
+
+            for i, trial in trials:
+                if not trial_mask[i]: continue
                 if self.areas is not None:
                     for area in self.areas:
                         self.spikes[stimulus][area].append(trial.get_spike_bins(area=area,
