@@ -35,14 +35,15 @@ class MLPEncoder(MLP):
         return self.out_layer(super().call(self.flatten(inputs), **kwargs))
 
 
-class BasicRNN:
+class BasicRNN(tf.keras.layers.Layer):
     def __init__(self, residual=True, out_dim=None, name='rnn', kernel_regularizer=None, out_regularizer=None, **kwargs):
+        super().__init__(name=name)
         self.residual = residual
         self.rnn = BasicRNNLayer(name=name + "_internal", kernel_regularizer=kernel_regularizer, **kwargs)
         self.out_proj = tf.keras.layer.Dense(out_dim, name=name + "_out", kernel_regularizer=kernel_regularizer,
                                              activity_regularizer=out_regularizer) if out_dim is not None else None
 
-    def __call__(self, inputs):
+    def call(self, inputs):
         # inputs shape =  (B, N, T)
         internal_state = tf.constant(tf.zeros((tf.shape(inputs)[0], self.rnn.internal_state_size), dtype=inputs.dtype))
         states = []
