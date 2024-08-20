@@ -1,5 +1,5 @@
 import tensorflow as tf
-from tf.keras import layers
+from tensorflow.keras import layers
 
 from neuronal.model.losses import CrossPathwayTemporalContrastiveLoss, SparseCategoricalCrossEntropyByKey, \
     MeanAbsoluteErrorByKeyLoss
