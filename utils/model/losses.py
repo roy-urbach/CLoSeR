@@ -54,9 +54,9 @@ class GeneralLossByKey(tf.keras.losses.Loss):
         super(GeneralLossByKey, self).__init__(*args, name=name, **kwargs)
         self.key = key
 
-    def loss_func(self, y_true, y_pred):
+    def loss_func(self, y_true, y_pred, **kwargs):
         raise NotImplementedError()
 
-    def call(self, y_true, y_pred):
-        raise self.loss_func(y_true[self.key], y_pred)
+    def call(self, y_true, y_pred, **kwargs):
+        raise self.loss_func(y_true[self.key], y_pred, **kwargs)
 

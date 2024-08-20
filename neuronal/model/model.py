@@ -143,23 +143,17 @@ def compile_model(model, loss=CrossPathwayTemporalContrastiveLoss, loss_kwargs={
         if pathway_classification_allpaths:
             for path in range(model.get_layer(model.name + "_pathways").n):
                 for label in Labels:
-                    losses[model.name + f'_logits{path}_{label.value.name}'] = label_class_loss[label.value.name](
-                        label.value.name, from_logits=True)
-                    metrics[model.name + f'_logits{path}_{label.value.name}'] = label_class_metric[label.value.name](
-                        label.value.name)
+                    losses[model.name + f'_logits{path}_{label.value.name}'] = label_class_loss[label.value.name](label.value.name)
+                    metrics[model.name + f'_logits{path}_{label.value.name}'] = label_class_metric[label.value.name](label.value.name)
         else:
             for label in Labels:
-                losses[model.name + f'_logits_{label.value.name}'] = label_class_loss[label.value.name](
-                    label.value.name, from_logits=True)
-                metrics[model.name + f'_logits_{label.value.name}'] = label_class_metric[label.value.name](
-                    label.value.name)
+                losses[model.name + f'_logits_{label.value.name}'] = label_class_loss[label.value.name](label.value.name)
+                metrics[model.name + f'_logits_{label.value.name}'] = label_class_metric[label.value.name](label.value.name)
 
     if ensemble_classification:
         for label in Labels:
-            losses[model.name + f'_ensemble_logits_{label.value.name}'] = label_class_loss[label.value.name](
-                label.value.name, from_logits=True)
-            metrics[model.name + f'_ensemble_logits_{label.value.name}'] = label_class_metric[label.value.name](
-                label.value.name, name="accuracy")
+            losses[model.name + f'_ensemble_logits_{label.value.name}'] = label_class_loss[label.value.name](label.value.name)
+            metrics[model.name + f'_ensemble_logits_{label.value.name}'] = label_class_metric[label.value.name](label.value.name)
 
     optimizer = get_optimizer(optimizer_cls=optimizer_cls, **optimizer_kwargs)
     model.compile(optimizer=optimizer, loss=losses, metrics=metrics)
