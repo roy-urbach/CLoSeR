@@ -74,22 +74,23 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
     embedding = tf.keras.layers.Concatenate(name='embedding', axis=-1)([encoder(pathway)[..., None]
                                                                                 for encoder, pathway in
                                                                                 zip(encoders, pathways)])
-    # (B, T, DIM, P)
+    # (B, P, DIM, T)
 
     outputs = [embedding]
 
-    last_step_embedding = embedding[:, -1]
+    last_step_embedding = embedding[..., -bins_per_frame:]
+    embedding_for_classification = last_step_embedding if classifier else tf.stop_gradient(last_step_embedding)
+    embedding_for_classification = tf.reshape(embedding_for_classification,
+                                              (list(tf.shape(embedding_for_classification)[:2]) + [-1]))    # (B, P, DIMS*bins_per_frame)
+    path_divide_embedding = tf.unstack(embedding_for_classification, axis=1)
 
     # classification heads, with stop_grad unless classifier=True
     if pathway_classification:
         # Only for the first pathway
-        embedding_for_classification = last_step_embedding if classifier else tf.stop_gradient(last_step_embedding)
-        if bins_per_frame > 1:
-            embedding_for_classification = embedding_for_classification[:, bins_per_frame - 1::bins_per_frame]
 
         pathways_to_classify = list(range(len(pathways))) if pathway_classification_allpaths else [0]
         for path in pathways_to_classify:
-            cur_embd = embedding_for_classification[..., path]
+            cur_embd = path_divide_embedding[path]
             for label in Labels:
                 cur_name = 'logits' + (
                     str(path) if pathway_classification_allpaths else '') + f'_{label.value.name}'
@@ -98,10 +99,11 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
                 outputs.append(pathway_logits)
     if ensemble_classification:
         for label in Labels:
-            outputs.append(layers.Dense(label.value.dimension, activation=None,
-                                        kernel_regularizer=kernel_regularizer,
-                                        name=f'ensemble_logits_{label.value.name}')(
-                tf.reshape(embedding_for_classification, (-1, np.multiply.reduce(embedding_for_classification.shape[1:])))))
+            ens_inp = tf.concat(path_divide_embedding, axis=-1)
+            ens_pred = layers.Dense(label.value.dimension, activation=None,
+                                    kernel_regularizer=kernel_regularizer,
+                                    name=f'ensemble_logits_{label.value.name}')(ens_inp)
+            outputs.append(ens_pred)
 
     # Create the Keras model.
     model = tf.keras.Model(inputs=inputs, outputs=outputs, name=name)
