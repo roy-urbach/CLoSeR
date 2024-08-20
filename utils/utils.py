@@ -150,3 +150,10 @@ def smooth(arr, window=10):
         x = np.concatenate([x, [n - window/2]])
         y = np.concatenate([y, [arr[-window:].mean()]])
     return x, y
+
+
+def streval(w):
+    if isinstance(w, str):
+        return eval(w)
+    else:
+        return w

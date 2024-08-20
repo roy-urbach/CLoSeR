@@ -3,8 +3,10 @@ import os
 import pandas as pd
 from enum import Enum
 
-from neuronal.utils.consts import NEURONAL_BASE_DIR, NATURAL_MOVIES, NATURAL_MOVIES_FRAMES, NATURAL_MOVIES_TRIALS
+from neuronal.utils.consts import NEURONAL_BASE_DIR, NATURAL_MOVIES, NATURAL_MOVIES_FRAMES, NATURAL_MOVIES_TRIALS, SESSIONS
 import tensorflow as tf
+
+from utils.utils import streval
 
 DATA_DIR = f"{NEURONAL_BASE_DIR}/data"
 CATEGORICAL = "categorical"
@@ -32,6 +34,7 @@ def loadz(npz_path):
 
 class Session:
     def __init__(self, session_id):
+        assert session_id in SESSIONS
         self.session_id = session_id
         self.metadata = None
         self.start_time = None
@@ -199,7 +202,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
     def __init__(self, session_id, batch_size=32, frames_per_sample=10, bins_per_frame=1,
                  stimuli=NATURAL_MOVIES, areas=None, train=True, val=False, test=False):
         super(SessionDataGenerator, self).__init__()
-        self.session_id = session_id
+        self.session_id = streval(session_id)
         self.session = Session(session_id)
         self.batch_size = batch_size
         self.frames_per_sample = frames_per_sample

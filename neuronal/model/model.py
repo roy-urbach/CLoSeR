@@ -32,12 +32,12 @@ class SplitPathwaysNeuronal(SplitPathways):
         self.num_units = num_units
 
 
-def create_neuronal_model(input_shape, name='neuronal_model', bins_per_frame=1,
-                          classifier=False, l2=False, kernel_regularizer=None,
-                          encoder='BasicRNN', encoder_per_path=False,
-                          pathway_classification=True, pathway_classification_allpaths=False,
-                          ensemble_classification=False, classifier_pathways=True,
-                          augmentation_kwargs={}, encoder_kwargs={}, pathways_kwargs={}):
+def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
+                 classifier=False, l2=False, kernel_regularizer=None,
+                 encoder='BasicRNN', encoder_per_path=False,
+                 pathway_classification=True, pathway_classification_allpaths=False,
+                 ensemble_classification=True, classifier_pathways=True,
+                 augmentation_kwargs={}, encoder_kwargs={}, pathways_kwargs={}):
     if isinstance(kernel_regularizer, str) and kernel_regularizer.startswith("tf."):
         kernel_regularizer = eval(kernel_regularizer)
 
@@ -58,18 +58,20 @@ def create_neuronal_model(input_shape, name='neuronal_model', bins_per_frame=1,
         pathways = [augmented]
     else:
         pathways = SplitPathwaysNeuronal(units, name=name + '_pathways', **pathways_kwargs)(augmented)  # (B, d*S, N, T)
-        pathways = [tf.squeeze(path, axis=-2) for path in tf.split(pathways, pathways.shape[-2], axis=-2)] # List[(B, d*S, T)]
+        pathways = [tf.squeeze(path, axis=-2) for path in
+                    tf.split(pathways, pathways.shape[-2], axis=-2)]  # List[(B, d*S, T)]
 
     import utils.model.encoders
     Encoder = get_class(encoder, utils.model.encoders)
     out_reg = tf.keras.regularizers.L2(l2) if l2 else None
-    enc_init = lambda i: Encoder(name=name+f'_enc{i if i is not None else ""}',
+    enc_init = lambda i: Encoder(name=name + f'_enc{i if i is not None else ""}',
                                  frames=frames, kernel_regularizer=kernel_regularizer,
                                  out_regularizer=out_reg, **encoder_kwargs)
     encoders = [enc_init(i) for i in range(len(pathways))] if encoder_per_path else [enc_init(None)] * len(pathways)
 
     embedding = tf.keras.layers.Concatenate(name=name + '_embedding', axis=-1)([encoder(pathway)[..., None]
-                                                                                for encoder, pathway in zip(encoders, pathways)])
+                                                                                for encoder, pathway in
+                                                                                zip(encoders, pathways)])
     # (B, T, DIM, P)
 
     outputs = [embedding]
@@ -87,15 +89,18 @@ def create_neuronal_model(input_shape, name='neuronal_model', bins_per_frame=1,
         for path in pathways_to_classify:
             cur_embd = embedding_for_classification[..., path]
             for label in Labels:
-                cur_name = name + '_logits' + (str(path) if pathway_classification_allpaths else '') + f'_{label.value.name}'
+                cur_name = name + '_logits' + (
+                    str(path) if pathway_classification_allpaths else '') + f'_{label.value.name}'
                 pathway_logits = layers.Dense(label.value.dimension, activation=None,
                                               kernel_regularizer=kernel_regularizer, name=cur_name)(cur_embd)
                 outputs.append(pathway_logits)
     if ensemble_classification:
         for label in Labels:
             outputs.append(layers.Dense(label.value.dimension, activation=None,
-                                        kernel_regularizer=kernel_regularizer, name=name + f'_ensemble_logits_{label.value.name}')(
-                tf.reshape(embedding if classifier else tf.stop_gradient(embedding), (-1, np.multiply.reduce(embedding.shape[1:])))))
+                                        kernel_regularizer=kernel_regularizer,
+                                        name=name + f'_ensemble_logits_{label.value.name}')(
+                tf.reshape(embedding if classifier else tf.stop_gradient(embedding),
+                           (-1, np.multiply.reduce(embedding.shape[1:])))))
 
     # Create the Keras model.
     model = tf.keras.Model(inputs=inputs, outputs=outputs, name=name)
@@ -119,7 +124,8 @@ def compile_model(model, loss=CrossPathwayTemporalContrastiveLoss, loss_kwargs={
 
     if metrics_kwargs:
         import utils.model.metrics as metrics_file
-        metrics[model.name + "_embedding"] = get_class(metrics_kwargs['name'], metrics_file)(metrics_kwargs.get('kwargs', {}))
+        metrics[model.name + "_embedding"] = get_class(metrics_kwargs['name'], metrics_file)(
+            metrics_kwargs.get('kwargs', {}))
 
     label_class_loss = {
         label.value.name: SparseCategoricalCrossEntropyByKey if label.value.kind == CATEGORICAL else MeanAbsoluteErrorByKeyLoss
@@ -132,17 +138,23 @@ def compile_model(model, loss=CrossPathwayTemporalContrastiveLoss, loss_kwargs={
         if pathway_classification_allpaths:
             for path in range(model.get_layer(model.name + "_pathways").n):
                 for label in Labels:
-                    losses[model.name + f'_logits{path}_{label.value.name}'] = label_class_loss[label.value.name](label.value.name, from_logits=True)
-                    metrics[model.name + f'_logits{path}_{label.value.name}'] = label_class_metric[label.value.name](label.value.name)
+                    losses[model.name + f'_logits{path}_{label.value.name}'] = label_class_loss[label.value.name](
+                        label.value.name, from_logits=True)
+                    metrics[model.name + f'_logits{path}_{label.value.name}'] = label_class_metric[label.value.name](
+                        label.value.name)
         else:
             for label in Labels:
-                losses[model.name + f'_logits_{label.value.name}'] = label_class_loss[label.value.name](label.value.name, from_logits=True)
-                metrics[model.name + f'_logits_{label.value.name}'] = label_class_metric[label.value.name](label.value.name)
+                losses[model.name + f'_logits_{label.value.name}'] = label_class_loss[label.value.name](
+                    label.value.name, from_logits=True)
+                metrics[model.name + f'_logits_{label.value.name}'] = label_class_metric[label.value.name](
+                    label.value.name)
 
     if ensemble_classification:
         for label in Labels:
-            losses[model.name + f'_ensemble_logits_{label.value.name}'] = label_class_loss[label.value.name](label.value.name, from_logits=True)
-            metrics[model.name + f'_ensemble_logits_{label.value.name}'] = label_class_metric[label.value.name](label.value.name, name="accuracy")
+            losses[model.name + f'_ensemble_logits_{label.value.name}'] = label_class_loss[label.value.name](
+                label.value.name, from_logits=True)
+            metrics[model.name + f'_ensemble_logits_{label.value.name}'] = label_class_metric[label.value.name](
+                label.value.name, name="accuracy")
 
     optimizer = get_optimizer(optimizer_cls=optimizer_cls, **optimizer_kwargs)
     model.compile(optimizer=optimizer, loss=losses, metrics=metrics)

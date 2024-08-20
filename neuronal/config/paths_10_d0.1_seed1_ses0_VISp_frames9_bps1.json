@@ -1,0 +1,19 @@
+{
+   "model_kwargs":{
+      "l2": 1e-5,
+      "bins_per_frame": 1,
+      "pathways_kwargs":{
+         "n":10,
+         "d":0.1,
+         "fixed":true
+      }
+   },
+   "dataset":"SessionDataGenerator",
+   "dataset_kwargs": {
+      "areas": ["VISp"],
+      "session_id": "SESSIONS[0]",
+      "frames_per_sample": 9,
+      "bins_per_frame": 1,
+      "batch_size": 32
+   }
+}
