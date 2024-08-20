@@ -6,7 +6,8 @@ import os
 import tensorflow as tf
 
 
-def get_optimizer(optimizer_cls=tf.optimizers.legacy.Nadam if tf.__version__ == '2.12.0' else tf.optimizers.Nadam, **kwargs):
+def get_optimizer(optimizer_cls=tf.optimizers.legacy.Nadam if tf.__version__ == '2.12.0' else tf.optimizers.Nadam,
+                  **kwargs):
     if "optimizer" in kwargs:
         optimizer_cls_name = kwargs.pop("optimizer")
         try:
@@ -25,7 +26,7 @@ def get_optimizer(optimizer_cls=tf.optimizers.legacy.Nadam if tf.__version__ == 
     return optimizer
 
 
-def create_and_compile_model(model_name, input_shape, model_kwargs, loss, module:Modules, loss_kwargs={},
+def create_and_compile_model(model_name, input_shape, model_kwargs, loss, module: Modules, loss_kwargs={},
                              optimizer_kwargs={}, metrics_kwargs={}, print_log=False, **kwargs):
     if print_log:
         printd("Creating model...", end='\t')
@@ -124,27 +125,30 @@ def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_
     dataset = module.get_class_from_data(dataset)(**data_kwargs)
     printd("Done!")
 
-    model, max_epoch = load_or_create_model(model_name, module, input_shape=dataset.get_shape(), print_log=True, **kwargs)
+    model, max_epoch = load_or_create_model(model_name, module, input_shape=dataset.get_shape(), print_log=True,
+                                            **kwargs)
 
     # TODO: regression callback?
 
     if num_epochs > max_epoch:
         printd(f"Fitting the model (with {model.count_params()} parameters)!")
-        history = model.fit(
-            x=dataset.get_x_train() if not dataset.is_generator() else None,
-            y=dataset.get_y_train() if not dataset.is_generator() else None,
-            generator=dataset if dataset.is_generator() else None,
-            validation_generator=dataset.get_validation() if dataset.is_generator() else None,
-            batch_size=batch_size,
-            epochs=num_epochs,
-            initial_epoch=max_epoch,
-            validation_split=dataset.get_val_split() if not dataset.is_generator() else None,
-            callbacks=[tf.keras.callbacks.ModelCheckpoint(filepath=get_weights_fn(model, module),
-                                                          save_weights_only=True,
-                                                          save_best_only=False,
-                                                          verbose=1),
-                       SaveOptimizerCallback(module), ErasePreviousCallback(module), SaveHistory(module)]
-        )
+        fit_kwargs = dict(batch_size=batch_size,
+                          epochs=num_epochs,
+                          initial_epoch=max_epoch,
+                          callbacks=[tf.keras.callbacks.ModelCheckpoint(filepath=get_weights_fn(model, module),
+                                                                        save_weights_only=True,
+                                                                        save_best_only=False,
+                                                                        verbose=1),
+                                     SaveOptimizerCallback(module), ErasePreviousCallback(module), SaveHistory(module)]
+                          )
+        if dataset.is_generator():
+            history = model.fit_generator(dataset,
+                                          validation_generator=dataset.get_validation(),
+                                          **fit_kwargs)
+        else:
+            history = model.fit(x=dataset.get_x_train(),
+                                y=dataset.get_y_train(),
+                                validation_split=dataset.get_val_split(),
+                                **fit_kwargs)
         printd("Done!")
     return model
-
