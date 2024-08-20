@@ -74,15 +74,15 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
     embedding = tf.keras.layers.Concatenate(name='embedding', axis=-1)([encoder(pathway)[..., None]
                                                                                 for encoder, pathway in
                                                                                 zip(encoders, pathways)])
-    # (B, P, DIM, T)
+    # (B, T, DIM, P)
 
     outputs = [embedding]
 
-    last_step_embedding = embedding[..., -bins_per_frame:]
+    last_step_embedding = embedding[:, -bins_per_frame:]    # (B, bins_per_frame, DIM, P)
     embedding_for_classification = last_step_embedding if classifier else tf.stop_gradient(last_step_embedding)
     embedding_for_classification = tf.reshape(embedding_for_classification,
-                                              (tf.shape(embedding_for_classification)[0], len(pathways), embedding.shape[-2] * bins_per_frame))    # (B, P, DIMS*bins_per_frame)
-    path_divide_embedding = tf.unstack(embedding_for_classification, axis=1)
+                                              (tf.shape(embedding_for_classification)[0], embedding.shape[-2] * bins_per_frame, len(pathways)))    # (B, DIMS*bins_per_frame, P)
+    path_divide_embedding = tf.unstack(embedding_for_classification, axis=-1)
 
     # classification heads, with stop_grad unless classifier=True
     if pathway_classification:
