@@ -48,7 +48,7 @@ def load_or_create_model(model_name, module: Modules, *args, load=True, optimize
                          skip_mismatch=False, pretrained_name=None, **kwargs):
     import re
 
-    model = create_and_compile_model(model_name, *args, **kwargs)
+    model = create_and_compile_model(model_name, *args, module=module, **kwargs)
     max_epoch = 0
     if load:
         model_fn = None
