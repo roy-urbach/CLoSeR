@@ -36,7 +36,7 @@ class MLPEncoder(MLP):
 
 
 class BasicRNN(tf.keras.layers.Layer):
-    def __init__(self, residual=True, out_dim=None, name='rnn', kernel_regularizer=None, out_regularizer=None, **kwargs):
+    def __init__(self, residual=False, out_dim=None, name='rnn', kernel_regularizer=None, out_regularizer=None, **kwargs):
         super().__init__(name=name)
         self.residual = residual
         self.rnn = BasicRNNLayer(name=name + "_internal", kernel_regularizer=kernel_regularizer, **kwargs)
@@ -45,18 +45,34 @@ class BasicRNN(tf.keras.layers.Layer):
 
     def call(self, inputs):
         # inputs shape =  (B, N, T)
-        internal_state = tf.zeros((tf.shape(inputs)[0], self.rnn.internal_state_size), dtype=inputs.dtype)
-        states = []
-        for t in range(tf.shape(inputs)[-1]):
-            cur_calc = self.rnn(inputs[..., t], internal_state)
-            if self.residual:
-                internal_state = tf.stop_gradient(internal_state) + cur_calc
-            else:
-                internal_state = cur_calc
-            states.append(internal_state)
-        states = tf.stack(states, axis=1)  # (B, T, INTERNAL_DIM)
+        inputs = tf.unstack(inputs, axis=-1)
+        initial_state = tf.zeros((tf.shape(inputs)[0], self.rnn.internal_state_size), dtype=inputs.dtype)
+
+        if self.residual:
+            raise NotImplementedError("Naive implementation falls for some reason")
+        else:
+            states = tf.scan(lambda state, input: self.rnn_layer(input, state), inputs, initializer=initial_state)
+
+        states = tf.stack(states, axis=1)
         if self.out_proj is not None:
             out = self.out_proj(states)    # (B, T, OUTDIM)
         else:
             out = states
         return out
+        #
+        #
+        # internal_state = tf.zeros((tf.shape(inputs)[0], self.rnn.internal_state_size), dtype=inputs.dtype)
+        # states = []
+        # for t in range(tf.shape(inputs)[-1]):
+        #     cur_calc = self.rnn(inputs[..., t], internal_state)
+        #     if self.residual:
+        #         internal_state = tf.stop_gradient(internal_state) + cur_calc
+        #     else:
+        #         internal_state = cur_calc
+        #     states.append(internal_state)
+        # states = tf.stack(states, axis=1)  # (B, T, INTERNAL_DIM)
+        # if self.out_proj is not None:
+        #     out = self.out_proj(states)    # (B, T, OUTDIM)
+        # else:
+        #     out = states
+        # return out
