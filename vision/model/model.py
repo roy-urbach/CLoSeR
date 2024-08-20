@@ -41,7 +41,7 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
     # Augment data.
     augmented = get_data_augmentation(image_size, **augmentation_kwargs)(inputs)
 
-    if len(augmented.get_shape()) == 3:
+    if len(augmented.shape) == 3:
         augmented = augmented[..., None]
 
     if tokenizer_conv_kwargs is not None:
