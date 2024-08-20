@@ -1,3 +1,5 @@
+from typing import Dict
+
 import tensorflow as tf
 from tensorflow.keras import layers
 
@@ -112,7 +114,7 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
     return model
 
 
-def compile_model(model, loss=CrossPathwayTemporalContrastiveLoss, loss_kwargs={},
+def compile_model(model, dataset, loss=CrossPathwayTemporalContrastiveLoss, loss_kwargs={},
                   optimizer_cls=tf.optimizers.legacy.Nadam if tf.__version__ == '2.12.0' else tf.optimizers.Nadam,
                   optimizer_kwargs={}, classifier=False, pathway_classification=True,
                   ensemble_classification=False, pathway_classification_allpaths=False,
@@ -143,15 +145,18 @@ def compile_model(model, loss=CrossPathwayTemporalContrastiveLoss, loss_kwargs={
         if pathway_classification_allpaths:
             for path in range(model.get_layer(model.name + "_pathways").n):
                 for label in Labels:
+                    dataset.update_name_to_label(model.name + f'_logits{path}_{label.value.name}', label)
                     losses[model.name + f'_logits{path}_{label.value.name}'] = label_class_loss[label.value.name](label.value.name)
                     metrics[model.name + f'_logits{path}_{label.value.name}'] = label_class_metric[label.value.name](label.value.name)
         else:
             for label in Labels:
+                dataset.update_name_to_label(model.name + f'_logits_{label.value.name}', label)
                 losses[model.name + f'_logits_{label.value.name}'] = label_class_loss[label.value.name](label.value.name)
                 metrics[model.name + f'_logits_{label.value.name}'] = label_class_metric[label.value.name](label.value.name)
 
     if ensemble_classification:
         for label in Labels:
+            dataset.update_name_to_label(model.name + f'_ensemble_logits_{label.value.name}', label)
             losses[model.name + f'_ensemble_logits_{label.value.name}'] = label_class_loss[label.value.name](label.value.name)
             metrics[model.name + f'_ensemble_logits_{label.value.name}'] = label_class_metric[label.value.name](label.value.name)
 

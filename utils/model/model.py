@@ -26,11 +26,11 @@ def get_optimizer(optimizer_cls=tf.optimizers.legacy.Nadam if tf.__version__ == 
     return optimizer
 
 
-def create_and_compile_model(model_name, input_shape, model_kwargs, loss, module: Modules, loss_kwargs={},
+def create_and_compile_model(model_name, dataset, model_kwargs, loss, module: Modules, loss_kwargs={},
                              optimizer_kwargs={}, metrics_kwargs={}, print_log=False, **kwargs):
     if print_log:
         printd("Creating model...", end='\t')
-    m = module.create_model(name=model_name, input_shape=input_shape, **model_kwargs, **kwargs)
+    m = module.create_model(name=model_name, input_shape=dataset.get_shape(), **model_kwargs, **kwargs)
     if print_log:
         printd("Done!")
 
@@ -38,7 +38,7 @@ def create_and_compile_model(model_name, input_shape, model_kwargs, loss, module
 
     if print_log:
         printd("Compiling model...", end='\t')
-    module.compile_model(m, loss=loss, loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
+    module.compile_model(m, dataset=dataset, loss=loss, loss_kwargs=loss_kwargs, optimizer_kwargs=optimizer_kwargs,
                          metrics_kwargs=metrics_kwargs, **kwargs)
 
     return m
@@ -98,8 +98,7 @@ def load_model_from_json(model_name, module: Modules, load=True, optimizer_state
         return None
     else:
         def call(dataset, data_kwargs={}, **kwargs):
-            dataset = module.get_class_from_data(dataset)(**data_kwargs)
-            model, _ = load_or_create_model(model_name, module, input_shape=dataset.get_shape(),
+            model, _ = load_or_create_model(model_name, module, dataset=module.get_class_from_data(dataset)(**data_kwargs),
                                             load=load, optimizer_state=optimizer_state, skip_mismatch=skip_mismatch,
                                             **kwargs)
             return model
@@ -125,8 +124,7 @@ def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_
     dataset = module.get_class_from_data(dataset)(**data_kwargs)
     printd("Done!")
 
-    model, max_epoch = load_or_create_model(model_name, module, input_shape=dataset.get_shape(), print_log=True,
-                                            **kwargs)
+    model, max_epoch = load_or_create_model(model_name, module, dataset=dataset, print_log=True, **kwargs)
 
     # TODO: regression callback?
 

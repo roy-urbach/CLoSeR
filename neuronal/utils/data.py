@@ -223,6 +223,8 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
         self.test = test
         self.val = val
 
+        self.name_to_label = {}
+
         self.__total_samples = None
         self.__load_spikes()
 
@@ -311,6 +313,9 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
     def areas_in_spikes(self):
         return self.areas is not None and not self.single_area
 
+    def update_name_to_label(self, name, label):
+        self.name_to_label[name] = label
+
     def __getitem__(self, idx):
         stimuli_inds = np.random.randint(len(self.stimuli), size=self.batch_size)
         spikes = {area: [] for area in self.areas} if self.areas_in_spikes() else []
@@ -347,6 +352,13 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
         trials = tf.convert_to_tensor(np.array(trials))
         frames = tf.convert_to_tensor(np.stack(frames, axis=0))
 
-        return spikes, {Labels.STIMULUS.value.name: stimuli_inds,
-                        Labels.TRIAL.value.name: trials,
-                        Labels.FRAME.value.name: frames}
+        labels = {Labels.STIMULUS.value.name: stimuli_inds,
+                  Labels.TRIAL.value.name: trials,
+                  Labels.FRAME.value.name: frames}
+
+        y = {}
+        for name, label in self.name_to_label.items():
+            y[name] = labels[label]
+
+
+        return spikes, y
