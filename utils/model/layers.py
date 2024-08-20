@@ -332,20 +332,21 @@ class SplitPathways(tf.keras.layers.Layer):
 
     def get_config(self):
         return dict(**super().get_config(), n=self.n, seed=self.seed, fixed=self.fixed,
-                    num_features=self.num_features, intersection=self.intersection,
-                    shift=self.shift, class_token=self.class_token, pathway_to_cls=self.pathway_to_cls)
+                    num_signals=self.num_signals, num_signals_per_path=self.num_signals_per_path,
+                    intersection=self.intersection, shift=self.shift, class_token=self.class_token,
+                    pathway_to_cls=self.pathway_to_cls)
 
     def get_indices(self):
         if self.indices is None:
             if self.intersection:
                 indices = tf.stack(
-                    [tf.random.shuffle(tf.range(self.shift, self.num_patches + self.shift))[:self.num_features_per_path]
+                    [tf.random.shuffle(tf.range(self.shift, self.num_signals + self.shift))[:self.num_signals_per_path]
                      for _ in range(self.n)],
                     axis=-1)
             else:
                 indices = tf.reshape(
                     tf.random.shuffle(tf.range(self.shift,
-                                               self.num_patches + self.shift))[:self.num_features_per_path * self.n],
+                                               self.num_signals + self.shift))[:self.num_signals_per_path * self.n],
                     (-1, self.n))
 
             if self.fixed:
