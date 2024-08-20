@@ -80,9 +80,9 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
 
     last_step_embedding = embedding[:, -bins_per_frame:]    # (B, bins_per_frame, DIM, P)
     embedding_for_classification = last_step_embedding if classifier else tf.stop_gradient(last_step_embedding)
-    embedding_for_classification = tf.reshape(embedding_for_classification,
-                                              (tf.shape(embedding_for_classification)[0], embedding.shape[-2] * bins_per_frame, len(pathways)))    # (B, DIMS*bins_per_frame, P)
-    path_divide_embedding = tf.unstack(embedding_for_classification, axis=-1)
+    embedding_for_classification = tf.reshape(embedding_for_classification,     # (B, DIMS*bins_per_frame, P)
+                                              (tf.shape(embedding_for_classification)[0], embedding.shape[-2] * bins_per_frame, len(pathways)))
+    path_divide_embedding = tf.unstack(embedding_for_classification, axis=-1)   # List[(B, DIMS*bins_per_frame)]
 
     # classification heads, with stop_grad unless classifier=True
     if pathway_classification:
@@ -113,7 +113,7 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
 def compile_model(model, dataset, loss=CrossPathwayTemporalContrastiveLoss, loss_kwargs={},
                   optimizer_cls=tf.optimizers.legacy.Nadam if tf.__version__ == '2.12.0' else tf.optimizers.Nadam,
                   optimizer_kwargs={}, classifier=False, pathway_classification=True,
-                  ensemble_classification=False, pathway_classification_allpaths=False,
+                  ensemble_classification=True, pathway_classification_allpaths=False,
                   metrics_kwargs={}, **kwargs):
     if kwargs:
         print(f"WARNING: compile_model got spare kwargs that won't be used: {kwargs}")
