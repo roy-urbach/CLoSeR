@@ -134,5 +134,5 @@ def compile_model(model, loss=CrossPathwayTemporalContrastiveLoss, loss_kwargs={
             losses[model.name + f'_ensemble_logits_{label.value.name}'] = label_class_loss[label.value.name](label.value.name, from_logits=True)
             metrics[model.name + f'_ensemble_logits_{label.value.name}'] = label_class_metric[label.value.name](label.value.name, name="accuracy")
 
-    optimizer = get_optimizer(optimizer_cls=optimizer_cls, optimizer_kwargs=optimizer_kwargs)
+    optimizer = get_optimizer(optimizer_cls=optimizer_cls, **optimizer_kwargs)
     model.compile(optimizer=optimizer, loss=losses, metrics=metrics)

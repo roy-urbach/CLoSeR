@@ -137,5 +137,5 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
         losses[model.name + '_ensemble_logits'] = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         metrics[model.name + '_ensemble_logits'] = keras.metrics.SparseCategoricalAccuracy(name="accuracy")
 
-    optimizer = get_optimizer(optimizer_cls=optimizer_cls, optimizer_kwargs=optimizer_kwargs)
+    optimizer = get_optimizer(optimizer_cls=optimizer_cls, **optimizer_kwargs)
     model.compile(optimizer=optimizer, loss=losses, metrics=metrics)
