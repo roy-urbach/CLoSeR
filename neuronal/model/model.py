@@ -135,10 +135,10 @@ def compile_model(model, dataset, loss=CrossPathwayTemporalContrastiveLoss, loss
             metrics_kwargs.get('kwargs', {}))
 
     label_class_loss = {
-        label.value.name: SparseCategoricalCrossEntropyByKey if label.value.kind == CATEGORICAL else MeanAbsoluteErrorByKeyLoss
+        label.value.name: tf.keras.losses.SparseCategoricalCrossentropy if label.value.kind == CATEGORICAL else tf.keras.losses.MeanAbsoluteError
         for label in Labels}
     label_class_metric = {
-        label.value.name: SparseCategoricalAccuracyByKey if label.value.kind == CATEGORICAL else MeanAbsoluteErrorByKeyMetric
+        label.value.name: tf.keras.metrics.SparseCategoricalAccuracy if label.value.kind == CATEGORICAL else tf.keras.losses.MeanAbsoluteError
         for label in Labels}
 
     if pathway_classification:
@@ -146,19 +146,19 @@ def compile_model(model, dataset, loss=CrossPathwayTemporalContrastiveLoss, loss
             for path in range(model.get_layer(model.name + "_pathways").n):
                 for label in Labels:
                     dataset.update_name_to_label(model.name + f'_logits{path}_{label.value.name}', label)
-                    losses[model.name + f'_logits{path}_{label.value.name}'] = label_class_loss[label.value.name](label.value.name)
-                    metrics[model.name + f'_logits{path}_{label.value.name}'] = label_class_metric[label.value.name](label.value.name)
+                    losses[model.name + f'_logits{path}_{label.value.name}'] = label_class_loss[label.value.name]()
+                    metrics[model.name + f'_logits{path}_{label.value.name}'] = label_class_metric[label.value.name]()
         else:
             for label in Labels:
                 dataset.update_name_to_label(model.name + f'_logits_{label.value.name}', label)
-                losses[model.name + f'_logits_{label.value.name}'] = label_class_loss[label.value.name](label.value.name)
-                metrics[model.name + f'_logits_{label.value.name}'] = label_class_metric[label.value.name](label.value.name)
+                losses[model.name + f'_logits_{label.value.name}'] = label_class_loss[label.value.name]()
+                metrics[model.name + f'_logits_{label.value.name}'] = label_class_metric[label.value.name]()
 
     if ensemble_classification:
         for label in Labels:
             dataset.update_name_to_label(model.name + f'_ensemble_logits_{label.value.name}', label)
-            losses[model.name + f'_ensemble_logits_{label.value.name}'] = label_class_loss[label.value.name](label.value.name)
-            metrics[model.name + f'_ensemble_logits_{label.value.name}'] = label_class_metric[label.value.name](label.value.name)
+            losses[model.name + f'_ensemble_logits_{label.value.name}'] = label_class_loss[label.value.name]()
+            metrics[model.name + f'_ensemble_logits_{label.value.name}'] = label_class_metric[label.value.name]()
 
     optimizer = get_optimizer(optimizer_cls=optimizer_cls, **optimizer_kwargs)
     model.compile(optimizer=optimizer, loss=losses, metrics=metrics)
