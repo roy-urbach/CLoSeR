@@ -71,7 +71,7 @@ def evaluate(model, module: Modules, knn=False, linear=True, ensemble=True, ense
             return module.load_evaluation_json(model)
 
     if isinstance(model, str):
-        model_kwargs = module.load_json(model)
+        model_kwargs = module.load_json(model, config=True)
         assert model_kwargs is not None
         model = load_model_from_json(model, module)
         if dataset is None:

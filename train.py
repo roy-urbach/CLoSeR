@@ -20,7 +20,7 @@ def run():
     args = parse()[0]
     model_name = args.json.split('.json')[0]
     module = Modules.get_module(args.module)
-    kwargs = module.load_json(args.json)
+    kwargs = module.load_json(args.json, config=True)
 
     txt = '\n'.join([str(s) for s in [model_name, args.__dict__, kwargs]])
 
