@@ -52,7 +52,7 @@ class BasicRNN(tf.keras.layers.Layer):
         if self.residual:
             raise NotImplementedError("Naive implementation falls for some reason")
         else:
-            states = tf.scan(lambda state, inp: self.rnn_layer(inp, state), inputs, initializer=initial_state)
+            states = tf.scan(lambda state, inp: self.rnn(inp, state), inputs, initializer=initial_state)
 
         states = tf.stack(states, axis=1)
         if self.out_proj is not None:
