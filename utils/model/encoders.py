@@ -1,7 +1,7 @@
-from utils.model.layers import *
 from tensorflow.keras import layers as tf_layers
 import tensorflow as tf
 
+from utils.model.layers import ViTBlock, MLP, BasicRNNLayer
 from utils.tf_utils import serialize
 
 
@@ -36,7 +36,8 @@ class MLPEncoder(MLP):
 
 
 class BasicRNN(tf.keras.layers.Layer):
-    def __init__(self, residual=False, out_dim=None, name='rnn', kernel_regularizer=None, out_regularizer=None, **kwargs):
+    def __init__(self, residual=True, out_dim=None, name='rnn', kernel_regularizer=None, out_regularizer=None,
+                 **kwargs):
         super().__init__(name=name)
         self.residual = residual
         self.rnn = BasicRNNLayer(name=name + "_internal", kernel_regularizer=kernel_regularizer, **kwargs)
@@ -59,15 +60,17 @@ class BasicRNN(tf.keras.layers.Layer):
 
         inputs = tf.unstack(inputs, axis=-1)
 
-        if self.residual:
-            raise NotImplementedError("Naive implementation falls for some reason")
-        else:
-            states = tf.scan(lambda state, inp: self.rnn(inp, state), inputs, initializer=initial_state)
+        states = [None] * len(inputs)
+        for i in range(len(inputs)):
+            cur_calc = self.rnn(inputs[i], states[i - 1] if i else initial_state)
+            if self.residual and i:
+                cur_calc = cur_calc + states[i - 1]
+            states[i] = cur_calc
 
         stacked_states = tf.stack(states, axis=1)
 
         if self.out_proj is not None:
-            out = self.out_proj(stacked_states)    # (B, T, OUTDIM)
+            out = self.out_proj(stacked_states)  # (B, T, OUTDIM)
         else:
             out = stacked_states
         return out
