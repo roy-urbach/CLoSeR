@@ -45,7 +45,7 @@ class BasicRNN(tf.keras.layers.Layer):
 
     def call(self, inputs):
         # inputs shape =  (B, N, T)
-        internal_state = tf.constant(tf.zeros((tf.shape(inputs)[0], self.rnn.internal_state_size), dtype=inputs.dtype))
+        internal_state = tf.zeros((tf.shape(inputs)[0], self.rnn.internal_state_size), dtype=inputs.dtype)
         states = []
         for t in range(tf.shape(inputs)[-1]):
             internal_state = self.rnn(inputs[..., t], internal_state) + (internal_state if self.residual else 0)
