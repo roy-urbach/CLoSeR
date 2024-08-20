@@ -130,8 +130,7 @@ def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_
 
     if num_epochs > max_epoch:
         printd(f"Fitting the model (with {model.count_params()} parameters)!")
-        fit_kwargs = dict(batch_size=batch_size,
-                          epochs=num_epochs,
+        fit_kwargs = dict(epochs=num_epochs,
                           initial_epoch=max_epoch,
                           callbacks=[tf.keras.callbacks.ModelCheckpoint(filepath=get_weights_fn(model, module),
                                                                         save_weights_only=True,
@@ -141,12 +140,13 @@ def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_
                           )
         if dataset.is_generator():
             history = model.fit_generator(dataset,
-                                          validation_generator=dataset.get_validation(),
+                                          validation_data=dataset.get_validation(),
                                           **fit_kwargs)
         else:
             history = model.fit(x=dataset.get_x_train(),
                                 y=dataset.get_y_train(),
                                 validation_split=dataset.get_val_split(),
+                                batch_size=batch_size,
                                 **fit_kwargs)
         printd("Done!")
     return model
