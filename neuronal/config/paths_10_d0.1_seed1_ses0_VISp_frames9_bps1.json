@@ -15,5 +15,6 @@
       "frames_per_sample": 9,
       "bins_per_frame": 1,
       "batch_size": 32
-   }
+   },
+   "loss": "CrossPathwayTemporalContrastiveLoss"
 }
