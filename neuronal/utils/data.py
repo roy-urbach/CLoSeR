@@ -279,7 +279,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
 
             self.num_units = {area: None for area in self.areas} if self.areas_in_spikes() else None
 
-            for i, trial in trials:
+            for i, trial in enumerate(trials):
                 if not trial_mask[i]: continue
                 if self.areas is not None:
                     if self.single_area:
