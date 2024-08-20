@@ -47,7 +47,7 @@ class BasicRNN(tf.keras.layers.Layer):
     def build(self, input_shape):
         self.initial_state = self.add_weight(
             name='initial_state',
-            shape=(self.rnn.internal_state_size,),
+            shape=(1, self.rnn.internal_state_size),
             initializer='zeros',
             trainable=False
         )
