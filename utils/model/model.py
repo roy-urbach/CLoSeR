@@ -1,12 +1,12 @@
 from utils.model.callbacks import SaveOptimizerCallback, SaveHistory, ErasePreviousCallback
 from utils.modules import Modules
 from utils.tf_utils import get_weights_fn, serialize
-from utils.utils import printd, get_class
+from utils.utils import printd
 import os
 import tensorflow as tf
 
 
-def get_optimizer(**kwargs):
+def get_optimizer(optimizer_cls=tf.optimizers.legacy.Nadam if tf.__version__ == '2.12.0' else tf.optimizers.Nadam, **kwargs):
     if "optimizer" in kwargs:
         optimizer_cls_name = kwargs.pop("optimizer")
         try:
