@@ -369,10 +369,10 @@ class SplitPathways(tf.keras.layers.Layer):
 
 
 class BasicRNNLayer(tf.keras.layers.Layer):
-    def __init__(self, width=32, dropout=0.1, regularization=None, name='basic_rnn_layer'):
+    def __init__(self, width=32, dropout=0.1, name='basic_rnn_layer', **kwargs):
         super(BasicRNNLayer, self).__init__(name=name)
-        self.recurrent_connections = tf.keras.layers.Dense(width, activation=None, use_bias=False, name=f"{name}_recurrent", kernel_regularization=regularization)
-        self.input_projection = tf.keras.layers.Dense(width, activation=None, use_bias=True, name=f"{name}_proj", kernel_regulzarization=regularization)
+        self.recurrent_connections = tf.keras.layers.Dense(width, activation=None, use_bias=False, name=f"{name}_recurrent", **kwargs)
+        self.input_projection = tf.keras.layers.Dense(width, activation=None, use_bias=True, name=f"{name}_proj", **kwargs)
         self.dropout = tf.keras.layers.Dropout(dropout, name=f"{name}_dropout") if dropout else None
         self.activation = tf.keras.layers.ReLU(name=f"{name}_relu")
         self.internal_state_size = width
