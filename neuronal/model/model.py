@@ -12,9 +12,14 @@ from utils.utils import get_class
 import numpy as np
 
 
-def get_neuronal_data_augmentation(inputs, **kwargs):
-    # TODO: implement
-    return inputs
+def get_neuronal_data_augmentation(bins_per_frame, **kwargs):
+    data_augmentation = tf.keras.Sequential(
+        [
+            layers.Normalization(),
+        ],
+        name="data_augmentation",
+    )
+    return data_augmentation
 
 
 class SplitPathwaysNeuronal(SplitPathways):
