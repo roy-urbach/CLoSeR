@@ -82,5 +82,8 @@ if __name__ == '__main__':
     # Call this script using the bash function:
     # function train_vis() { python3 train_cmd_format.py $@; cmd=$(<'/tmp/cmd'); eval $cmd; rm /tmp/cmd;}
 
+    from run_before_script import run
+    run()
+
     with open('/tmp/cmd', 'w') as f:
         f.write(get_cmd())
