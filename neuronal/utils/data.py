@@ -41,7 +41,7 @@ class Session:
         self.trials = None
         self.units = None
         self.probes = None
-        self._path = os.path.join(DATA_DIR, self.session_id)
+        self._path = os.path.join(DATA_DIR, str(self.session_id))
         self._load()
 
     def get_id(self):
@@ -85,9 +85,9 @@ class Trial:
     def __init__(self, session, stimulus, trial_num):
         self.session = session
         self.session_id = self.session.get_id()
-        self._path = os.path.join(DATA_DIR, self.session_id, stimulus, trial_num)
+        self._path = os.path.join(DATA_DIR, str(self.session_id), stimulus, str(trial_num))
         self.stimulus = stimulus
-        self.trial_num = trial_num
+        self.trial_num = int(trial_num)
         self.spike_bins = {}
         self.bins = {}
         self.spike_times = None
