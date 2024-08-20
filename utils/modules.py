@@ -52,7 +52,7 @@ class Modules(Enum):
 
     @staticmethod
     def get_module(module_name):
-        relevant_modules = [module for module in Modules if module_name in (module.name, module.value.name)]
+        relevant_modules = [module for module in Modules if module_name in (module.name, module.value)]
         if not len(relevant_modules):
             raise ValueError(f"No module named {module_name}")
         else:
@@ -63,7 +63,7 @@ class Modules(Enum):
         lst = []
         for module in Modules:
             lst.append(module.name)
-            lst.append(module.value.name)
+            lst.append(module.value)
         return lst
 
 
