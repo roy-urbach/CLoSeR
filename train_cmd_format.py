@@ -85,7 +85,7 @@ def get_cmd():
         bsub_call += f" -gpu num=1:j_exclusive=no:gmem={args.mem}GB"
     else:
         bsub_call += f' -R rusage[mem={RUSAGE}]'
-    train_call = f'python3 train.py -b {args.batch} -e {args.epochs} --json {args.json} -m {args.module}'
+    train_call = f'python3 train.py -b {args.batch} -e {args.epochs} --json {model_name} -m {args.module}'
     cmd = [*bsub_call.split(), *bsub_args, f'"{train_call}"']
     return ' '.join(cmd)
 
