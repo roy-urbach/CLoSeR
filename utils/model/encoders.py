@@ -41,8 +41,8 @@ class BasicRNN(tf.keras.layers.Layer):
         super().__init__(name=name)
         self.residual = residual
         self.rnn = BasicRNNLayer(name=name + "_internal", kernel_regularizer=kernel_regularizer, **kwargs)
-        self.out_proj = tf.keras.layer.Dense(outdim, name=name + "_out", kernel_regularizer=kernel_regularizer,
-                                             activity_regularizer=out_regularizer) if outdim is not None else None
+        self.out_proj = tf.keras.layers.Dense(outdim, name=name + "_out", kernel_regularizer=kernel_regularizer,
+                                              activity_regularizer=out_regularizer) if outdim is not None else None
         self.initial_state = None
 
     def build(self, input_shape):
