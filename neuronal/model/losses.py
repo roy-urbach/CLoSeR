@@ -3,20 +3,31 @@ import tensorflow as tf
 
 
 class CrossPathwayTemporalContrastiveLoss(tf.keras.losses.Loss):
-    def __init__(self, *args, a=None, contrast_t=1, start_t=0, temperature=10, cosine=False, **kwargs):
+    def __init__(self, *args, a=None, contrast_t=1, start_t=0, temperature=10, cosine=False, stable=True, eps=1e-3, **kwargs):
         super(CrossPathwayTemporalContrastiveLoss, self).__init__(*args, **kwargs)
         self.temperature = temperature
         self.a = a
         self.contrast_t = contrast_t
         self.start_t = start_t
         self.cosine = cosine
+        self.eps = eps
+        self.stable = stable
 
     def log_similarity(self, a, b):
         if self.cosine:
             sim = tf.einsum('...i,...i->...', a, b)
         else:
-            sim = -(tf.linalg.norm(a - b, axis=-1) ** 2)
+            sim = -(tf.maximum(tf.linalg.norm(a - b, axis=-1) ** 2, self.eps))
         return sim / self.temperature
+
+    def minus_log_likelihood_from_log_sim(self, pos, neg):
+        if self.stable:
+            max_ = tf.maximum(pos, neg)
+            neg = neg - max_
+            pos = pos - max_
+        z = tf.maximum(tf.exp(pos), self.eps) + tf.maximum(tf.exp(neg), self.eps)
+        minus_log_likelihood = -pos + tf.math.log(z)  # (B, T-cont_t-start_t)
+        return minus_log_likelihood
 
     def call(self, y_true, y_pred):
         # y_pred shape (B, T, DIM, P)
@@ -35,15 +46,14 @@ class CrossPathwayTemporalContrastiveLoss(tf.keras.losses.Loss):
 
                 if self.a is None or (self.a is not None and self.a[i][j]):
                     negative_j = y_pred[:, self.start_t:-self.contrast_t, :, j]  # (B, T-cont_t-start_t, DIM)
-                    neg_log_sim_i = self.log_similarity(anchor_i, negative_j)
-                    zi = tf.exp(pos_log_sim) + tf.exp(neg_log_sim_i)
-                    minus_log_likelihood_i = -pos_log_sim + tf.math.log(zi)   # (B, T-cont_t-start_t)
+                    neg_log_sim_i = self.log_similarity(anchor_i, negative_j)   # (B, T-cont_t-start_t)
+                    minus_log_likelihood_i = self.minus_log_likelihood_from_log_sim(pos_log_sim, neg_log_sim_i)
                     loss += tf.reduce_mean(minus_log_likelihood_i)
+
                 if self.a is None or (self.a is not None and self.a[j][i]):
                     negative_i = y_pred[:, self.start_t:-self.contrast_t, :, i]  # (B, T-cont_t-start_t, DIM)
-                    neg_log_sim_j = self.log_similarity(anchor_j, negative_i)
-                    zj = tf.exp(pos_log_sim) + tf.exp(neg_log_sim_j)
-                    minus_log_likelihood_j = -pos_log_sim + tf.math.log(zj) # (B, T-cont_t-start_t)
+                    neg_log_sim_j = self.log_similarity(anchor_j, negative_i)   # (B, T-cont_t-start_t)
+                    minus_log_likelihood_j = self.minus_log_likelihood_from_log_sim(pos_log_sim, neg_log_sim_j)
                     loss += tf.reduce_mean(minus_log_likelihood_j)
 
         return loss / (tf.cast(n * (n - 1) / 2, dtype=loss.dtype) if self.a is None else tf.reduce_sum(tf.cast(self.a, dtype=loss.dtype)))
