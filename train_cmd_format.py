@@ -1,5 +1,6 @@
 import argparse
 import os
+import re
 
 from utils.modules import Modules
 
@@ -31,6 +32,8 @@ def parse():
     parser.add_argument('-m', '--module', type=str, default=Modules.VISION.name,
                         choices=Modules.get_cmd_module_options())
     parser.add_argument('-s', '--seed', type=int, default=None, help='seed to change to')
+    parser.add_argument('-d', '--masking_ratio', type=float, default=None, help='d to change to')
+    # parser.add_argument('--kwargs', type=dict, default={}, help='kwargs to change and save config')
     parser.add_argument('--rusage', type=int, default=RUSAGE, help='CPU mem')
     parser.add_argument('--mem', type=int, default=4, help='GPU mem')
 
@@ -48,11 +51,20 @@ def get_cmd():
 
     assert module.load_json(model_name, config=True) is not None
 
+    new_config = False
+    dct = module.load_json(model_name, config=True)
+
     if args.seed is not None:
-        import re
-        dct = module.load_json(model_name, config=True)
+        new_config = True
         dct['model_kwargs']['pathways_kwargs']['seed'] = args.seed
         model_name = re.sub(r"seed\d+", f"seed{args.seed}", model_name)
+
+    if args.d is not None:
+        new_config = True
+        dct['model_kwargs']['pathways_kwargs']['d'] = args.d
+        model_name = re.sub(r"_d\d+_", f"_d{args.d}_", model_name)
+
+    if new_config:
         module.save_json(model_name, dct, config=True)
 
     path = os.path.join(module.get_models_path(), model_name)
