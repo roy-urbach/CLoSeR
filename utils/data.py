@@ -74,9 +74,9 @@ def gen_to_tf_dataset(gen, batch_size, buffer_size):
     dataset = dataset.map(lambda x, y: (tf.convert_to_tensor(x), {k: tf.convert_to_tensor(v) for k, v in y.items()}))
     dataset = dataset.batch(batch_size)
     dataset = dataset.prefetch(buffer_size)
-    dataset.get_validation = lambda self: gen_to_tf_dataset(gen.get_validation(), batch_size, buffer_size)
-    dataset.get_train = lambda self: gen_to_tf_dataset(gen.get_train(), batch_size, buffer_size)
-    dataset.get_test = lambda self: gen_to_tf_dataset(gen.get_test(), batch_size, buffer_size)
+    dataset.get_validation = lambda *args, **kwargs: gen_to_tf_dataset(gen.get_validation(), batch_size, buffer_size)
+    dataset.get_train = lambda *args, **kwargs: gen_to_tf_dataset(gen.get_train(), batch_size, buffer_size)
+    dataset.get_test = lambda *args, **kwargs: gen_to_tf_dataset(gen.get_test(), batch_size, buffer_size)
     for attr in dir(gen):
         if attr not in dir(dataset):
             setattr(dataset, attr, getattr(gen, attr))
