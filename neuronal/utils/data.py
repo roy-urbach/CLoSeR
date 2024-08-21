@@ -330,9 +330,9 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
         else:
             spikes = self.spikes[stim_name][trial][..., first_bin:last_bin]  # (N, T))
 
-        labels = {Labels.STIMULUS.value.name: stim_ind,
-                  Labels.TRIAL.value.name: trial,
-                  Labels.FRAME.value.name: frame / NATURAL_MOVIES_FRAMES[stim_name]}
+        labels = {Labels.STIMULUS.value.name: np.array(stim_ind),
+                  Labels.TRIAL.value.name: np.array(trial),
+                  Labels.FRAME.value.name: np.array(frame / NATURAL_MOVIES_FRAMES[stim_name])}
 
         y = {}
         for name, label in self.name_to_label.items():
