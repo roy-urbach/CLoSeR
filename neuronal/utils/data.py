@@ -211,7 +211,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
         self.bins_per_frame = bins_per_frame
         self.spikes = {}    # {stim: {area: List[trial_activity_mat]}} if areas else {stim: List[trial_activity_mat]}
         self.areas = list(areas) if areas is not None else areas
-        self.single_area = areas[0] if len(areas) == 1 else None
+        self.single_area = areas[0] if areas and len(areas) == 1 else None
         self.stimuli = np.array(stimuli)
         self.bins_per_sample = frames_per_sample * bins_per_frame
         self.order = None
