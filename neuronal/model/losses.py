@@ -17,7 +17,7 @@ class CrossPathwayTemporalContrastiveLoss(tf.keras.losses.Loss):
         if self.cosine:
             sim = tf.einsum('...i,...i->...', a, b)
         else:
-            sim = -(tf.maximum(tf.linalg.norm(a - b, axis=-1) ** 2, self.eps))
+            sim = -(tf.linalg.norm(a - b, axis=-1) ** 2)
         return sim / self.temperature
 
     def minus_log_likelihood_from_log_sim(self, pos, neg):
@@ -34,7 +34,7 @@ class CrossPathwayTemporalContrastiveLoss(tf.keras.losses.Loss):
         n = tf.shape(y_pred)[-1]
         loss = 0.
         if self.cosine:
-            y_pred = y_pred / tf.linalg.norm(tf.stop_gradient(y_pred), axis=-2, keepdims=True)
+            y_pred = y_pred / tf.maximum(tf.linalg.norm(tf.stop_gradient(y_pred), axis=-2, keepdims=True), self.eps)
 
         for i in range(n):
             for j in range(i+1, n):
