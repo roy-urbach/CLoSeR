@@ -71,7 +71,7 @@ def gen_to_tf_dataset(gen, batch_size, buffer_size):
         output_types=(example[0].dtype, {k: v.dtype for k, v in example[1].items()}),
         output_shapes=(example[0].shape, {k: v.shape for k, v in example[1].items()})
     )
-
+    dataset = dataset.map(lambda x, y: (tf.convert_to_tensor(x), {k: tf.convert_to_tensor(v) for k, v in y.items()}))
     dataset = dataset.batch(batch_size)
     dataset = dataset.prefetch(buffer_size)
     dataset.clone = lambda self, *args, **kwargs: gen_to_tf_dataset(gen.clone(*args, **kwargs), batch_size, buffer_size)

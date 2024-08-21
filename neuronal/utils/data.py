@@ -199,7 +199,7 @@ class Trial:
 
 
 class SessionDataGenerator(tf.keras.utils.Sequence):
-    def __init__(self, session_id, batch_size=32, frames_per_sample=10, bins_per_frame=1,
+    def __init__(self, session_id, frames_per_sample=10, bins_per_frame=1,
                  stimuli=NATURAL_MOVIES, areas=None, train=True, val=False, test=False):
         super(SessionDataGenerator, self).__init__()
         self.session_id = streval(session_id)
@@ -207,7 +207,6 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
             assert self.session_id in np.arange(len(SESSIONS))
             self.session_id = SESSIONS[self.session_id]
         self.session = Session(self.session_id)
-        self.batch_size = batch_size
         self.frames_per_sample = frames_per_sample
         self.bins_per_frame = bins_per_frame
         self.spikes = {}    # {stim: {area: List[trial_activity_mat]}} if areas else {stim: List[trial_activity_mat]}
@@ -319,38 +318,21 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
         self.name_to_label[name] = label
 
     def sample(self, idx):
-        stimuli_inds = np.random.randint(len(self.stimuli), size=self.batch_size)
-        stimuli_name = self.stimuli[stimuli_inds]
-        spikes = {area: [] for area in self.areas} if self.areas_in_spikes() else []
-        num_trials = {stim: len(list(self.spikes[stim].values())[0] if self.areas_in_spikes() else self.spikes[stim])
-                      for stim in self.stimuli}
-        all_trials = np.stack([np.random.randint(num_trials[stim], size=self.batch_size) for stim in self.stimuli], axis=0)
-        all_frames = np.stack([np.random.randint(self.frames_per_sample, NATURAL_MOVIES_FRAMES[stim], size=self.batch_size)
-                               for stim in self.stimuli], axis=0)
-
-        trials = all_trials[stimuli_inds, np.arange(self.batch_size)]
-        frames = all_frames[stimuli_inds, np.arange(self.batch_size)]
-        last_bin = frames + self.bins_per_frame
+        stim_ind = np.random.randint(len(self.stimuli))
+        stim_name = self.stimuli[stim_ind]
+        trial = np.random.randint(len(self.spikes[stim_name]))
+        frame = np.random.randint(self.frames_per_sample, NATURAL_MOVIES_FRAMES[stim_name])
+        last_bin = frame + self.bins_per_frame
         first_bin = last_bin - self.bins_per_sample
 
-        for b in range(self.batch_size):
-            if self.areas_in_spikes():
-                for area in self.areas:
-                    spikes[area].append(self.spikes[stimuli_name[b]][area][trials[b]][..., first_bin[b]:last_bin[b]])
-            else:
-                spikes.append(self.spikes[stimuli_name[b]][trials[b]][..., first_bin[b]:last_bin[b]])    # (N, T))
-
         if self.areas_in_spikes():
-            spikes = {area: tf.convert_to_tensor(np.stack(activity, axis=0)) for area, activity in spikes.items()}
+            spikes = {area: self.spikes[stim_name][area][trial][..., first_bin:last_bin] for area in self.areas}
         else:
-            spikes = tf.convert_to_tensor(np.stack(spikes, axis=0))     # (B, N, T)
+            spikes = self.spikes[stim_name][trial][..., first_bin:last_bin]  # (N, T))
 
-        trials = tf.convert_to_tensor(np.array(trials))
-        frames = tf.convert_to_tensor(np.stack(frames, axis=0))
-
-        labels = {Labels.STIMULUS.value.name: stimuli_inds,
-                  Labels.TRIAL.value.name: trials,
-                  Labels.FRAME.value.name: frames}
+        labels = {Labels.STIMULUS.value.name: stim_ind,
+                  Labels.TRIAL.value.name: trial,
+                  Labels.FRAME.value.name: frame / NATURAL_MOVIES_FRAMES[stim_name]}
 
         y = {}
         for name, label in self.name_to_label.items():
