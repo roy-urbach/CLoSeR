@@ -23,7 +23,7 @@ class Label:
 
 class Labels(Enum):
     STIMULUS = Label("stimulus", CATEGORICAL, len(NATURAL_MOVIES), NATURAL_MOVIES)
-    TRIAL = Label("trial", CATEGORICAL, max(NATURAL_MOVIES_TRIALS.values()))
+    # TRIAL = Label("trial", CATEGORICAL, max(NATURAL_MOVIES_TRIALS.values()))
     FRAME = Label("normedframe", CONTINUOUS, 1)
 
 
@@ -320,7 +320,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
     def sample(self, idx):
         stim_ind = np.random.randint(len(self.stimuli))
         stim_name = self.stimuli[stim_ind]
-        trial = np.random.randint(len(self.spikes[stim_name]))
+        trial = np.random.randint(len(self.spikes[stim_name]) if not self.areas_in_spikes() else len(self.spikes[stim_name][self.areas[0]]))
         frame = np.random.randint(self.frames_per_sample, NATURAL_MOVIES_FRAMES[stim_name])
         last_bin = frame + self.bins_per_frame
         first_bin = last_bin - self.bins_per_sample
@@ -331,7 +331,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
             spikes = self.spikes[stim_name][trial][..., first_bin:last_bin]  # (N, T))
 
         labels = {Labels.STIMULUS.value.name: np.array(stim_ind),
-                  Labels.TRIAL.value.name: np.array(trial),
+                  # Labels.TRIAL.value.name: np.array(trial),
                   Labels.FRAME.value.name: np.array(frame / NATURAL_MOVIES_FRAMES[stim_name])}
 
         y = {}
