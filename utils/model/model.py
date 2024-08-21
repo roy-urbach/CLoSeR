@@ -144,8 +144,8 @@ def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_
             val_dataset = dataset.get_validation()
             history = model.fit(dataset,
                                 validation_data=val_dataset,
-                                steps_per_epoch=len(dataset),
-                                validation_steps=len(val_dataset),
+                                steps_per_epoch=int(len(dataset) / batch_size),
+                                validation_steps=int(len(val_dataset) / batch_size),
                                 **fit_kwargs)
         else:
             history = model.fit(x=dataset.get_x_train(),
