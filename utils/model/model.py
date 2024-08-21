@@ -141,8 +141,11 @@ def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_
                           )
         if dataset.is_generator():
             dataset = gen_to_tf_dataset(dataset, batch_size=batch_size, buffer_size=batch_size)
+            val_dataset = dataset.get_validation()
             history = model.fit(dataset,
-                                validation_data=dataset.get_validation(),
+                                validation_data=val_dataset,
+                                steps_per_epoch=len(dataset),
+                                validation_steps=len(val_dataset),
                                 **fit_kwargs)
         else:
             history = model.fit(x=dataset.get_x_train(),
