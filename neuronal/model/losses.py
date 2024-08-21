@@ -3,17 +3,27 @@ import tensorflow as tf
 
 
 class CrossPathwayTemporalContrastiveLoss(tf.keras.losses.Loss):
-    def __init__(self, *args, a=None, contrast_t=1, start_t=0, temperature=10, **kwargs):
+    def __init__(self, *args, a=None, contrast_t=1, start_t=0, temperature=10, cosine=False, **kwargs):
         super(CrossPathwayTemporalContrastiveLoss, self).__init__(*args, **kwargs)
         self.temperature = temperature
         self.a = a
         self.contrast_t = contrast_t
         self.start_t = start_t
+        self.cosine = cosine
+
+    def log_similarity(self, a, b):
+        if self.cosine:
+            sim = tf.einsum('...i,...i->...', a, b)
+        else:
+            sim = -(tf.linalg.norm(a - b, axis=-1) ** 2)
+        return sim / self.temperature
 
     def call(self, y_true, y_pred):
         # y_pred shape (B, T, DIM, P)
         n = tf.shape(y_pred)[-1]
         loss = 0.
+        if self.cosine:
+            y_pred = y_pred / tf.linalg.norm(tf.stop_gradient(y_pred), axis=-2, keepdims=True)
 
         for i in range(n):
             for j in range(i+1, n):
@@ -21,23 +31,22 @@ class CrossPathwayTemporalContrastiveLoss(tf.keras.losses.Loss):
                     continue
                 anchor_i = y_pred[:, self.start_t + self.contrast_t:, :, i]      # (B, T-cont_t-start_t, DIM)
                 anchor_j = y_pred[:, self.start_t + self.contrast_t:, :, j]    # (B, T-cont_t-start_t, DIM)
-                pos_temped_sqr_dist = (tf.linalg.norm(anchor_i - anchor_j, axis=-1) ** 2) / self.temperature  # (B, T-cont_t-start_t)
+                pos_log_sim = self.log_similarity(anchor_i, anchor_j)  # (B, T-cont_t-start_t)
 
                 if self.a is None or (self.a is not None and self.a[i][j]):
                     negative_j = y_pred[:, self.start_t:-self.contrast_t, :, j]  # (B, T-cont_t-start_t, DIM)
-                    neg_temped_sqr_dist_i = (tf.linalg.norm(anchor_i - negative_j, axis=-1) ** 2) / self.temperature
-                    zi = tf.exp(-pos_temped_sqr_dist) + tf.exp(-neg_temped_sqr_dist_i)
-                    minus_log_likelihood_i = pos_temped_sqr_dist + tf.math.log(zi)   # (B, T-cont_t-start_t)
+                    neg_log_sim_i = self.log_similarity(anchor_i, negative_j)
+                    zi = tf.exp(pos_log_sim) + tf.exp(neg_log_sim_i)
+                    minus_log_likelihood_i = -pos_log_sim + tf.math.log(zi)   # (B, T-cont_t-start_t)
                     loss += tf.reduce_mean(minus_log_likelihood_i)
-
                 if self.a is None or (self.a is not None and self.a[j][i]):
                     negative_i = y_pred[:, self.start_t:-self.contrast_t, :, i]  # (B, T-cont_t-start_t, DIM)
-                    neg_temped_sqr_dist_j = (tf.linalg.norm(anchor_j - negative_i, axis=-1) ** 2) / self.temperature
-                    zj = tf.exp(-pos_temped_sqr_dist) + tf.exp(-neg_temped_sqr_dist_j)
-                    minus_log_likelihood_j = pos_temped_sqr_dist + tf.math.log(zj) # (B, T-cont_t-start_t)
+                    neg_log_sim_j = self.log_similarity(anchor_j, negative_i)
+                    zj = tf.exp(pos_log_sim) + tf.exp(neg_log_sim_j)
+                    minus_log_likelihood_j = -pos_log_sim + tf.math.log(zj) # (B, T-cont_t-start_t)
                     loss += tf.reduce_mean(minus_log_likelihood_j)
 
-        return loss / (tf.cast(n ** 2, dtype=loss.dtype) if self.a is None else tf.reduce_sum(tf.cast(self.a, dtype=loss.dtype)))
+        return loss / (tf.cast(n * (n - 1) / 2, dtype=loss.dtype) if self.a is None else tf.reduce_sum(tf.cast(self.a, dtype=loss.dtype)))
 
 
 class SparseCategoricalCrossEntropyByKey(GeneralLossByKey):
