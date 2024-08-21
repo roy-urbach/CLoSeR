@@ -62,7 +62,7 @@ def get_cmd():
     if args.masking_ratio is not None:
         new_config = True
         dct['model_kwargs']['pathways_kwargs']['d'] = args.masking_ratio
-        model_name = re.sub(r"_d\d+_", f"_d{args.masking_ratio}_", model_name)
+        model_name = re.sub(r"_d0\.\d+_", f"_d{args.masking_ratio}_", model_name)
 
     if new_config:
         module.save_json(model_name, dct, config=True)
