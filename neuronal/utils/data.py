@@ -345,7 +345,6 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
         else:
             spikes = tf.convert_to_tensor(np.stack(spikes, axis=0))     # (B, N, T)
 
-
         trials = tf.convert_to_tensor(np.array(trials))
         frames = tf.convert_to_tensor(np.stack(frames, axis=0))
 
@@ -361,14 +360,3 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
 
     def __getitem__(self, idx):
         return self.sample(idx)
-
-
-def get_session_dataset(*args, batch_size=128, buffer_size=128, **kwargs):
-    generator = SessionDataGenerator(*args, batch_size=1, **kwargs)
-
-
-
-    return gen_to_dataset(generator)
-
-
-

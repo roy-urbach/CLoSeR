@@ -72,8 +72,8 @@ def gen_to_tf_dataset(gen, batch_size, buffer_size):
         output_shapes=(example[0].shape, {k: v.shape for k, v in example[1].items()})
     )
 
-    dataset.batch(batch_size)
-    dataset.prefetch(buffer_size)
+    dataset = dataset.batch(batch_size)
+    dataset = dataset.prefetch(buffer_size)
     dataset.clone = lambda self, *args, **kwargs: gen_to_tf_dataset(gen.clone(*args, **kwargs), batch_size, buffer_size)
     for attr in dir(gen):
         if attr not in dir(dataset):
