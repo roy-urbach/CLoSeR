@@ -59,10 +59,10 @@ def get_cmd():
         dct['model_kwargs']['pathways_kwargs']['seed'] = args.seed
         model_name = re.sub(r"seed\d+", f"seed{args.seed}", model_name)
 
-    if args.d is not None:
+    if args.masking_ratio is not None:
         new_config = True
-        dct['model_kwargs']['pathways_kwargs']['d'] = args.d
-        model_name = re.sub(r"_d\d+_", f"_d{args.d}_", model_name)
+        dct['model_kwargs']['pathways_kwargs']['d'] = args.masking_ratio
+        model_name = re.sub(r"_d\d+_", f"_d{args.masking_ratio}_", model_name)
 
     if new_config:
         module.save_json(model_name, dct, config=True)
