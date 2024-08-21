@@ -366,28 +366,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
 def get_session_dataset(*args, batch_size=128, buffer_size=128, **kwargs):
     generator = SessionDataGenerator(*args, batch_size=1, **kwargs)
 
-    def gen_to_dataset(gen):
-        def generator_func():
-            while True:
-                yield gen[0]
 
-        example = gen[0]
-
-        dataset = tf.data.Dataset.from_generator(
-            generator_func,
-            output_types=(example[0].dtype, {k: v.dtype for k, v in example[1].items()}),
-            output_shapes=(example[0].shape, {k: v.shape for k, v in example[1].items()})
-        )
-
-        dataset.batch(batch_size)
-        dataset.prefetch(buffer_size)
-        dataset.update_name_to_label = gen.update_name_to_label
-        dataset.get_train = lambda *args, **kwargs: gen_to_dataset(gen.get_train())
-        dataset.get_validation = lambda *args, **kwargs: gen_to_dataset(gen.get_validation())
-        dataset.get_test = lambda *args, **kwargs: gen_to_dataset(gen.get_test())
-        dataset.get_shape = gen.get_shape
-        dataset.is_generator = gen.is_generator
-        return dataset
 
     return gen_to_dataset(generator)
 

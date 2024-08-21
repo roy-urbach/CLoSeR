@@ -55,3 +55,27 @@ class Data:
 
     def get_shape(self):
         return self.shape
+
+
+def gen_to_tf_dataset(gen, batch_size, buffer_size):
+    import tensorflow as tf
+
+    def generator_func():
+        while True:
+            yield gen[0]
+
+    example = gen[0]
+
+    dataset = tf.data.Dataset.from_generator(
+        generator_func,
+        output_types=(example[0].dtype, {k: v.dtype for k, v in example[1].items()}),
+        output_shapes=(example[0].shape, {k: v.shape for k, v in example[1].items()})
+    )
+
+    dataset.batch(batch_size)
+    dataset.prefetch(buffer_size)
+    dataset.clone = lambda self, *args, **kwargs: gen_to_tf_dataset(gen.clone(*args, **kwargs), batch_size, buffer_size)
+    for attr in dir(gen):
+        if attr not in dir(dataset):
+            setattr(dataset, attr, getattr(gen, attr))
+    return dataset
