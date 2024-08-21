@@ -78,4 +78,5 @@ def gen_to_tf_dataset(gen, batch_size, buffer_size):
     for attr in dir(gen):
         if attr not in dir(dataset):
             setattr(dataset, attr, getattr(gen, attr))
+    dataset.__len__ = gen.__len__
     return dataset
