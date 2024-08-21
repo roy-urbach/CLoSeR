@@ -56,7 +56,7 @@ class CrossPathwayTemporalContrastiveLoss(tf.keras.losses.Loss):
                     minus_log_likelihood_j = self.minus_log_likelihood_from_log_sim(pos_log_sim, neg_log_sim_j)
                     loss += tf.reduce_mean(minus_log_likelihood_j)
 
-        return loss / (tf.cast(n * (n - 1) / 2, dtype=loss.dtype) if self.a is None else tf.reduce_sum(tf.cast(self.a, dtype=loss.dtype)))
+        return loss / (tf.cast(n * (n - 1), dtype=loss.dtype) if self.a is None else tf.reduce_sum(tf.cast(self.a, dtype=loss.dtype)))
 
 
 class SparseCategoricalCrossEntropyByKey(GeneralLossByKey):
