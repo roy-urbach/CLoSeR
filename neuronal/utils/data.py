@@ -263,7 +263,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
                 num_samples_in_trial = arr[0].shape[-1] - self.bins_per_sample + 1
                 total += num_trials * num_samples_in_trial
             self.__total_samples = total
-        return self.__total_samples
+        return self.__total_samples / self.batch_size
 
     def __load_spikes(self):
         for stimulus in self.stimuli:
