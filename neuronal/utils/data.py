@@ -232,9 +232,9 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
         return True
 
     def clone(self, **kwargs):
-        self_kwargs = dict(session_id=self.session_id, batch_size=self.batch_size,
-                           frames_per_sample=self.frames_per_sample, bins_per_frame=self.bins_per_frame,
-                           stimuli=self.stimuli, areas=self.areas, train=self.train, val=self.val, test=self.test)
+        self_kwargs = dict(session_id=self.session_id, frames_per_sample=self.frames_per_sample,
+                           bins_per_frame=self.bins_per_frame, stimuli=self.stimuli, areas=self.areas, train=self.train,
+                           val=self.val, test=self.test)
         self_kwargs.update(**kwargs)
         clone = SessionDataGenerator(**self_kwargs)
         clone.name_to_label = {k: v for k, v in self.name_to_label.items()}
