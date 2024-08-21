@@ -140,7 +140,6 @@ def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_
                                      SaveOptimizerCallback(module), ErasePreviousCallback(module), SaveHistory(module)]
                           )
         if dataset.is_generator():
-            dataset.batch_size = 1
             dataset = gen_to_tf_dataset(dataset, batch_size=batch_size, buffer_size=batch_size)
             history = model.fit(dataset,
                                 validation_data=dataset.get_validation(),
