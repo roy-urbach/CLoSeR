@@ -330,7 +330,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
 
         trials = all_trials[stimuli_inds, np.arange(self.batch_size)]
         frames = all_frames[stimuli_inds, np.arange(self.batch_size)]
-        last_bin = frames + self.bins_per_sample
+        last_bin = frames + self.bins_per_frame
         first_bin = last_bin - self.bins_per_sample
 
         for b in range(self.batch_size):
