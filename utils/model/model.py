@@ -139,9 +139,9 @@ def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_
                                      SaveOptimizerCallback(module), ErasePreviousCallback(module), SaveHistory(module)]
                           )
         if dataset.is_generator():
-            history = model.fit_generator(dataset,
-                                          validation_data=dataset.get_validation(),
-                                          **fit_kwargs)
+            history = model.fit(dataset,
+                                validation_data=dataset.get_validation(),
+                                **fit_kwargs)
         else:
             history = model.fit(x=dataset.get_x_train(),
                                 y=dataset.get_y_train(),

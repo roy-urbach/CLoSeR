@@ -385,6 +385,8 @@ def get_session_dataset(*args, batch_size=128, buffer_size=128, **kwargs):
         dataset.get_train = lambda *args, **kwargs: gen_to_dataset(gen.get_train())
         dataset.get_validation = lambda *args, **kwargs: gen_to_dataset(gen.get_validation())
         dataset.get_test = lambda *args, **kwargs: gen_to_dataset(gen.get_test())
+        dataset.get_shape = gen.get_shape
+        dataset.is_generator = gen.is_generator
         return dataset
 
     return gen_to_dataset(generator)
