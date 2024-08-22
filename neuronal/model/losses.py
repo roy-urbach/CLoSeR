@@ -62,7 +62,7 @@ class CrossPathwayTemporalContrastiveLoss(tf.keras.losses.Loss):
 
                 if self.a is None or (self.a is not None and self.a[j][i]):
                     negative_i = y_pred[:, self.start_t:-self.contrast_t, :, i]  # (B, T-cont_t-start_t, DIM)
-                    neg_val_j = self.log_similarity(anchor_j, negative_i)   # (B, T-cont_t-start_t)
+                    neg_val_j = self.val_func(anchor_j, negative_i)   # (B, T-cont_t-start_t)
                     loss += tf.reduce_mean(self.loss_func(pos_val, neg_val_j))
 
         return loss / (tf.cast(n * (n - 1), dtype=loss.dtype) if self.a is None else tf.reduce_sum(tf.cast(self.a, dtype=loss.dtype)))
