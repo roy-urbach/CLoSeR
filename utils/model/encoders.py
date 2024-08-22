@@ -84,7 +84,7 @@ class TimeAgnosticMLP(MLPEncoder):
     def call(self, inputs, **kwargs):
         # (B, N, T)
 
-        permuted = tf.permute(inputs, [0, 2, 1])     # (B, T, N)
+        permuted = tf.transpose(inputs, [0, 2, 1])     # (B, T, N)
 
         if self.bins_per_frame != 1:
             shape = tf.shape(permuted)
