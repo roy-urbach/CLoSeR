@@ -200,7 +200,7 @@ class Trial:
 
 class SessionDataGenerator(tf.keras.utils.Sequence):
     def __init__(self, session_id, frames_per_sample=10, bins_per_frame=1,
-                 stimuli=NATURAL_MOVIES, areas=None, train=True, val=False, test=False):
+                 stimuli=NATURAL_MOVIES, areas=None, train=True, val=False, test=False, binary=False):
         super(SessionDataGenerator, self).__init__()
         self.session_id = streval(session_id)
         if self.session_id not in SESSIONS:
@@ -216,6 +216,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
         self.bins_per_sample = frames_per_sample * bins_per_frame
         self.order = None
         self.num_units = None
+        self.binary = binary
 
         assert not (test and val)
         self.train = train
@@ -337,6 +338,11 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
         y = {}
         for name, label in self.name_to_label.items():
             y[name] = labels[label.value.name]
+
+        if self.binary:
+            spikes = (spikes > 0).astype(np.float32)
+        else:
+            spikes = spikes.astype(np.float32)
 
         return spikes, y
 
