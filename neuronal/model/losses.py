@@ -37,7 +37,7 @@ class CrossPathwayTemporalContrastiveLoss(tf.keras.losses.Loss):
         elif self.cosine:
             val = tf.einsum('...i,...i->...', anchor, other) / self.temperature
         else:
-            val = -(tf.linalg.norm(a - b, axis=-1) ** 2)
+            val = -(tf.linalg.norm(anchor - other, axis=-1) ** 2)
         return val
 
     def call(self, y_true, y_pred):
