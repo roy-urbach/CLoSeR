@@ -25,14 +25,14 @@ class ViTEncoder:
 
 @serialize
 class MLPEncoder(MLP):
-    def __init__(self, *args, out_dim=64, out_regularizer=None, kernel_regularizer='l1_l2', **kwargs):
+    def __init__(self, *args, out_dim=64, out_regularizer=None, kernel_regularizer='l1_l2', flatten=True, **kwargs):
         super(MLPEncoder, self).__init__(*args, kernel_regularizer=kernel_regularizer, **kwargs)
-        self.flatten = tf_layers.Flatten(name=self.name + '_flatten')
+        self.flatten = tf_layers.Flatten(name=self.name + '_flatten') if flatten else None
         self.out_layer = tf_layers.Dense(out_dim, activation=None, kernel_regularizer=kernel_regularizer,
                                          activity_regularizer=out_regularizer, name=self.name + '_out')
 
     def call(self, inputs, **kwargs):
-        return self.out_layer(super().call(self.flatten(inputs), **kwargs))
+        return self.out_layer(super().call(self.flatten(inputs) if self.flatten is not None else inputs, **kwargs))
 
 
 class BasicRNN(tf.keras.layers.Layer):
@@ -74,3 +74,24 @@ class BasicRNN(tf.keras.layers.Layer):
         else:
             out = stacked_states
         return out
+
+
+class TimeAgnosticMLP(MLPEncoder):
+    def __init__(self, bins_per_frame, *args, **kwrags):
+        super().__init__(*args, flatten=False, **kwrags)
+        self.bins_per_frame = bins_per_frame
+
+    def call(self, inputs, **kwargs):
+        # (B, N, T)
+
+        permuted = tf.permute(inputs, [0, 2, 1])     # (B, T, N)
+
+        if self.bins_per_frame != 1:
+            shape = tf.shape(permuted)
+            reshaped = tf.reshape(permuted, (shape[0], shape[1] // self.bins_per_frame,
+                                             self.bins_per_frame * shape[-1]))  # (B, Frames, N*bins_per_frame)
+                                                                                # N first, then bins_per_frame
+        else:
+            reshaped = permuted
+
+        return super().call(reshaped)
