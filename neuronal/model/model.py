@@ -118,7 +118,7 @@ def compile_model(model, dataset, loss=CrossPathwayTemporalContrastiveLoss, loss
                   optimizer_cls=tf.optimizers.legacy.Nadam if tf.__version__ == '2.12.0' else tf.optimizers.Nadam,
                   optimizer_kwargs={}, classifier=False, pathway_classification=True,
                   ensemble_classification=True, pathway_classification_allpaths=False,
-                  metrics_kwargs={}, **kwargs):
+                  metrics_kwargs={}, labels=Labels, **kwargs):
     if kwargs:
         print(f"WARNING: compile_model got spare kwargs that won't be used: {kwargs}")
 
@@ -130,6 +130,9 @@ def compile_model(model, dataset, loss=CrossPathwayTemporalContrastiveLoss, loss
         losses['embedding'] = loss(**loss_kwargs)
     dataset.update_name_to_label('embedding', Labels.STIMULUS)    # The label is irrelevant here
 
+    labels = [eval(label) if isinstance(label, str) else label for label in labels]
+
+
     if metrics_kwargs:
         import utils.model.metrics as metrics_file
         metrics["embedding"] = get_class(metrics_kwargs['name'], metrics_file)(
@@ -137,26 +140,26 @@ def compile_model(model, dataset, loss=CrossPathwayTemporalContrastiveLoss, loss
 
     label_class_loss = {
         label.value.name: tf.keras.losses.SparseCategoricalCrossentropy if label.value.kind == CATEGORICAL else tf.keras.losses.MeanAbsoluteError
-        for label in Labels}
+        for label in labels}
     label_class_metric = {
         label.value.name: tf.keras.metrics.SparseCategoricalAccuracy if label.value.kind == CATEGORICAL else tf.keras.losses.MeanAbsoluteError
-        for label in Labels}
+        for label in labels}
 
     if pathway_classification:
         if pathway_classification_allpaths:
             for path in range(model.get_layer(model.name + "_pathways").n):
-                for label in Labels:
+                for label in labels:
                     dataset.update_name_to_label(f'logits{path}_{label.value.name}', label)
                     losses[f'logits{path}_{label.value.name}'] = label_class_loss[label.value.name]()
                     metrics[f'logits{path}_{label.value.name}'] = label_class_metric[label.value.name]()
         else:
-            for label in Labels:
+            for label in labels:
                 dataset.update_name_to_label(f'logits_{label.value.name}', label)
                 losses[f'logits_{label.value.name}'] = label_class_loss[label.value.name]()
                 metrics[f'logits_{label.value.name}'] = label_class_metric[label.value.name]()
 
     if ensemble_classification:
-        for label in Labels:
+        for label in labels:
             dataset.update_name_to_label(f'ensemble_logits_{label.value.name}', label)
             losses[f'ensemble_logits_{label.value.name}'] = label_class_loss[label.value.name]()
             metrics[f'ensemble_logits_{label.value.name}'] = label_class_metric[label.value.name]()
