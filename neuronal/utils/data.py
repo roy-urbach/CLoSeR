@@ -163,7 +163,7 @@ class Trial:
             binned_path = os.path.join(self._path, f"spikes_binned_bpf_{bins_per_frame}.npz")
             bins_path = os.path.join(self._path, f"spike_bins_bpf_{bins_per_frame}.npy")
 
-            if os.path.exists(binned_path):
+            if os.path.exists(binned_path) and not override:
                 self.spike_bins[bins_per_frame] = loadz(binned_path)
                 self.spike_bins[bins_per_frame] = {int(unit): spikes for unit, spikes in self.spike_bins[bins_per_frame].items()}
                 self.bins[bins_per_frame] = np.load(bins_path, allow_pickle=True)
