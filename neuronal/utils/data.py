@@ -270,7 +270,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
             self.spikes[stimulus] = {area: [] for area in self.areas} if self.areas_in_spikes() else []
 
             trials = self.session.get_trials(stimulus)
-            normed_inds = np.linspace(0, 1, len(trials)+1)
+            normed_inds = np.linspace(0, SESSIONS, len(trials)+1) % 1
             if self.train:
                 trial_mask = normed_inds <= 0.6
             elif self.val:
