@@ -8,7 +8,7 @@ from neuronal.utils.data import DATA_DIR
 def process_session(index):
     from allensdk.brain_observatory.ecephys.ecephys_project_cache import EcephysProjectCache
 
-    cache_dir = '../../../../jonatham/allen_institute_data/ecephys_cache_dir/'
+    cache_dir = '../../../jonatham/allen_institute_data/ecephys_cache_dir/'
     assert f"session_{index}" in os.listdir(
         cache_dir), f"session {index} not in {cache_dir}, instead {os.listdir(cache_dir)}"
 
