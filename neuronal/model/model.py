@@ -40,7 +40,7 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
                  encoder='BasicRNN', encoder_per_path=False,
                  pathway_classification=True, pathway_classification_allpaths=False,
                  ensemble_classification=True, classifier_pathways=True,
-                 augmentation_kwargs={}, encoder_kwargs={}, pathways_kwargs={}):
+                 augmentation_kwargs={}, encoder_kwargs={}, pathways_kwargs={}, labels=Labels):
     if isinstance(kernel_regularizer, str) and kernel_regularizer.startswith("tf."):
         kernel_regularizer = eval(kernel_regularizer)
 
@@ -72,8 +72,8 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
     encoders = [enc_init(i) for i in range(len(pathways))] if encoder_per_path else [enc_init(None)] * len(pathways)
 
     embedding = tf.keras.layers.Concatenate(name='embedding', axis=-1)([encoder(pathway)[..., None]
-                                                                                for encoder, pathway in
-                                                                                zip(encoders, pathways)])
+                                                                        for encoder, pathway in
+                                                                        zip(encoders, pathways)])
     # (B, T, DIM, P)
 
     outputs = [embedding]
@@ -81,8 +81,12 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
     last_step_embedding = embedding[:, -bins_per_frame:]    # (B, bins_per_frame, DIM, P)
     embedding_for_classification = last_step_embedding if classifier else tf.stop_gradient(last_step_embedding)
     embedding_for_classification = tf.reshape(embedding_for_classification,     # (B, DIMS*bins_per_frame, P)
-                                              (tf.shape(embedding_for_classification)[0], embedding.shape[-2] * bins_per_frame, len(pathways)))
+                                              (tf.shape(embedding_for_classification)[0],
+                                               embedding.shape[-2] * bins_per_frame,
+                                               len(pathways)))
     path_divide_embedding = tf.unstack(embedding_for_classification, axis=-1)   # List[(B, DIMS*bins_per_frame)]
+
+    labels = [eval(label) if isinstance(label, str) else label for label in labels]
 
     # classification heads, with stop_grad unless classifier=True
     if pathway_classification:
@@ -91,14 +95,14 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
         pathways_to_classify = list(range(len(pathways))) if pathway_classification_allpaths else [0]
         for path in pathways_to_classify:
             cur_embd = path_divide_embedding[path]
-            for label in Labels:
+            for label in labels:
                 cur_name = 'logits' + (
                     str(path) if pathway_classification_allpaths else '') + f'_{label.value.name}'
                 pathway_logits = layers.Dense(label.value.dimension, activation=None,
                                               kernel_regularizer=kernel_regularizer, name=cur_name)(cur_embd)
                 outputs.append(pathway_logits)
     if ensemble_classification:
-        for label in Labels:
+        for label in labels:
             ens_inp = tf.concat(path_divide_embedding, axis=-1)
             ens_pred = layers.Dense(label.value.dimension, activation=None,
                                     kernel_regularizer=kernel_regularizer,
