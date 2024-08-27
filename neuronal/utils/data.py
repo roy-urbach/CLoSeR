@@ -3,7 +3,8 @@ import os
 import pandas as pd
 from enum import Enum
 
-from neuronal.utils.consts import NEURONAL_BASE_DIR, NATURAL_MOVIES, NATURAL_MOVIES_FRAMES, NATURAL_MOVIES_TRIALS, SESSIONS
+from neuronal.utils.consts import NEURONAL_BASE_DIR, NATURAL_MOVIES, NATURAL_MOVIES_FRAMES, \
+    NATURAL_MOVIES_TRIALS, SESSIONS, BLOCKS
 import tensorflow as tf
 
 from utils.utils import streval
@@ -270,7 +271,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
             self.spikes[stimulus] = {area: [] for area in self.areas} if self.areas_in_spikes() else []
 
             trials = self.session.get_trials(stimulus)
-            normed_inds = np.linspace(0, SESSIONS, len(trials)+1) % 1
+            normed_inds = np.linspace(0, BLOCKS, len(trials)+1) % 1
             if self.train:
                 trial_mask = normed_inds <= 0.6
             elif self.val:
