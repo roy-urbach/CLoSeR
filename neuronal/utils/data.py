@@ -23,7 +23,7 @@ class Label:
 
 class Labels(Enum):
     STIMULUS = Label("stimulus", CATEGORICAL, 1 if len(NATURAL_MOVIES) <= 2 else len(NATURAL_MOVIES), NATURAL_MOVIES)
-    # TRIAL = Label("trial", CATEGORICAL, max(NATURAL_MOVIES_TRIALS.values()))
+    TRIAL = Label("trial", CATEGORICAL, max(NATURAL_MOVIES_TRIALS.values()))
     FRAME = Label("normedframe", CONTINUOUS, 1)
 
 
@@ -332,7 +332,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
             spikes = self.spikes[stim_name][trial][..., first_bin:last_bin]  # (N, T))
 
         labels = {Labels.STIMULUS.value.name: np.array(stim_ind),
-                  # Labels.TRIAL.value.name: np.array(trial),
+                  Labels.TRIAL.value.name: np.array(trial),
                   Labels.FRAME.value.name: np.array(frame / NATURAL_MOVIES_FRAMES[stim_name])}
 
         y = {}

@@ -27,7 +27,7 @@ def process_session(index):
         print(f"running {name}")
         stim = session.stimulus_presentations
         movie_stim = stim[stim.stimulus_name == name]
-        starts = movie_stim.start_time[stim.frame == 0]
+        starts = movie_stim.start_time[movie_stim.frame == 0]
         ends = movie_stim.stop_time[
             movie_stim.frame == (np.where(movie_stim.frame.to_numpy() == 'null', 0, movie_stim.frame.to_numpy())).max()]
         for repeat, (start, end) in enumerate(zip(starts, ends)):
@@ -40,6 +40,7 @@ def process_session(index):
                 ~ ((session.running_speed.start_time > end) | (start > session.running_speed.end_time))]
             filtered_invalid_times = session.invalid_times[
                 ~ ((session.invalid_times.start_time > end) | (start > session.invalid_times.stop_time))]
+
             path = [DATA_DIR, session_dir, name, str(repeat)]
             os.makedirs(os.path.join(*path), exist_ok=True)
             with open(os.path.join(*path, "spike_times.npz"), 'wb') as f:
