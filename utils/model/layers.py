@@ -382,3 +382,13 @@ class BasicRNNLayer(tf.keras.layers.Layer):
         internal = self.recurrent_connections(self.dropout(state))
         output = self.activation(internal + external_input)
         return output
+
+
+class Stack(tf.keras.layers.Layer):
+    def __init__(self, axis=-1, name='stack', **kwargs):
+        super().__init__(name=name, **kwargs)
+        self.axis = axis
+
+    def call(self, *inputs):
+        return tf.stack(inputs, axis=self.axis)
+

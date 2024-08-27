@@ -3,7 +3,7 @@ from tensorflow.keras import layers
 
 from neuronal.model.losses import CrossPathwayTemporalContrastiveLoss
 from neuronal.utils.data import Labels, CATEGORICAL
-from utils.model.layers import SplitPathways
+from utils.model.layers import SplitPathways, Stack
 from utils.model.losses import NullLoss
 from utils.model.model import get_optimizer
 from utils.utils import get_class
@@ -71,9 +71,7 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
                                  out_regularizer=out_reg, **encoder_kwargs)
     encoders = [enc_init(i) for i in range(len(pathways))] if encoder_per_path else [enc_init(None)] * len(pathways)
 
-    embedding = tf.keras.layers.Concatenate(name='embedding', axis=-1)([encoder(pathway)[..., None]
-                                                                        for encoder, pathway in
-                                                                        zip(encoders, pathways)])
+    embedding = Stack(name='embedding', axis=-1)([encoder(pathway) for encoder, pathway in zip(encoders, pathways)])
     # (B, T, DIM, P)
 
     outputs = [embedding]
