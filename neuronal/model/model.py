@@ -71,7 +71,7 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
                                  out_regularizer=out_reg, **encoder_kwargs)
     encoders = [enc_init(i) for i in range(len(pathways))] if encoder_per_path else [enc_init(None)] * len(pathways)
 
-    embedding = Stack(name='embedding', axis=-1)([encoder(pathway) for encoder, pathway in zip(encoders, pathways)])
+    embedding = Stack(name='embedding', axis=-1)(*[encoder(pathway) for encoder, pathway in zip(encoders, pathways)])
     # (B, T, DIM, P)
 
     outputs = [embedding]
