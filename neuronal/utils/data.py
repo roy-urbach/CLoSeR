@@ -59,8 +59,8 @@ class Session:
         self.trials = {}
         for stimulus in os.listdir(self._path):
             if "." in stimulus: continue
-            self.trials[stimulus] = [Trial(self, stimulus, trial_num)
-                                     for trial_num in sorted(os.listdir(os.path.join(self._path, stimulus)))]
+            trial_nums = sorted([int(num) for num in os.listdir(os.path.join(self._path, stimulus))])
+            self.trials[stimulus] = [Trial(self, stimulus, trial_num) for trial_num in trial_nums]
 
         self.units = pd.read_csv(os.path.join(self._path, "units.csv"))
         self.probes = pd.read_csv(os.path.join(self._path, "probes.csv"))
