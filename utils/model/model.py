@@ -143,6 +143,7 @@ def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_
         if dataset.is_generator():
             dataset = gen_to_tf_dataset(dataset, batch_size=batch_size, buffer_size=batch_size)
             val_dataset = dataset.get_validation()
+            val_dataset.random = False
             history = model.fit(dataset,
                                 validation_data=val_dataset,
                                 steps_per_epoch=int(dataset.__len__() / batch_size),
