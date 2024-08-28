@@ -57,7 +57,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
     save_res = lambda *inputs: module.save_evaluation_json(model.name, results) if save_results else None
 
     for label in labels:
-        basic_dataset = Data(x_train_embd, y_train[label.value.name], x_test_embd, y_test[label.value.name])
+        basic_dataset = Data(dataset.get_x(), y_train[label.value.name], test_dataset.get_x(), y_test[label.value.name])
 
         embd_dataset = Data(x_train_embd, y_train[label.value.name], x_test_embd, y_test[label.value.name])
 
