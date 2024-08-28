@@ -46,7 +46,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
     x_test_embd = transform_embedding(model.predict(test_dataset.get_x())[0])
 
     y_train = dataset.get_y(labels)
-    y_test = dataset.get_y(labels)
+    y_test = test_dataset.get_y(labels)
 
     results = module.load_evaluation_json(model.name) if not override else {}
 
