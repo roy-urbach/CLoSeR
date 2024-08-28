@@ -48,8 +48,6 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
     y_train = dataset.get_y(labels)
     y_test = test_dataset.get_y(labels)
 
-    basic_dataset = Data(x_train_embd, y_train, x_test_embd, y_test)
-
 
     results = module.load_evaluation_json(model.name) if not override else {}
 
@@ -59,6 +57,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
     save_res = lambda *inputs: module.save_evaluation_json(model.name, results) if save_results else None
 
     for label in labels:
+        basic_dataset = Data(x_train_embd, y_train[label.value.name], x_test_embd, y_test[label.value.name])
 
         embd_dataset = Data(x_train_embd, y_train[label.value.name], x_test_embd, y_test[label.value.name])
 
