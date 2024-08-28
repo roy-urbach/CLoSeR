@@ -7,15 +7,15 @@ from utils.evaluation.evaluation import classify_head_eval_ensemble
 from utils.model.model import load_model_from_json
 from utils.modules import Modules
 from utils.utils import printd
+import numpy as np
 
 
-def get_masked_ds(model, dataset=Cifar10()):
+def get_masked_ds(model, dataset):
     if isinstance(model, str):
-        model = load_model_from_json(model, Modules.VISION)
+        model = load_model_from_json(model, Modules.NEURONAL)
     aug_layer = model.get_layer("data_augmentation")
-    patch_layer = model.get_layer(model.name + '_patch')
-    pathway_indices = model.get_layer(model.name + '_pathways').indices.numpy()
-    setup_func = lambda x: np.transpose(patch_layer(aug_layer(x)).numpy()[:, pathway_indices - model.get_layer(model.name + '_pathways').shift], [0, 1, 3, 2]).reshape(
+    pathway_indices = model.get_layer('pathways').indices.numpy()
+    setup_func = lambda x: np.transpose((aug_layer(x)).numpy()[:, pathway_indices - model.get_layer('pathways').shift], [0, 1, 3, 2]).reshape(
         x.shape[0], -1, pathway_indices.shape[-1])
     ds = Data(setup_func(dataset.get_x_train()), dataset.get_y_train(),
               setup_func(dataset.get_x_test()), dataset.get_y_test())
@@ -34,8 +34,18 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
 
     test_dataset = dataset.get_test()
 
-    x_train_embd = model.predict(dataset.get_x())[0]
-    x_test_embd = model.predict(test_dataset.get_x())[0]
+    bins_per_frame = dataset.bins_per_frame
+    def transform_embedding(embedding):
+        last_step_embedding = embedding[:, -bins_per_frame:]    # (B, bins_per_frame, DIM, P)
+        last_step_embedding = last_step_embedding.reshape(last_step_embedding,     # (B, DIMS*bins_per_frame, P)
+                                                          (last_step_embedding.shape[0],
+                                                           last_step_embedding.shape[-2] * bins_per_frame,
+                                                           last_step_embedding[-1]))
+        return last_step_embedding
+
+    x_train_embd = transform_embedding(model.predict(dataset.get_x())[0])
+    x_test_embd = transform_embedding(model.predict(test_dataset.get_x())[0])
+
     y_train = dataset.get_y(labels)
     y_test = dataset.get_y(labels)
 
