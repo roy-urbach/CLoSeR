@@ -218,7 +218,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
         self.order = None
         self.num_units = None
         self.binary = binary
-        self.possible_trials = None
+        self.possible_trials = {}
         self.random = random
 
         assert not (test and val)
@@ -285,7 +285,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
             else:
                 # If we want the full session
                 trial_mask = np.full_like(normed_inds, True)
-            self.possible_trials = np.where(trial_mask)[0]
+            self.possible_trials[stimulus] = np.where(trial_mask)[0]
 
             self.num_units = {area: None for area in self.areas} if self.areas_in_spikes() else None
 
@@ -345,7 +345,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
         spikes = self.get_activity_window(stim_name, trial, frame)
 
         labels = {Labels.STIMULUS.value.name: np.array(stim_ind),
-                  Labels.TRIAL.value.name: np.array(self.possible_trials[trial]),
+                  Labels.TRIAL.value.name: np.array(self.possible_trials[stim_name][trial]),
                   Labels.FRAME.value.name: np.array(frame / NATURAL_MOVIES_FRAMES[stim_name])}
 
         y = {}
@@ -385,7 +385,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
                 for trial_num in range(len(self.spikes[stim_name]) if not self.areas_in_spikes() else len(self.spikes[stim_name][self.areas[0]])):
                     for frame_num in range(self.frames_per_sample, NATURAL_MOVIES_FRAMES[stim_name]):
                         y[Labels.STIMULUS.value.name].append(stim_ind)
-                        y[Labels.TRIAL.value.name].append(self.possible_trials[trial_num])
+                        y[Labels.TRIAL.value.name].append(self.possible_trials[stim_name][trial_num])
                         y[Labels.FRAME.value.name].append(frame_num / NATURAL_MOVIES_FRAMES[stim_name])
 
             actual_y = {}
