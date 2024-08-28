@@ -52,7 +52,7 @@ def load_classfications_by_regex(model_regex, module, name_to_d_naive=False, con
 
 
 def plot_history(model_regex, module, window=10, name_to_name=lambda m: m, log=True, keys=None,
-                 log_keys={'embedding'}, plot_train=True, plot_val=True, name_to_c=None, save=None):
+                 log_keys={'embedding'}, plot_train=True, plot_val=True, name_to_c=None, save=None, legend=True):
     models = regex_models(model_regex, module)
     models_names = []
     orig_names = []
@@ -79,7 +79,8 @@ def plot_history(model_regex, module, window=10, name_to_name=lambda m: m, log=T
                          c=f"C{i}" if name_to_c is None else name_to_c(orig_names[i]), linestyle=':' if plot_train else '-')
         if log and any([key in k for key in log_keys]):
             plt.yscale("log")
-        plt.legend()
+        if legend:
+            plt.legend()
         plt.xlabel("epoch")
         plt.ylabel(k)
         if save:
