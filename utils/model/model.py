@@ -1,5 +1,6 @@
 from utils.data import gen_to_tf_dataset
 from utils.model.callbacks import SaveOptimizerCallback, SaveHistory, ErasePreviousCallback
+from utils.model.losses import NullLoss
 from utils.modules import Modules
 from utils.tf_utils import get_weights_fn, serialize
 from utils.utils import printd
@@ -27,7 +28,7 @@ def get_optimizer(optimizer_cls=tf.optimizers.legacy.Nadam if tf.__version__ == 
     return optimizer
 
 
-def create_and_compile_model(model_name, dataset, model_kwargs, loss, module: Modules, loss_kwargs={},
+def create_and_compile_model(model_name, dataset, model_kwargs, module: Modules, loss=NullLoss, loss_kwargs={},
                              optimizer_kwargs={}, metrics_kwargs={}, print_log=False, **kwargs):
     if print_log:
         printd("Creating model...", end='\t')
