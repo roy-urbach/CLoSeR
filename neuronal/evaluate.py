@@ -48,6 +48,9 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
     y_train = dataset.get_y(labels)
     y_test = test_dataset.get_y(labels)
 
+    basic_dataset = Data(x_train_embd, y_train, x_test_embd, y_test)
+
+
     results = module.load_evaluation_json(model.name) if not override else {}
 
     if results is None:
@@ -85,7 +88,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
             save_res()
 
             if not any([k.startswith(f"{label.value.name}_input_pathway") for k in results.keys()]):
-                masked_ds = get_masked_ds(model, dataset=dataset)
+                masked_ds = get_masked_ds(model, dataset=basic_dataset)
                 results.update(classify_head_eval_ensemble(masked_ds, base_name=f"{label.value.name}_input_", svm=False,
                                                            categorical=label.value.kind == CATEGORICAL,
                                                            voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb]), **kwargs)
