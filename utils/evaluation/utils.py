@@ -14,7 +14,7 @@ def load_evaluation_json(model_name):
 
 @Modules.add_method
 def save_evaluation_json(model_name, dct):
-    save_json(model_name, dct)
+    save_json(os.path.join(model_name, RESULTS_FILE_NAME), dct)
 
 
 @Modules.add_method
