@@ -225,6 +225,8 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
         self.train = train
         self.test = test
         self.val = val
+        self.x = None
+        self.y = None
 
         self.name_to_label = {}
 

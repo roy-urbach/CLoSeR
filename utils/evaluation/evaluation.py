@@ -5,17 +5,22 @@ from utils.evaluation.ensemble import EnsembleModel, EnsembleVotingMethods
 from utils.utils import printd
 
 
-def linear_head_eval(svm=True, C=1e-2, **kwargs):
-    if svm:
-        from sklearn.svm import SVC
-        model = SVC(kernel='linear', C=C, max_iter=int(1e7), **kwargs)
+def linear_head_eval(svm=True, C=1e-2, categorical=False, **kwargs):
+    if categorical:
+        if svm:
+            from sklearn.svm import SVC
+            model = SVC(kernel='linear', C=C, max_iter=int(1e7), **kwargs)
+        else:
+            from sklearn.linear_model import LogisticRegression
+            model = LogisticRegression(C=C, **kwargs)
     else:
-        from sklearn.linear_model import LogisticRegression
-        model = LogisticRegression(C=C, **kwargs)
+        from sklearn.linear_model import Ridge
+        model = Ridge(alpha=C, **kwargs)
     return model
 
 
-def classify_head_eval(dataset, m=lambda x: x.reshape(x.shape[0], -1), pca=False, linear=True, samples=0, k=10, **kwargs):
+def classify_head_eval(dataset, m=lambda x: x.reshape(x.shape[0], -1), categorical=False,
+                       pca=False, linear=True, samples=0, k=10, **kwargs):
     (x_train, y_train), (x_test, y_test) = dataset.get_all()
     score_kwargs = {}
 
@@ -28,10 +33,13 @@ def classify_head_eval(dataset, m=lambda x: x.reshape(x.shape[0], -1), pca=False
         inds = np.arange(len(x_train))
     train_embd = m(x_train[inds])
     if linear:
-        model = linear_head_eval(**kwargs)
+        model = linear_head_eval(categorical=categorical, **kwargs)
     else:
-        from sklearn.neighbors import KNeighborsClassifier
-        model = KNeighborsClassifier(k)
+        from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
+        if categorical:
+            model = KNeighborsClassifier(k)
+        else:
+            model = KNeighborsRegressor(k, weights='distance')
     model.fit(train_embd, y_train[inds])
     train_score = model.score(train_embd, y_train[inds], **score_kwargs)
     test_score = model.score(m(x_test), y_test, **score_kwargs)
@@ -41,14 +49,18 @@ def classify_head_eval(dataset, m=lambda x: x.reshape(x.shape[0], -1), pca=False
 
 
 def classify_head_eval_ensemble(dataset, linear=True, k=10, base_name='',
+                                categorical=False,
                                 voting_methods=EnsembleVotingMethods, C=1, **kwargs):
     (x_train, y_train), (x_test, y_test) = dataset.get_all()
     if linear:
-        model = linear_head_eval(C=C, **kwargs)
+        model = linear_head_eval(C=C, categorical=categorical, **kwargs)
         name = 'linear'
     else:
-        from sklearn.neighbors import KNeighborsClassifier
-        model = KNeighborsClassifier(k)
+        from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
+        if categorical:
+            model = KNeighborsClassifier(k)
+        else:
+            model = KNeighborsRegressor(k, weights='distance')
         name = f'knn{k}'
     ensemble = EnsembleModel(model, ensemble_axis=-1)
     ensemble.fit(x_train, y_train.flatten())
