@@ -390,7 +390,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
 
             actual_y = {}
             for name, label in self.name_to_label.items() if labels is None else {label.value.name: label for label in labels}.items():
-                actual_y[name] = y[label.value.name]
+                actual_y[name] = np.array(y[label.value.name])
             self.y = actual_y
         return self.y
 
