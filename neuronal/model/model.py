@@ -130,7 +130,6 @@ def compile_model(model, dataset, loss=CrossPathwayTemporalContrastiveLoss, loss
 
     labels = [eval(label) if isinstance(label, str) else label for label in labels]
 
-
     if metrics_kwargs:
         import utils.model.metrics as metrics_file
         metrics["embedding"] = get_class(metrics_kwargs['name'], metrics_file)(
@@ -145,7 +144,7 @@ def compile_model(model, dataset, loss=CrossPathwayTemporalContrastiveLoss, loss
 
     if pathway_classification:
         if pathway_classification_allpaths:
-            for path in range(model.get_layer(model.name + "_pathways").n):
+            for path in range(model.get_layer("pathways").n):
                 for label in labels:
                     dataset.update_name_to_label(f'logits{path}_{label.value.name}', label)
                     losses[f'logits{path}_{label.value.name}'] = label_class_loss[label.value.name]()
