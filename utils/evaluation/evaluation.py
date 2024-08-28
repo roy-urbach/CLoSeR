@@ -62,7 +62,7 @@ def classify_head_eval_ensemble(dataset, linear=True, k=10, base_name='',
         else:
             model = KNeighborsRegressor(k, weights='distance')
         name = f'knn{k}'
-    ensemble = EnsembleModel(model, ensemble_axis=-1)
+    ensemble = EnsembleModel(model, get_score_method='predict_proba' if categorical else 'predict', ensemble_axis=-1)
     ensemble.fit(x_train, y_train.flatten())
 
     res = {}

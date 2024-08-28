@@ -90,11 +90,12 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                 masked_ds = get_masked_ds(model, dataset=basic_dataset)
                 results.update(classify_head_eval_ensemble(masked_ds, base_name=f"{label.value.name}_input_", svm=False,
                                                            categorical=label.value.kind == CATEGORICAL,
-                                                           voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb]), **kwargs)
+                                                           voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean]), **kwargs)
                 save_res()
 
         if ensemble_knn:
             results.update(classify_head_eval_ensemble(embd_dataset, linear=False, svm=False, k=15,
-                                                       voting_methods=EnsembleVotingMethods), **kwargs)
+                                                       categorical=label.value.kind == CATEGORICAL,
+                                                       voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean]), **kwargs)
             save_res()
     return results
