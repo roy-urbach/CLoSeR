@@ -201,7 +201,7 @@ class Trial:
 
 class SessionDataGenerator(tf.keras.utils.Sequence):
     def __init__(self, session_id, frames_per_sample=10, bins_per_frame=1,
-                 stimuli=NATURAL_MOVIES, areas=None, train=True, val=False, test=False, binary=False):
+                 stimuli=NATURAL_MOVIES, areas=None, train=True, val=False, test=False, binary=False, random=True):
         super(SessionDataGenerator, self).__init__()
         self.session_id = streval(session_id)
         if self.session_id not in SESSIONS:
@@ -218,6 +218,8 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
         self.order = None
         self.num_units = None
         self.binary = binary
+        self.possible_trials = None
+        self.random = random
 
         assert not (test and val)
         self.train = train
@@ -281,6 +283,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
             else:
                 # If we want the full session
                 trial_mask = np.full_like(normed_inds, True)
+            self.possible_trials = np.where(trial_mask)[0]
 
             self.num_units = {area: None for area in self.areas} if self.areas_in_spikes() else None
 
@@ -319,21 +322,28 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
     def update_name_to_label(self, name, label):
         self.name_to_label[name] = label
 
+    def get_activity_window(self, stim_name, trial_num, frame_num):
+
+        last_bin = frame_num + self.bins_per_frame
+        first_bin = last_bin - self.bins_per_sample
+
+        if self.areas_in_spikes():
+            spikes = {area: self.spikes[stim_name][area][trial_num][..., first_bin:last_bin] for area in self.areas}
+        else:
+            spikes = self.spikes[stim_name][trial_num][..., first_bin:last_bin]  # (N, T))
+
+        return spikes
+
     def sample(self, idx):
         stim_ind = np.random.randint(len(self.stimuli))
         stim_name = self.stimuli[stim_ind]
         trial = np.random.randint(len(self.spikes[stim_name]) if not self.areas_in_spikes() else len(self.spikes[stim_name][self.areas[0]]))
         frame = np.random.randint(self.frames_per_sample, NATURAL_MOVIES_FRAMES[stim_name])
-        last_bin = frame + self.bins_per_frame
-        first_bin = last_bin - self.bins_per_sample
 
-        if self.areas_in_spikes():
-            spikes = {area: self.spikes[stim_name][area][trial][..., first_bin:last_bin] for area in self.areas}
-        else:
-            spikes = self.spikes[stim_name][trial][..., first_bin:last_bin]  # (N, T))
+        spikes = self.get_activity_window(stim_name, trial, frame)
 
         labels = {Labels.STIMULUS.value.name: np.array(stim_ind),
-                  Labels.TRIAL.value.name: np.array(trial),
+                  Labels.TRIAL.value.name: np.array(self.possible_trials[trial]),
                   Labels.FRAME.value.name: np.array(frame / NATURAL_MOVIES_FRAMES[stim_name])}
 
         y = {}
@@ -347,5 +357,50 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
 
         return spikes, y
 
+    def get_x(self):
+        if self.x is None:
+            spikes = {area: [] for area in self.areas} if self.areas_in_spikes() else []
+            for stim_ind, stim_name in enumerate(self.stimuli):
+                for trial_num in range(len(self.spikes[stim_name]) if not self.areas_in_spikes() else len(self.spikes[stim_name][self.areas[0]])):
+                    for frame_num in range(self.frames_per_sample, NATURAL_MOVIES_FRAMES[stim_name]):
+                        cur_spikes = self.get_activity_window(stim_name, trial_num, frame_num)
+                        if self.areas_in_spikes():
+                            for area in spikes.keys():
+                                spikes[area].append(cur_spikes[area])
+                        else:
+                            spikes.append(cur_spikes)
+            if self.areas_in_spikes():
+                spikes = {area: np.stack(activity, axis=0) for area, activity in spikes.items()}
+            else:
+                spikes = np.stack(spikes, axis=0)
+            self.x = spikes
+        return self.x
+
+    def get_y(self, labels=None):
+        if self.y is None:
+            y = {k.value.name: [] for k in Labels}
+            for stim_ind, stim_name in enumerate(self.stimuli):
+                for trial_num in range(len(self.spikes[stim_name]) if not self.areas_in_spikes() else len(self.spikes[stim_name][self.areas[0]])):
+                    for frame_num in range(self.frames_per_sample, NATURAL_MOVIES_FRAMES[stim_name]):
+                        y[Labels.STIMULUS.value.name].append(stim_ind)
+                        y[Labels.TRIAL.value.name].append(self.possible_trials[trial_num])
+                        y[Labels.FRAME.value.name].append(frame_num / NATURAL_MOVIES_FRAMES[stim_name])
+
+            actual_y = {}
+            for name, label in self.name_to_label.items() if labels is None else {label: label for label in labels}:
+                actual_y[name] = y[label.value.name]
+            self.y = actual_y
+        return self.y
+
     def __getitem__(self, idx):
-        return self.sample(idx)
+        if self.random:
+            return self.sample(idx)
+        else:
+            x = self.get_x()
+            y = self.get_y()
+            if self.areas_in_spikes():
+                cur_x = {area: x[idx] for area in self.areas}
+            else:
+                cur_x = x[idx]
+            cur_y = y[idx]
+            return cur_x, cur_y
