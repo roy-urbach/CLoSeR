@@ -1,4 +1,4 @@
-from utils.model.losses import GeneralLossByKey
+from utils.model.losses import GeneralLossByKey, KoLeoLoss
 import tensorflow as tf
 
 
@@ -97,3 +97,83 @@ class MeanAbsoluteErrorByKeyLoss(GeneralLossByKey):
 
     def loss_func(self, y_true, y_pred):
         return tf.keras.losses.mean_absolute_loss(y_true, y_pred)
+
+
+class AngularTrajectoryDisagreement(tf.keras.losses.Loss):
+    def __init__(self, a=None, entropy_w=0, name='angular_traj_disagreement'):
+        super().__init__(name=name)
+        self.entropy_w = entropy_w
+        self.a = a
+        if self.a is not None:
+            self.a = self.a / tf.reduce_sum(self.a)
+        self.koleo = KoLeoLoss(entropy_w, axis=None)
+
+    def call(self, y_true, y_pred):
+        # y_pred shape (B, T, DIM, P)
+        total_loss = 0.
+
+        n = tf.shape(y_pred)[-1]
+        movement_vecs = y_pred[:, 1:] - y_pred[:, :-1]         # (B, T-1, DIM, P)
+        movement_vecs_norm = tf.linalg.norm(tf.stop_gradient(movement_vecs), axis=-2, keepdims=True)
+        normed_movement_vecs = movement_vecs / movement_vecs_norm
+        temporal_cosine_sim = tf.einsum('btdp,btdp->btp',
+                                        normed_movement_vecs[:, 1:],
+                                        normed_movement_vecs[:, :-1])  # (B, T-2, P)
+        t_angles = tf.math.acos(temporal_cosine_sim)    # (B, T-2, P)
+        if self.a is None:
+            # (B, T-2)
+            angle_loss = tf.reduce_sum(tf.where(tf.eye(n) < 1,
+                                                tf.math.abs(t_angles[..., None, :] - t_angles[..., None]),
+                                                0.),
+                                       axis=-1) / tf.cast(n * (n-1), t_angles.dtype)
+        else:
+            angle_loss = 0.
+
+            for i in range(n):
+                for j in range(i+1, n):
+                    if self.a is None or (self.a is not None and self.a[i][j]):
+                        angle_loss += tf.math.abs(t_angles[..., i] - tf.stop_gradient(t_angles[..., j])) * self.a[i][j]
+                    if self.a is None or (self.a is not None and self.a[j][i]):
+                        angle_loss += tf.math.abs(tf.stop_gradient(t_angles[..., i]) - t_angles[..., j]) * self.a[i][j]
+        total_loss += tf.reduce_mean(angle_loss)
+
+        if self.entropy_w is not None:
+            total_loss += self.koleo(None, t_angles)
+
+        return total_loss
+
+
+class VectorTrajectoryDisagreement(tf.keras.losses.Loss):
+    def __init__(self, a=None, entropy_w=0, name='vector_traj_disagreement'):
+        super().__init__(name=name)
+        self.entropy_w = entropy_w
+        self.a = a
+        if self.a is not None:
+            self.a = self.a / tf.reduce_sum(self.a)
+        self.koleo = KoLeoLoss(entropy_w, axis=-1)
+
+    def call(self, y_true, y_pred):
+        # y_pred shape (B, T, DIM, P)
+        n = tf.shape(y_pred)[-1]
+
+        total_loss = 0.
+
+        movement_vecs = y_pred[:, 1:] - y_pred[:, :-1]  # (B, T-1, DIM, P)
+        movement_vecs_norm = tf.linalg.norm(tf.stop_gradient(movement_vecs), axis=-2, keepdims=True)
+        normed_movement_vecs = movement_vecs / movement_vecs_norm
+
+        if self.a is None:
+            # (B, T-1)
+            cross_path_cosine_sim = tf.einsum('btdp,btdk->btp',
+                                              normed_movement_vecs[..., None],
+                                              normed_movement_vecs[..., None, :])  # (B, T-1, P, P)
+            vector_loss = tf.where(tf.eye(n) < 1, 1. - cross_path_cosine_sim, 0.) / tf.cast(n * (n - 1), cross_path_cosine_sim.dtype)
+        else:
+            raise NotImplementedError()  # TODO: if it looks promising
+
+        total_loss += tf.reduce_mean(vector_loss)
+
+        if self.entropy_w is not None:
+            total_loss += self.koleo(y_true, y_pred)
+
+        return total_loss

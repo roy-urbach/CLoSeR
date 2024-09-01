@@ -25,18 +25,22 @@ class KoLeoRegularizer(tf.keras.regularizers.Regularizer):
 
 
 class KoLeoLoss(Loss):
-    def __init__(self, *args, lambda_=1, **kwargs):
+    def __init__(self, *args, lambda_=1, axis=-1, **kwargs):
         super(KoLeoLoss, self).__init__(*args, **kwargs)
+        self.axis = axis
         self.lambda_ = lambda_
 
     def call(self, y_true, y_pred):
-        out = 0.
-        for i in range(tf.shape(y_pred)[-1]):
-            embd = y_pred[..., i]
-            dist = tf.norm(embd[None] - embd[:, None], axis=-1)
-            dist = tf.where(tf.eye(tf.shape(dist)[0]) == 0, dist, tf.fill(tf.shape(dist), tf.reduce_max(dist)))
-            min_dist = tf.reduce_min(dist, axis=1)
-            out += -self.lambda_ * tf.reduce_mean(tf.math.log(min_dist))
+        if self.axis is not None:
+            dist = tf.linalg.norm(y_pred[None] - y_pred[:, None], axis=self.axis)
+        else:
+            dist = tf.math.abs(y_pred[None] - y_pred[:, None])
+        b = tf.shape(dist)[0]
+        shape_without_b = dist.get_shape().as_list()[1:]
+        mask = tf.tile(tf.reshape(tf.eye(b) < 1, [b]*2 + [1]*shape_without_b), [1]*2 + shape_without_b)
+        dist = tf.where(mask, dist, tf.reduce_max(dist))
+        min_dist = tf.reduce_min(dist, axis=1)
+        out = -self.lambda_ * tf.reduce_mean(tf.math.log(min_dist))
         return out
 
 
