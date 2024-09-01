@@ -175,3 +175,16 @@ class VectorTrajectoryDisagreement(tf.keras.losses.Loss):
             total_loss += koleo(y_pred, -2) * self.entropy_w
 
         return total_loss
+
+
+class BasicDisagreement(tf.keras.losses.Loss):
+    def __init__(self, entropy_w=None, name="basic_disagreement"):
+        super().__init__(name=name)
+        self.entropy_w = entropy_w
+
+    def call(self, y_true, y_pred):
+        dist = tf.linalg.norm(y_pred[..., None] - y_pred[..., None, :], axis=-2)    # (B, T, P, P)
+        loss = tf.reduce_mean(dist)
+        if self.entropy_w is not None:
+            loss += koleo(y_pred, axis=-2) * self.entropy_w
+        return loss
