@@ -37,7 +37,7 @@ class KoLeoLoss(Loss):
             dist = tf.math.abs(y_pred[None] - y_pred[:, None])
         b = tf.shape(dist)[0]
         shape_without_b = dist.get_shape().as_list()[1:]
-        mask = tf.tile(tf.reshape(tf.eye(b) < 1, [b]*2 + [1]*shape_without_b), [1]*2 + shape_without_b)
+        mask = tf.tile(tf.reshape(tf.eye(b) < 1, [b]*2 + [1]*len(shape_without_b)), [1]*2 + shape_without_b)
         dist = tf.where(mask, dist, tf.reduce_max(dist))
         min_dist = tf.reduce_min(dist, axis=1)
         out = -self.lambda_ * tf.reduce_mean(tf.math.log(min_dist))
