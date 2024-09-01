@@ -144,10 +144,12 @@ def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_
             dataset = gen_to_tf_dataset(dataset, batch_size=batch_size, buffer_size=batch_size)
             val_dataset = dataset.get_validation()
             val_dataset.random = False
-            history = model.fit(dataset,
-                                validation_data=val_dataset,
-                                steps_per_epoch=int(dataset.__len__() / batch_size),
-                                validation_steps=int(val_dataset.__len__() / batch_size),
+            dataset.random = False
+            history = model.fit(x=dataset.get_x(),
+                                y=dataset.get_y(),
+                                validation_data=(val_dataset.get_x(), val_dataset.get_y()),
+                                # steps_per_epoch=int(dataset.__len__() / batch_size),
+                                # validation_steps=int(val_dataset.__len__() / batch_size),
                                 **fit_kwargs)
         else:
             history = model.fit(x=dataset.get_x_train(),
