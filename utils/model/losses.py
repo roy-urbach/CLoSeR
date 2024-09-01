@@ -47,7 +47,7 @@ class KoLeoLoss(Loss):
 def koleo(x, axis=-1):
     b = tf.shape(x)[0]
     shape_without_b = x.get_shape().as_list()[1:]
-    mask = tf.tile(tf.reshape(tf.eye(b) < 1, [b] * 2 + [1] * shape_without_b), [1] * 2 + shape_without_b)
+    mask = tf.tile(tf.reshape(tf.eye(b) < 1, [b] * 2 + [1] * len(shape_without_b)), [1] * 2 + shape_without_b)
 
     if axis is not None:
         dist = tf.linalg.norm(x[None] - x[:, None], axis=axis)
