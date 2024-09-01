@@ -1,4 +1,4 @@
-from utils.model.losses import GeneralLossByKey, KoLeoLoss
+from utils.model.losses import GeneralLossByKey, KoLeoLoss, koleo
 import tensorflow as tf
 
 
@@ -106,7 +106,6 @@ class AngularTrajectoryDisagreement(tf.keras.losses.Loss):
         self.a = a
         if self.a is not None:
             self.a = self.a / tf.reduce_sum(self.a)
-        self.koleo = KoLeoLoss(entropy_w, axis=None)
 
     def call(self, y_true, y_pred):
         # y_pred shape (B, T, DIM, P)
@@ -138,7 +137,7 @@ class AngularTrajectoryDisagreement(tf.keras.losses.Loss):
         total_loss += tf.reduce_mean(angle_loss)
 
         if self.entropy_w is not None:
-            total_loss += self.koleo(None, t_angles)
+            total_loss += koleo(t_angles, None) * self.entropy_w
 
         return total_loss
 
@@ -150,7 +149,6 @@ class VectorTrajectoryDisagreement(tf.keras.losses.Loss):
         self.a = a
         if self.a is not None:
             self.a = self.a / tf.reduce_sum(self.a)
-        self.koleo = KoLeoLoss(entropy_w, axis=-1)
 
     def call(self, y_true, y_pred):
         # y_pred shape (B, T, DIM, P)
@@ -174,6 +172,6 @@ class VectorTrajectoryDisagreement(tf.keras.losses.Loss):
         total_loss += tf.reduce_mean(vector_loss)
 
         if self.entropy_w is not None:
-            total_loss += self.koleo(y_true, y_pred)
+            total_loss += koleo(y_pred, -2) * self.entropy_w
 
         return total_loss

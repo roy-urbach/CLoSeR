@@ -44,6 +44,22 @@ class KoLeoLoss(Loss):
         return out
 
 
+def koleo(x, axis=-1):
+    b = tf.shape(x)[0]
+    shape_without_b = x.get_shape().as_list()[1:]
+    mask = tf.tile(tf.reshape(tf.eye(b) < 1, [b] * 2 + [1] * shape_without_b), [1] * 2 + shape_without_b)
+
+    if axis is not None:
+        dist = tf.linalg.norm(x[None] - x[:, None], axis=axis)
+    else:
+        dist = tf.math.abs(x[None] - x[:, None])
+    dist = tf.where(mask, dist, tf.reduce_max(dist))
+
+    min_dist = tf.reduce_min(dist, axis=1)
+    out = -tf.reduce_mean(tf.math.log(min_dist))
+    return out
+
+
 class NullLoss(Loss):
     def __init__(self, *args, name='NullLoss', **kwargs):
         super(NullLoss, self).__init__(*args, name=name, **kwargs)
