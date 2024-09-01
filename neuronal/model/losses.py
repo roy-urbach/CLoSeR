@@ -4,7 +4,7 @@ import tensorflow as tf
 
 class CrossPathwayTemporalContrastiveLoss(tf.keras.losses.Loss):
     def __init__(self, *args, a=None, contrast_t=1, start_t=0, temperature=10, cosine=False, stable=True,
-                 eps=1e-3, triplet=None, **kwargs):
+                 eps=1e-3, triplet=None, other2self=False, **kwargs):
         super(CrossPathwayTemporalContrastiveLoss, self).__init__(*args, **kwargs)
         self.temperature = temperature
         self.a = a
@@ -14,6 +14,7 @@ class CrossPathwayTemporalContrastiveLoss(tf.keras.losses.Loss):
         self.eps = eps
         self.stable = stable
         self.triplet = triplet
+        self.other2self = other2self
 
     def minus_log_likelihood_from_log_sim(self, pos, neg):
         if self.stable:
@@ -31,13 +32,14 @@ class CrossPathwayTemporalContrastiveLoss(tf.keras.losses.Loss):
             loss = self.minus_log_likelihood_from_log_sim(pos, neg)
         return loss
 
-    def val_func(self, anchor, other):
+    def val_func(self, anchor, other, axis=-1):
         if self.triplet is not None:
-            val = tf.linalg.norm(anchor - other, axis=-1)
+            val = tf.linalg.norm(anchor - other, axis=axis)
         elif self.cosine:
+            assert axis == -1
             val = tf.einsum('...i,...i->...', anchor, other) / self.temperature
         else:
-            val = -(tf.linalg.norm(anchor - other, axis=-1) ** 2)
+            val = -(tf.linalg.norm(anchor - other, axis=axis) ** 2)
         return val
 
     def call(self, y_true, y_pred):
@@ -46,6 +48,12 @@ class CrossPathwayTemporalContrastiveLoss(tf.keras.losses.Loss):
         loss = 0.
         if self.cosine:
             y_pred = y_pred / tf.maximum(tf.linalg.norm(tf.stop_gradient(y_pred), axis=-2, keepdims=True), self.eps)
+
+        if self.other2self:
+            # (B, T-cont_t-start_t, DIM, P)
+            neg_val = self.val_func(y_pred[:, self.start_t+self.contrast_t:],
+                                    y_pred[:, self.start_t:-self.contrast_t], axis=-2)
+
 
         for i in range(n):
             for j in range(i+1, n):
@@ -56,13 +64,19 @@ class CrossPathwayTemporalContrastiveLoss(tf.keras.losses.Loss):
                 pos_val = self.val_func(anchor_i, anchor_j)  # (B, T-cont_t-start_t)
 
                 if self.a is None or (self.a is not None and self.a[i][j]):
-                    negative_j = y_pred[:, self.start_t:-self.contrast_t, :, j]  # (B, T-cont_t-start_t, DIM)
-                    neg_val_i = self.val_func(anchor_i, negative_j)   # (B, T-cont_t-start_t)
+                    if self.other2self:
+                        neg_val_i = neg_val[..., i]
+                    else:
+                        negative_j = y_pred[:, self.start_t:-self.contrast_t, :, j]  # (B, T-cont_t-start_t, DIM)
+                        neg_val_i = self.val_func(anchor_i, negative_j)   # (B, T-cont_t-start_t)
                     loss += tf.reduce_mean(self.loss_func(pos_val, neg_val_i))
 
                 if self.a is None or (self.a is not None and self.a[j][i]):
-                    negative_i = y_pred[:, self.start_t:-self.contrast_t, :, i]  # (B, T-cont_t-start_t, DIM)
-                    neg_val_j = self.val_func(anchor_j, negative_i)   # (B, T-cont_t-start_t)
+                    if self.other2self:
+                        neg_val_j = neg_val[..., j]
+                    else:
+                        negative_i = y_pred[:, self.start_t:-self.contrast_t, :, i]  # (B, T-cont_t-start_t, DIM)
+                        neg_val_j = self.val_func(anchor_j, negative_i)   # (B, T-cont_t-start_t)
                     loss += tf.reduce_mean(self.loss_func(pos_val, neg_val_j))
 
         return loss / (tf.cast(n * (n - 1), dtype=loss.dtype) if self.a is None else tf.reduce_sum(tf.cast(self.a, dtype=loss.dtype)))
