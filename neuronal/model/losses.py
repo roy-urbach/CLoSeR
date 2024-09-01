@@ -100,7 +100,7 @@ class MeanAbsoluteErrorByKeyLoss(GeneralLossByKey):
 
 
 class AngularTrajectoryDisagreement(tf.keras.losses.Loss):
-    def __init__(self, a=None, entropy_w=0, name='angular_traj_disagreement'):
+    def __init__(self, a=None, entropy_w=None, name='angular_traj_disagreement'):
         super().__init__(name=name)
         self.entropy_w = entropy_w
         self.a = a
