@@ -36,13 +36,13 @@ class MLPEncoder(MLP):
 
 
 class BasicRNN(tf.keras.layers.Layer):
-    def __init__(self, residual=False, outdim=None, name='rnn', kernel_regularizer=None, out_regularizer=None,
+    def __init__(self, residual=False, out_dim=None, name='rnn', kernel_regularizer=None, out_regularizer=None,
                  **kwargs):
         super().__init__(name=name)
         self.residual = residual
         self.rnn = BasicRNNLayer(name=name + "_internal", kernel_regularizer=kernel_regularizer, **kwargs)
-        self.out_proj = tf.keras.layers.Dense(outdim, name=name + "_out", kernel_regularizer=kernel_regularizer,
-                                              activity_regularizer=out_regularizer) if outdim is not None else None
+        self.out_proj = tf.keras.layers.Dense(out_dim, name=name + "_out", kernel_regularizer=kernel_regularizer,
+                                              activity_regularizer=out_regularizer) if out_dim is not None else None
         self.initial_state = None
 
     def build(self, input_shape):
