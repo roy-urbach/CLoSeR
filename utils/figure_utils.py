@@ -2,7 +2,7 @@ from itertools import product
 from json import JSONDecodeError
 
 from matplotlib import pyplot as plt
-from scipy.stats import stats
+from scipy import stats
 
 from utils import plot_utils
 from utils.modules import Modules
