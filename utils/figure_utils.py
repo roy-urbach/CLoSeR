@@ -1,4 +1,8 @@
+from itertools import product
+from json import JSONDecodeError
+
 from matplotlib import pyplot as plt
+from scipy.stats import stats
 
 from utils import plot_utils
 from utils.modules import Modules
@@ -159,3 +163,126 @@ def plot_metrics_along_d(model_regex, module: Modules, metric_regex=("logistic",
     plt.tight_layout()
     plt.show()
     return archive
+
+
+def gather_results_over_all_args(model_format, args, module=Modules.VISION, name='logistic', seeds=[1], measure=False):
+    names = list(args.keys())
+    args = [args[n] for n in names]
+    shape = [len(arg) for arg in args]
+    res = None # np.full(list(shape) + [len(seeds), 2 - measure], np.nan)
+
+    for i, inds in enumerate(product(*[range(s) for s in shape])):
+        for s, seed in enumerate(seeds):
+            model_name = model_format.format(
+                **{k: v for k, v in zip(names, [args[arg_ind][cur_ind] for arg_ind, cur_ind in enumerate(inds)])},
+                seed=seed)
+            try:
+                dct = module.load_measures_json(model_name) if measure else module.load_evaluation_json(model_name)
+            except JSONDecodeError as err:
+                dct = None
+                print(model_name)
+            if dct is None:
+                val = np.nan
+            #                     print(f"missing {model_format.format(P=P, d=d, seed=seed)}")
+            else:
+                val = dct.get(name, np.nan)
+            if val is np.nan:
+                print(f"val is nan: {model_name}")
+            if res is None:
+                res = np.full(list(shape) + [len(seeds)] + ([2] if not measure else (list(val.shape) if isinstance(val, np.ndarray) else [2])), np.nan)
+            cur = res
+            for cur_ind in inds:
+                cur = cur[cur_ind]
+            cur[s] = val
+    return res
+
+
+def gather_results_over_all_args_pathways_mean(model_format, args, module=Modules.VISION, name_format='pathway{}_linear', seeds=[1],
+                                               P=10, measure=False):
+    names = list(args.keys())
+    args = [args[n] for n in names]
+    shape = [len(arg) for arg in args]
+    res = None # np.full(list(shape) + [len(seeds), 2], np.nan)
+
+    for i, inds in enumerate(product(*[range(s) for s in shape])):
+        for s, seed in enumerate(seeds):
+            model_name = model_format.format(
+                **{k: v for k, v in zip(names, [args[arg_ind][cur_ind] for arg_ind, cur_ind in enumerate(inds)])},
+                seed=seed)
+            dct = module.load_measures_json(model_name) if measure else module.load_evaluation_json(model_name)
+            val = np.mean(
+                [dct[name_format.format(path)] for path in range(args[names.index("P")] if "P" in names else P)],
+                axis=0)
+            if res is None:
+                res = np.full(list(shape) + [len(seeds)] + ([2] if not measure else list(val.shape)), np.nan)
+            cur = res
+            for cur_ind in inds:
+                cur = cur[cur_ind]
+            cur[s] = val
+    return res
+
+
+def plot_lines_different_along_d(model_format, module:Modules, seeds, args, ds, name="logistic", save=False, measure=False, mask=None,
+                                 arg=None, mean=False, legend=True, fig=None, c_shift=0, train=False, baseline=0.41, **kwargs):
+    if isinstance(args, str):
+        args = eval(args)
+    if isinstance(ds, str):
+        ds = eval(ds)
+    res = (gather_results_over_all_args if not mean else gather_results_over_all_args_pathways_mean)(model_format, module=module,
+                                                                                                     name=name,
+                                                                                                     seeds=seeds,
+                                                                                                     args={arg: args, 'd': ds} if arg else {'d': ds},
+                                                                                                     measure=measure,
+                                                                                                     **kwargs)
+    if np.isnan(res).all():
+        print(f"for {model_format} and {name}, everything is nan, so not plotting")
+        return
+    # means = np.nanmean(res, axis=2)
+    # stds = np.nanstd(res, axis=2, ddof=1)
+    # CI = stats.norm.interval(0.975, loc=means, scale=stds / np.sqrt(np.sum(~np.isnan(res), axis=2)))
+    ax = None
+    fig = plt.figure() if fig is None else fig
+    plt.suptitle(model_format + " " + name + f" different {arg}")
+    only_test = measure or not train
+    for i in range(2):
+        if only_test and not i: continue
+        ax = plt.subplot(2-only_test,1,i+1-only_test, sharey=ax)
+        plt.title(["Train", "Test"][i])
+        if arg:
+            for ind, identity in enumerate(args):
+                relevant_part = res[ind, ..., i] if not measure else np.stack([np.stack([res[ind, i_d, s][mask if mask is not None else ~np.eye(res.shape[-1], dtype=bool)]
+                                                                                         for s in range(res.shape[2])], axis=0)
+                                                                               for i_d in range(len(res[ind]))], axis=0)
+                mean = np.nanmean(relevant_part, axis=(-2, -1))
+                CI = stats.norm.interval(0.975, loc=mean, scale=np.nanstd(relevant_part, ddof=1, axis=(-2, -1)) / np.sqrt(np.sum(~np.isnan(relevant_part), axis=(-2, -1))))
+                plt.plot(ds, mean, label=(legend + ' ' if isinstance(legend, str) else "") + str(identity), c=f"C{ind+c_shift}")
+                if len(seeds) > 1:
+                    plt.fill_between(ds, CI[0], CI[1][ind, ..., i], color=f"C{ind+c_shift}", alpha=0.3)
+        else:
+            relevant_part = res[..., i] if not measure else np.stack([np.stack([res[i_d, s][mask if mask is not None else ~np.eye(res.shape[-1], dtype=bool)]
+                                                                                for s in range(res.shape[1])], axis=0)
+                                                                      for i_d in range(len(res))], axis=0)
+            over_axes = (-2, -1) if measure else (-1, )
+            mean = np.nanmean(relevant_part, axis=over_axes)
+            CI = stats.norm.interval(0.975, loc=mean, scale=np.nanstd(relevant_part, ddof=1, axis=over_axes) / np.sqrt(
+                np.sum(~np.isnan(relevant_part), axis=over_axes)))
+
+            plt.plot(ds, mean, label=(legend + ' ') if isinstance(legend, str) else "",
+                     c=f"C{c_shift}")
+            if len(seeds) > 1:
+                plt.fill_between(ds, CI[0], CI[1], color=f"C{c_shift}", alpha=0.3)
+        if i:
+            plt.xlabel('d')
+        else:
+            if legend:
+                plt.legend()
+        plt.ylabel("Accuracy") if not measure else plt.ylabel(name)
+        if module is Modules.VISION:
+            plt.xticks(ds, ds_to_labels(ds))
+        plt.grid(alpha=0.3)
+        if not measure and baseline:
+            plt.axhline(baseline, linestyle=':', c='k')
+    plt.tight_layout()
+    if save:
+        savefig(f"figures/{model_format}_along_d_{arg}")
+    return fig
