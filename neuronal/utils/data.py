@@ -371,11 +371,11 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
                         valid = True
                         if self.areas_in_spikes():
                             for area in spikes.keys():
-                                valid = bool(spikes[area].size)
+                                valid = bool(cur_spikes[area].size)
                                 if not valid: break
                                 spikes[area].append(cur_spikes[area])
                         else:
-                            valid = bool(spikes.size)
+                            valid = bool(cur_spikes.size)
                             if valid:
                                 spikes.append(cur_spikes)
 
