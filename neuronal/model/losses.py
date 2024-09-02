@@ -1,4 +1,4 @@
-from utils.model.losses import GeneralLossByKey, KoLeoLoss, koleo
+from utils.model.losses import GeneralLossByKey, koleo
 import tensorflow as tf
 
 
