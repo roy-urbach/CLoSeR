@@ -359,7 +359,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
 
         return spikes, y
 
-    def get_x(self, labels=None):
+    def get_x(self):
         if self.x is None:
             spikes = {area: [] for area in self.areas} if self.areas_in_spikes() else []
             y = {k.value.name: [] for k in Labels}
@@ -389,18 +389,18 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
             else:
                 spikes = np.stack(spikes, axis=0)
             self.x = spikes
-
-            actual_y = {}
-            for name, label in self.name_to_label.items() if labels is None else {label.value.name: label
-                                                                                  for label in labels}.items():
-                actual_y[name] = np.array(y[label.value.name])
             self.y = y
 
         return self.x
 
     def get_y(self, labels=None):
         if self.y is None:
-            self.get_x(labels=labels)
+            self.get_x()
+
+        actual_y = {}
+        for name, label in self.name_to_label.items() if labels is None else {label.value.name: label
+                                                                              for label in labels}.items():
+            actual_y[name] = np.array(self.y[label.value.name])
         return self.y
 
     def __getitem__(self, idx):
