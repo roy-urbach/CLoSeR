@@ -359,39 +359,48 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
 
         return spikes, y
 
-    def get_x(self):
+    def get_x(self, labels=None):
         if self.x is None:
             spikes = {area: [] for area in self.areas} if self.areas_in_spikes() else []
+            y = {k.value.name: [] for k in Labels}
+
             for stim_ind, stim_name in enumerate(self.stimuli):
                 for trial_num in range(len(self.spikes[stim_name]) if not self.areas_in_spikes() else len(self.spikes[stim_name][self.areas[0]])):
                     for frame_num in range(self.frames_per_sample, NATURAL_MOVIES_FRAMES[stim_name]):
                         cur_spikes = self.get_activity_window(stim_name, trial_num, frame_num)
+                        valid = True
                         if self.areas_in_spikes():
                             for area in spikes.keys():
+                                valid = bool(spikes[area].size)
+                                if not valid: break
                                 spikes[area].append(cur_spikes[area])
                         else:
-                            spikes.append(cur_spikes)
+                            valid = bool(spikes.size)
+                            if valid:
+                                spikes.append(cur_spikes)
+
+                        if valid:
+                            y[Labels.STIMULUS.value.name].append(stim_ind)
+                            y[Labels.TRIAL.value.name].append(self.possible_trials[stim_name][trial_num])
+                            y[Labels.FRAME.value.name].append(frame_num / NATURAL_MOVIES_FRAMES[stim_name])
+
             if self.areas_in_spikes():
                 spikes = {area: np.stack(activity, axis=0) for area, activity in spikes.items()}
             else:
                 spikes = np.stack(spikes, axis=0)
             self.x = spikes
+
+            actual_y = {}
+            for name, label in self.name_to_label.items() if labels is None else {label.value.name: label
+                                                                                  for label in labels}.items():
+                actual_y[name] = np.array(y[label.value.name])
+            self.y = y
+
         return self.x
 
     def get_y(self, labels=None):
         if self.y is None:
-            y = {k.value.name: [] for k in Labels}
-            for stim_ind, stim_name in enumerate(self.stimuli):
-                for trial_num in range(len(self.spikes[stim_name]) if not self.areas_in_spikes() else len(self.spikes[stim_name][self.areas[0]])):
-                    for frame_num in range(self.frames_per_sample, NATURAL_MOVIES_FRAMES[stim_name]):
-                        y[Labels.STIMULUS.value.name].append(stim_ind)
-                        y[Labels.TRIAL.value.name].append(self.possible_trials[stim_name][trial_num])
-                        y[Labels.FRAME.value.name].append(frame_num / NATURAL_MOVIES_FRAMES[stim_name])
-
-            actual_y = {}
-            for name, label in self.name_to_label.items() if labels is None else {label.value.name: label for label in labels}.items():
-                actual_y[name] = np.array(y[label.value.name])
-            self.y = actual_y
+            self.get_x(labels=labels)
         return self.y
 
     def __getitem__(self, idx):
