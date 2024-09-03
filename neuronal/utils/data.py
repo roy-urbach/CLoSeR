@@ -326,7 +326,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
 
     def get_activity_window(self, stim_name, trial_num, frame_num):
 
-        last_bin = frame_num + self.bins_per_frame
+        last_bin = (frame_num + 1) * self.bins_per_frame
         first_bin = last_bin - self.bins_per_sample
 
         if self.areas_in_spikes():
