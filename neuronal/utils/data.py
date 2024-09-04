@@ -371,13 +371,15 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
                         valid = True
                         if self.areas_in_spikes():
                             for area in spikes.keys():
-                                valid = bool(cur_spikes[area].size)
-                                if not valid: break
+                                if cur_spikes[area].shape[-1] != self.bins_per_sample:
+                                    valid = False
+                                    break
                                 spikes[area].append(cur_spikes[area])
                         else:
-                            valid = bool(cur_spikes.size)
-                            if valid:
+                            if cur_spikes.shape[-1] == self.bins_per_sample:
                                 spikes.append(cur_spikes)
+                            else:
+                                valid = False
 
                         if valid:
                             y[Labels.STIMULUS.value.name].append(stim_ind)
