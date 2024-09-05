@@ -139,7 +139,7 @@ def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_
                                                                         save_best_only=False,
                                                                         verbose=1),
                                      SaveOptimizerCallback(module), ErasePreviousCallback(module),
-                                     SaveHistory(module), AddLossMetrics()]
+                                     AddLossMetrics(), SaveHistory(module)]
                           )
         if dataset.is_generator():
             dataset = gen_to_tf_dataset(dataset, batch_size=batch_size, buffer_size=batch_size)

@@ -58,7 +58,7 @@ class SaveHistory(tf.keras.callbacks.Callback):
 class AddLossMetrics(tf.keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
         logs = logs or {}
-        for loss_name, loss in self.models.loss.items():
+        for loss_name, loss in self.model.loss.items():
             # Access the loss values from the model
             if hasattr(self.model.loss, 'get_metrics'):
                 for metric_name, metric in loss.get_metrics():
