@@ -57,6 +57,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
     save_res = lambda *inputs: module.save_evaluation_json(model.name, results) if save_results else None
 
     for label in labels:
+        print(f"evaluating label {label.value.name}")
         basic_dataset = Data(dataset.get_x(), y_train[label.value.name], test_dataset.get_x(), y_test[label.value.name])
 
         embd_dataset = Data(x_train_embd, y_train[label.value.name], x_test_embd, y_test[label.value.name])
@@ -83,7 +84,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
             results.update(classify_head_eval_ensemble(embd_dataset, linear=True, svm=False,
                                                        base_name=f"{label.value.name}_",
                                                        categorical=label.value.kind == CATEGORICAL,
-                                                       voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb], **kwargs))
+                                                       voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean], **kwargs))
             save_res()
 
             if not any([k.startswith(f"{label.value.name}_input_pathway") for k in results.keys()]):
