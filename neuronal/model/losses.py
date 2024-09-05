@@ -188,3 +188,23 @@ class BasicDisagreement(tf.keras.losses.Loss):
         if self.entropy_w is not None:
             loss += koleo(y_pred, axis=-2) * self.entropy_w
         return loss
+
+
+class NonLocalContrastive(tf.keras.losses.Loss):
+    def __init__(self, temperature=10, name='nonlocal_contrastive'):
+        super().__init__(name=name)
+        self.temperature = temperature
+        self.mask = None
+
+    def call(self, y_true, y_pred):
+        dists = tf.linalg.norm(y_pred[:, None, ..., None] - y_pred[None, ..., None, :], axis=-2)    # (B, B, T, P, P)
+        sim = tf.math.exp(-(dists**2)/self.temperature)
+        log_z = tf.reduce_logsumexp(sim, axis=1)
+        all_pair_loss = log_z - tf.math.log(sim[tf.eye(tf.shape(sim)[0]) != 0])   # -log(pi)=-log(simii/zi)=-log(simii)+log(zi)
+        if self.mask is None:
+            self.mask = tf.tile(~tf.eye(tf.shape(all_pair_loss)[-1], dtype=tf.bool)[None, None],
+                                [tf.shape(all_pair_loss)[0],
+                                tf.shape(all_pair_loss)[1],
+                                1, 1])
+        relevant_pairs_loss = all_pair_loss[self.mask]
+        return tf.reduce_mean(relevant_pairs_loss)
