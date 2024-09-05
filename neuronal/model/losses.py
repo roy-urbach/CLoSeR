@@ -180,6 +180,8 @@ class BasicDisagreement(tf.keras.losses.Loss):
     def __init__(self, entropy_w=None, name="basic_disagreement"):
         super().__init__(name=name)
         self.entropy_w = entropy_w
+        self.disagreement = None
+        self.koleo = None
 
     def call(self, y_true, y_pred):
         # y_pred shape (B, T, DIM, P)
@@ -187,20 +189,33 @@ class BasicDisagreement(tf.keras.losses.Loss):
         mask = tf.tile(~tf.eye(tf.shape(dist)[-1], dtype=tf.bool)[None, None],
                        [tf.shape(dist)[0], tf.shape(dist)[1], 1, 1])
 
-        loss = tf.reduce_mean(dist[mask])
+        self.disagreement = tf.reduce_mean(dist[mask])
+        loss = self.disagreement
         if self.entropy_w is not None:
-            loss += koleo(y_pred, axis=-2) * self.entropy_w
+            self.koleo = koleo(y_pred, axis=-2)
+            loss = loss + self.koleo * self.entropy_w
         return loss
+
+    def get_metrics(self):
+        return {"disagreement": self.disagreement, "koleo": self.koleo}
 
 
 class NonLocalContrastive(tf.keras.losses.Loss):
     def __init__(self, temperature=10., name='nonlocal_contrastive'):
         super().__init__(name=name)
         self.temperature = temperature
+        self.cross_path_agreement = None
+
+    def calculate_cross_path_agreement(self, dists):
+        argmin = tf.math.argmin(dists, axis=1)
+        where = argmin == tf.range(tf.shape(dists)[0])[..., None, None, None]
+        self.cross_path_agreement = tf.reduce_mean(tf.cast(where, dtype=dists.dtype), axis=0)
 
     def call(self, y_true, y_pred):
         # y_pred shape (B, T, DIM, P)
         dists = tf.linalg.norm(y_pred[:, None, ..., None] - y_pred[None, ..., None, :], axis=-3)    # (B, B, T, P, P)
+        self.calculate_cross_path_agreement(dists)
+
         sim = tf.math.exp(-(dists**2)/self.temperature)
         log_z = tf.reduce_logsumexp(sim, axis=1)
         all_pair_loss = log_z - tf.math.log(sim[tf.eye(tf.shape(sim)[0]) != 0])   # -log(pi)=-log(simii/zi)=-log(simii)+log(zi)
@@ -208,3 +223,6 @@ class NonLocalContrastive(tf.keras.losses.Loss):
                        [tf.shape(all_pair_loss)[0], tf.shape(all_pair_loss)[1], 1, 1])
         relevant_pairs_loss = all_pair_loss[mask]
         return tf.reduce_mean(relevant_pairs_loss)
+
+    def get_metrics(self):
+        return {"cross_path_agreement": self.cross_path_agreement}

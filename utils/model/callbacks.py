@@ -53,3 +53,13 @@ class SaveHistory(tf.keras.callbacks.Callback):
             self.history.setdefault(k, []).append(v)
 
         self.module.save_json(self.module.history_fn_name(self.model.name), self.history)
+
+
+class AddLossMetrics(tf.keras.callbacks.Callback):
+    def on_epoch_end(self, epoch, logs=None):
+        logs = logs or {}
+        for loss_name, loss in self.models.loss.items():
+            # Access the loss values from the model
+            if hasattr(self.model.loss, 'get_metrics'):
+                for metric_name, metric in loss.get_metrics():
+                    logs[metric_name] = metric.numpy()
