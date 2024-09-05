@@ -65,7 +65,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
         from utils.evaluation.evaluation import classify_head_eval
 
         if knn:
-            for k in [1] + list(range(5, 50, 5)):
+            for k in [1] + list(range(5, 21, 5)):
                 if f'k={k}' not in results:
                     printd(f"{label.value.name}_k={k}:", end='\t')
                     results[f"{label.value.name}_k={k}"] = classify_head_eval(embd_dataset,
