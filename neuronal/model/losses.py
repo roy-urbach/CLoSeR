@@ -54,7 +54,6 @@ class CrossPathwayTemporalContrastiveLoss(tf.keras.losses.Loss):
             neg_val = self.val_func(y_pred[:, self.start_t+self.contrast_t:],
                                     y_pred[:, self.start_t:-self.contrast_t], axis=-2)
 
-
         for i in range(n):
             for j in range(i+1, n):
                 if self.a is not None and not self.a[i][j] and not self.a[j][i]:
@@ -183,7 +182,8 @@ class BasicDisagreement(tf.keras.losses.Loss):
         self.entropy_w = entropy_w
 
     def call(self, y_true, y_pred):
-        dist = tf.linalg.norm(y_pred[..., None] - y_pred[..., None, :], axis=-2)    # (B, T, P, P)
+        # y_pred shape (B, T, DIM, P)
+        dist = tf.linalg.norm(y_pred[..., None] - y_pred[..., None, :], axis=-3)    # (B, T, P, P)
         loss = tf.reduce_mean(dist)
         if self.entropy_w is not None:
             loss += koleo(y_pred, axis=-2) * self.entropy_w
@@ -196,7 +196,8 @@ class NonLocalContrastive(tf.keras.losses.Loss):
         self.temperature = temperature
 
     def call(self, y_true, y_pred):
-        dists = tf.linalg.norm(y_pred[:, None, ..., None] - y_pred[None, ..., None, :], axis=-2)    # (B, B, T, P, P)
+        # y_pred shape (B, T, DIM, P)
+        dists = tf.linalg.norm(y_pred[:, None, ..., None] - y_pred[None, ..., None, :], axis=-3)    # (B, B, T, P, P)
         sim = tf.math.exp(-(dists**2)/self.temperature)
         log_z = tf.reduce_logsumexp(sim, axis=1)
         all_pair_loss = log_z - tf.math.log(sim[tf.eye(tf.shape(sim)[0]) != 0])   # -log(pi)=-log(simii/zi)=-log(simii)+log(zi)
