@@ -63,3 +63,5 @@ class AddLossMetrics(tf.keras.callbacks.Callback):
             if hasattr(self.model.loss, 'get_metrics'):
                 for metric_name, metric in loss.get_metrics():
                     logs[metric_name] = metric.numpy()
+
+        super().on_epoch_end(epoch, logs=logs)
