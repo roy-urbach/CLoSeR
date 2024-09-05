@@ -184,7 +184,10 @@ class BasicDisagreement(tf.keras.losses.Loss):
     def call(self, y_true, y_pred):
         # y_pred shape (B, T, DIM, P)
         dist = tf.linalg.norm(y_pred[..., None] - y_pred[..., None, :], axis=-3)    # (B, T, P, P)
-        loss = tf.reduce_mean(dist)
+        mask = tf.tile(~tf.eye(tf.shape(dist)[-1], dtype=tf.bool)[None, None],
+                       [tf.shape(dist)[0], tf.shape(dist)[1], 1, 1])
+
+        loss = tf.reduce_mean(dist[mask])
         if self.entropy_w is not None:
             loss += koleo(y_pred, axis=-2) * self.entropy_w
         return loss
