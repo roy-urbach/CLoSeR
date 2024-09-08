@@ -200,6 +200,47 @@ class BasicDisagreement(tf.keras.losses.Loss):
         return {"disagreement": self.disagreement, "koleo": self.koleo}
 
 
+class DinoLoss(tf.keras.losses.Loss):
+    def __init__(self, entropy_w=0.1, sn=False, name="dino_loss"):
+        super().__init__(name=name)
+        self.entropy_w = entropy_w
+        self.cross_entropy = None
+        self.koleo = None
+        self.sn = sn
+
+    def softmax(self, embd, axis=-2, stable=True):
+        if stable:
+            embd = embd - tf.reduce_max(embd, axis=axis, keepdims=True)
+        exps = tf.math.exp(embd)
+        softmaxed = exps / tf.reduce_sum(exps, axis=axis)
+        return softmaxed
+
+    def sinkhorn_knopp(self, embd, axis=-2):
+        raise NotImplementedError()
+
+    def call(self, y_true, y_pred):
+        ps = self.softmax(y_pred, axis=-2)  # (B, T, DIM, P)
+        if self.sn:
+            pt = self.sinkhorn_knopp(y_pred, axis=-2)
+        else:
+            pt = ps
+
+        log_ps = tf.math.log(ps)
+
+        pair_ce = -tf.einsum('btdp,btdk->btpk', pt, log_ps)     # (B, T, P, P)
+        mask = tf.tile(~tf.eye(tf.shape(pair_ce)[-1], dtype=tf.bool)[None, None],
+                       [tf.shape(pair_ce)[0], tf.shape(pair_ce)[1], 1, 1])
+
+        loss = self.cross_entropy = tf.reduce_mean(pair_ce[mask])
+        if self.entropy_w is not None:
+            self.koleo = koleo(y_pred, axis=-2)
+            loss = loss + self.koleo * self.entropy_w
+        return loss
+
+    def get_metrics(self):
+        return {"cross_entropy": self.cross_entropy, "koleo": self.koleo}
+
+
 class NonLocalContrastive(tf.keras.losses.Loss):
     def __init__(self, temperature=10., name='nonlocal_contrastive'):
         super().__init__(name=name)
