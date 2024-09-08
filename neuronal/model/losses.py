@@ -243,10 +243,11 @@ class DinoLoss(tf.keras.losses.Loss):
 
 
 class NonLocalContrastive(tf.keras.losses.Loss):
-    def __init__(self, temperature=10., name='nonlocal_contrastive'):
+    def __init__(self, temperature=10., eps=1e-3, name='nonlocal_contrastive'):
         super().__init__(name=name)
         self.temperature = temperature
         self.cross_path_agreement = None
+        self.eps = eps
 
     def calculate_cross_path_agreement(self, dists):
         argmin = tf.math.argmin(dists, axis=1)
@@ -258,7 +259,7 @@ class NonLocalContrastive(tf.keras.losses.Loss):
         dists = tf.linalg.norm(y_pred[:, None, ..., None] - y_pred[None, ..., None, :], axis=-3)    # (B, B, T, P, P)
         self.calculate_cross_path_agreement(dists)
 
-        sim = tf.math.exp(-(dists**2)/self.temperature)
+        sim = tf.maximum(tf.math.exp(-(dists**2)/self.temperature), self.eps)
         log_z = tf.reduce_logsumexp(sim, axis=1)
         all_pair_loss = log_z - tf.math.log(sim[tf.eye(tf.shape(sim)[0]) != 0])   # -log(pi)=-log(simii/zi)=-log(simii)+log(zi)
         mask = tf.tile(~tf.eye(tf.shape(all_pair_loss)[-1], dtype=tf.bool)[None, None],
