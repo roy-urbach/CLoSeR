@@ -60,7 +60,7 @@ class SaveHistoryWithMetrics(SaveHistory):
         logs = logs or {}
         for loss_name, loss in self.model.loss.items():
             # Access the loss values from the model
-            if hasattr(self.model.loss, 'get_metrics'):
+            if hasattr(loss, 'get_metrics'):
                 for metric_name, metric in loss.get_metrics():
                     logs[metric_name] = metric.numpy()
 
@@ -72,7 +72,7 @@ class HistoryWithMetrics(tf.keras.callbacks.History):
         logs = logs or {}
         for loss_name, loss in self.model.loss.items():
             # Access the loss values from the model
-            if hasattr(self.model.loss, 'get_metrics'):
+            if hasattr(loss, 'get_metrics'):
                 for metric_name, metric in loss.get_metrics():
                     logs[metric_name] = metric.numpy()
 
