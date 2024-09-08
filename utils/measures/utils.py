@@ -46,7 +46,7 @@ def measure_model(model, module:Modules, iterations=50, b=128):
     import tensorflow as tf
 
     if isinstance(model, str):
-        model = load_model_from_json(model, Modules.VISION)
+        model = load_model_from_json(model, module)
 
     kwargs = module.load_json(model.name, config=True)
     dataset = module.get_class_from_data(kwargs.get('dataset', 'Cifar10'))(**kwargs.get("data_kwargs", {}))
