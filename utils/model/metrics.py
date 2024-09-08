@@ -38,3 +38,24 @@ class MeanAbsoluteErrorByKeyMetric(tf.keras.metrics.MeanAbsoluteError):
         return super(MeanAbsoluteErrorByKeyMetric, self).update_state(y_true[self.key], y_pred, **kwargs)
 
 
+class CrossPathAgreementMetric(tf.keras.metrics.Metric):
+    def __init__(self, name='cross_path_agreement', **kwargs):
+        super().__init__(name=name, **kwargs)
+        self.cross_path_agreement = self.add_weight(name='cross_path_agreement', initializer='zeros')
+
+    def update_state(self, y_true, y_pred, sample_weight=None):
+        # y_pred shape (B, T, DIM, P)
+        dists = tf.linalg.norm(y_pred[:, None, ..., None] - y_pred[None, ..., None, :], axis=-3)  # (B, B, T, P, P)
+        argmin = tf.math.argmin(dists, axis=1)
+        where = argmin == tf.range(tf.shape(dists)[0])[..., None, None, None]
+        cross_path_agreement = tf.reduce_mean(tf.cast(where, dtype=dists.dtype))
+
+        # Update the state
+        self.cross_path_agreement.assign(cross_path_agreement)
+
+    def result(self):
+        return self.cross_path_agreement
+
+    def reset_states(self):
+        self.cross_path_agreement.assign(0.0)
+
