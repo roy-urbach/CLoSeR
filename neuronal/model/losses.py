@@ -249,16 +249,15 @@ class NonLocalContrastive(tf.keras.losses.Loss):
         self.cross_path_agreement = None
         self.eps = eps
 
-    def calculate_cross_path_agreement(self, dists):
-        argmin = tf.math.argmin(dists, axis=1)
-        where = argmin == tf.range(tf.shape(dists)[0])[..., None, None, None]
-        self.cross_path_agreement = tf.reduce_mean(tf.cast(where, dtype=dists.dtype), axis=0)
+    # def calculate_cross_path_agreement(self, dists):
+    #     argmin = tf.math.argmin(dists, axis=1)
+    #     where = argmin == tf.range(tf.shape(dists)[0])[..., None, None, None]
+    #     self.cross_path_agreement = tf.reduce_mean(tf.cast(where, dtype=dists.dtype), axis=0)
 
     def call(self, y_true, y_pred):
         # y_pred shape (B, T, DIM, P)
         dists = tf.linalg.norm(y_pred[:, None, ..., None] - y_pred[None, ..., None, :], axis=-3)    # (B, B, T, P, P)
-        self.calculate_cross_path_agreement(dists)
-
+        # self.calculate_cross_path_agreement(dists)
         sim = tf.maximum(tf.math.exp(-(dists**2)/self.temperature), self.eps)
         log_z = tf.reduce_logsumexp(sim, axis=1)
         all_pair_loss = log_z - tf.math.log(sim[tf.eye(tf.shape(sim)[0]) != 0])   # -log(pi)=-log(simii/zi)=-log(simii)+log(zi)
