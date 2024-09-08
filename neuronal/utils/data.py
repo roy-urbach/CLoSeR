@@ -201,7 +201,7 @@ class Trial:
 
 class SessionDataGenerator(tf.keras.utils.Sequence):
     def __init__(self, session_id, frames_per_sample=10, bins_per_frame=1,
-                 stimuli=NATURAL_MOVIES, areas=None, train=True, val=False, test=False, binary=False, random=True):
+                 stimuli=NATURAL_MOVIES, areas=None, train=True, val=False, test=False, binary=False, random=False):
         super(SessionDataGenerator, self).__init__()
         self.session_id = streval(session_id)
         if self.session_id not in SESSIONS:
@@ -223,8 +223,11 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
 
         assert not (test and val)
         self.train = train
+        self.train_ds = self if train else None
         self.test = test
+        self.test_ds = self if test else None
         self.val = val
+        self.val_ds = self if val else None
         self.x = None
         self.y = None
 
@@ -247,13 +250,19 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
         return clone
 
     def get_train(self):
-        return self.clone(train=True, val=False, test=False)
+        if self.train_ds is None:
+            self.train_ds = self.clone(train=True, val=False, test=False)
+        return self.train_ds
 
     def get_validation(self):
-        return self.clone(train=False, val=True, test=False)
+        if self.val_ds is None:
+            self.val_ds = self.clone(train=False, val=True, test=False)
+        return self.val_ds
 
     def get_test(self):
-        return self.clone(train=False, val=False, test=True)
+        if self.test_ds is None:
+            self.test_ds = self.clone(train=False, val=False, test=True)
+        return self.test_ds
 
     def __len__(self):
         if self.__total_samples is None:
@@ -404,6 +413,24 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
                                                                               for label in labels}.items():
             actual_y[name] = np.array(self.y[label.value.name])
         return actual_y
+
+    def get_x_train(self):
+        return self.get_train().get_x()
+
+    def get_y_train(self):
+        return self.get_train().get_y()
+
+    def get_x_val(self):
+        return self.get_val().get_x()
+
+    def get_y_val(self):
+        return self.get_val().get_y()
+
+    def get_x_test(self):
+        return self.get_test().get_x()
+
+    def get_y_test(self):
+        return self.get_test().get_y()
 
     def __getitem__(self, idx):
         if self.random:

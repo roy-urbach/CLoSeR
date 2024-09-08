@@ -32,8 +32,6 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
         if dataset is None:
             dataset = module.get_class_from_data(model_kwargs['dataset'])(**model_kwargs.get('data_kwargs', {}))
 
-    test_dataset = dataset.get_test()
-
     bins_per_frame = dataset.bins_per_frame
     def transform_embedding(embedding):
         last_step_embedding = embedding[:, -bins_per_frame:]    # (B, bins_per_frame, DIM, P)
@@ -42,11 +40,11 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                                                           last_step_embedding.shape[-1])  # (B, DIMS*bins_per_frame, P)
         return last_step_embedding
 
-    x_train_embd = transform_embedding(model.predict(dataset.get_x())[0])
-    x_test_embd = transform_embedding(model.predict(test_dataset.get_x())[0])
+    x_train_embd = transform_embedding(model.predict(dataset.get_x_train())[0])
+    x_test_embd = transform_embedding(model.predict(dataset.get_x_test())[0])
 
-    y_train = dataset.get_y(labels)
-    y_test = test_dataset.get_y(labels)
+    y_train = dataset.get_y_train(labels)
+    y_test = dataset.get_y_test(labels)
 
 
     results = module.load_evaluation_json(model.name) if not override else {}
@@ -58,7 +56,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
 
     for label in labels:
         print(f"evaluating label {label.value.name}")
-        basic_dataset = Data(dataset.get_x(), y_train[label.value.name], test_dataset.get_x(), y_test[label.value.name])
+        basic_dataset = Data(dataset.get_x_train(), y_train[label.value.name], dataset.get_x_test(), y_test[label.value.name])
 
         embd_dataset = Data(x_train_embd, y_train[label.value.name], x_test_embd, y_test[label.value.name])
 
