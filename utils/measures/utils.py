@@ -61,11 +61,8 @@ def measure_model(model, module:Modules, iterations=50, b=128):
 
     n = test_embd.shape[2]
 
-    loss = model.loss[model.name + "_embedding"]
-    from vision.model.losses import GeneralPullPushGraphLoss
-    if not issubclass(loss.__class__, GeneralPullPushGraphLoss):
-        from vision.model.losses import CommunitiesLoss
-        loss = CommunitiesLoss(n, 1)
+    from vision.model.losses import CommunitiesLoss
+    loss = CommunitiesLoss(n, 1)
 
     res_dct = {k: [] for k in CrossPathMeasures}
 
