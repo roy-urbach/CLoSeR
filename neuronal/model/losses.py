@@ -222,9 +222,9 @@ class DinoLoss(tf.keras.losses.Loss):
     def call(self, y_true, y_pred):
         ps = self.softmax(y_pred, axis=-2)  # (B, T, DIM, P)
         if self.sn:
-            pt = self.sinkhorn_knopp(y_pred, axis=-2)
+            pt = self.sinkhorn_knopp(tf.stop_gradient(y_pred), axis=-2)
         else:
-            pt = ps
+            pt = tf.stop_gradient(ps)
 
         log_ps = tf.math.log(ps)
 
