@@ -421,10 +421,10 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
         return self.get_train().get_y()
 
     def get_x_val(self):
-        return self.get_val().get_x()
+        return self.get_validation().get_x()
 
     def get_y_val(self):
-        return self.get_val().get_y()
+        return self.get_validation().get_y()
 
     def get_x_test(self):
         return self.get_test().get_x()
