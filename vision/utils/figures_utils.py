@@ -321,7 +321,7 @@ def plot_positional_encoding(model, cosine=True, save=False):
 
 
 def plot_measures(model_regex, mask=None, save=False):
-    from vision.measures.utils import CrossPathMeasures
+    from utils.measures.utils import CrossPathMeasures
     models = regex_models(model_regex, module=Modules.VISION)
     dcts = {model: Modules.VISION.load_measures_json(model) for model in models}
     for measure in CrossPathMeasures:
@@ -334,7 +334,7 @@ def plot_measures(model_regex, mask=None, save=False):
 
 
 def compare_measures(*models, names=None, log=False, mask=None, grid=True, fig=None, xs=None, **kwargs):
-    from vision.measures.utils import CrossPathMeasures
+    from utils.measures.utils import CrossPathMeasures
     if names is None:
         names = models
     if fig is None:

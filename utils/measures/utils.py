@@ -42,16 +42,22 @@ def get_measuring_time(model_name, raw=True):
     return get_file_time(os.path.join(model_name, MEASURES_FILE_NAME) + '.json', raw=raw)
 
 
-def measure_model(model, iterations=50, b=128):
+def measure_model(model, module:Modules, iterations=50, b=128):
     import tensorflow as tf
 
     if isinstance(model, str):
         model = load_model_from_json(model, Modules.VISION)
 
-    import vision.utils.data
-    kwargs = load_json(model.name)
-    dataset = get_class(kwargs.get('dataset', 'Cifar10'), vision.utils.data)(**kwargs.get("data_kwargs", {}))
+    kwargs = module.load_json(model.name, config=True)
+    dataset = module.get_class_from_data(kwargs.get('dataset', 'Cifar10'))(**kwargs.get("data_kwargs", {}))
     test_embd = model.predict(dataset.get_x_test())[0]
+    if module == Modules.NEURONAL:
+        bins_per_frame = dataset.bins_per_frame
+        last_step_embedding = test_embd[:, -bins_per_frame:]  # (B, bins_per_frame, DIM, P)
+        last_step_embedding = last_step_embedding.reshape(last_step_embedding.shape[0],
+                                                          last_step_embedding.shape[-2] * bins_per_frame,
+                                                          last_step_embedding.shape[-1])  # (B, DIMS*bins_per_frame, P)
+        test_embd = last_step_embedding
 
     n = test_embd.shape[2]
 

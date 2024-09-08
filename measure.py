@@ -1,5 +1,5 @@
 from utils.modules import Modules
-from vision.measures.utils import measure_model
+from utils.measures.utils import measure_model
 import os
 
 
@@ -9,6 +9,7 @@ def main():
     def parse():
         parser = argparse.ArgumentParser(description='Measure some metrics about the pathways of a model')
         parser.add_argument('-j', '--json', type=str, help='name of the config json')
+        parser.add_argument('-m', '--module', type=str, default=Modules.VISION, choices=Modules.get_cmd_module_options())
         parser.add_argument('-b', '--batch', type=int, default=128, help='batch size')
         parser.add_argument('-i', '--iterations', type=int, default=50, help='number of repeats')
         parser.add_argument('--override', action=argparse.BooleanOptionalAction, default=False)
@@ -16,7 +17,8 @@ def main():
 
     args = parse()
     args.json = ".".join(args.json.split(".")[:-1]) if args.json.endswith(".json") else args.json
-    measuring_fn = os.path.join(Modules.VISION.get_models_path(), args.json, 'is_measuring')
+    module = Modules.get_module(args.module)
+    measuring_fn = os.path.join(module.get_models_path(), args.json, 'is_measuring')
 
     if os.path.exists(measuring_fn):
         print("already measuring!")
@@ -26,29 +28,29 @@ def main():
             f.write("Yes!")
 
     try:
-        res = measure(args.json, b=args.batch, iterations=args.iterations, save_results=True, override=args.override)
+        res = measure(args.json, module, b=args.batch, iterations=args.iterations, save_results=True, override=args.override)
     finally:
         os.remove(measuring_fn)
     return res
 
 
-def measure(model, save_results=False, override=False, **kwargs):
+def measure(model, module:Modules, save_results=False, override=False, **kwargs):
     model_name = model if isinstance(model, str) else model.name
     if not override:
-        output_time = Modules.VISION.get_output_time(model)
-        measuring_time = Modules.VISION.get_measuring_time(model)
+        output_time = module.get_output_time(model)
+        measuring_time = module.get_measuring_time(model)
 
         if output_time and measuring_time and output_time < measuring_time:
             print(f"Tried to measure, but output time is {output_time} and measuring time is {measuring_time} and override is False")
-            return Modules.VISION.load_measures_json(model_name)
+            return module.load_measures_json(model_name)
 
-    results = Modules.VISION.load_measures_json(model_name) if not override else {}
+    results = module.load_measures_json(model_name) if not override else {}
 
     if results is None:
         results = {}
-    res_dct = measure_model(model, **kwargs)
+    res_dct = measure_model(model, module, **kwargs)
     if save_results:
-        Modules.VISION.save_measures_json(model_name, res_dct)
+        module.save_measures_json(model_name, res_dct)
 
     return results
 
