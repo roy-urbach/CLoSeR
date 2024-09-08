@@ -55,7 +55,7 @@ class SaveHistory(tf.keras.callbacks.Callback):
         self.module.save_json(self.module.history_fn_name(self.model.name), self.history)
 
 
-class AddLossMetrics(tf.keras.callbacks.Callback):
+class SaveHistoryWithMetrics(SaveHistory):
     def on_epoch_end(self, epoch, logs=None):
         logs = logs or {}
         for loss_name, loss in self.model.loss.items():
