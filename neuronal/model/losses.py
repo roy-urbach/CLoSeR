@@ -201,9 +201,10 @@ class BasicDisagreement(tf.keras.losses.Loss):
 
 
 class DinoLoss(tf.keras.losses.Loss):
-    def __init__(self, entropy_w=0.1, sn=False, name="dino_loss"):
+    def __init__(self, entropy_w=0.1, sn=False, eps=1e-3, name="dino_loss"):
         super().__init__(name=name)
         self.entropy_w = entropy_w
+        self.eps = eps
         self.cross_entropy = None
         self.koleo = None
         self.sn = sn
@@ -211,8 +212,8 @@ class DinoLoss(tf.keras.losses.Loss):
     def softmax(self, embd, axis=-2, stable=True):
         if stable:
             embd = embd - tf.reduce_max(embd, axis=axis, keepdims=True)
-        exps = tf.math.exp(embd)
-        softmaxed = exps / tf.reduce_sum(exps, axis=axis)
+        exps = tf.maximum(tf.math.exp(embd), self.eps)
+        softmaxed = exps / tf.reduce_sum(exps, axis=axis, keepdims=True)
         return softmaxed
 
     def sinkhorn_knopp(self, embd, axis=-2):
