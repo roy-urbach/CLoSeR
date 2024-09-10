@@ -34,10 +34,14 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
 
     bins_per_frame = dataset.bins_per_frame
     def transform_embedding(embedding):
-        last_step_embedding = embedding[:, -bins_per_frame:]    # (B, bins_per_frame, DIM, P)
-        last_step_embedding = last_step_embedding.reshape(last_step_embedding.shape[0],
-                                                          last_step_embedding.shape[-2] * bins_per_frame,
-                                                          last_step_embedding.shape[-1])  # (B, DIMS*bins_per_frame, P)
+        encoder_removed_bins = model.get_layer("pathways").output_shape[-1] != model.get_layer("embedding").output_shape[1]
+        if encoder_removed_bins:
+            last_step_embedding = embedding[:, -1]
+        else:
+            last_step_embedding = embedding[:, -bins_per_frame:]    # (B, bins_per_frame, DIM, P)
+            last_step_embedding = last_step_embedding.reshape(last_step_embedding.shape[0],
+                                                              last_step_embedding.shape[-2] * bins_per_frame,
+                                                              last_step_embedding.shape[-1])  # (B, DIMS*bins_per_frame, P)
         return last_step_embedding
 
     x_train_embd = transform_embedding(model.predict(dataset.get_x_train())[0])
