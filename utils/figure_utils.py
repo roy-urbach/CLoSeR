@@ -278,6 +278,7 @@ def plot_lines_different_along_d(model_format, module:Modules, seeds, args, ds, 
                 plt.legend()
         plt.ylabel("Accuracy") if not measure else plt.ylabel(name)
         if module is Modules.VISION:
+            from vision.utils.figures_utils import ds_to_labels
             plt.xticks(ds, ds_to_labels(ds))
         plt.grid(alpha=0.3)
         if not measure and baseline:
