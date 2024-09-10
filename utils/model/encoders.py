@@ -80,15 +80,16 @@ class TimeAgnosticMLP(MLPEncoder):
     def __init__(self, bins_per_frame, *args, **kwrags):
         super().__init__(*args, flatten=False, **kwrags)
         self.bins_per_frame = bins_per_frame
-        self.shape = None
+        self.reshape_shape = None
 
     def build(self, input_shape):
-        # (N, T)
-        N = input_shape[0]
-        T = input_shape[1]
+        # (B, N, T)
+        B = input_shape[0]
+        N = input_shape[1]
+        T = input_shape[2]
         frames = T // self.bins_per_frame
 
-        self.shape = [frames, N*self.bins_per_frame]
+        self.reshape_shape = [B, frames, N*self.bins_per_frame]
 
     def call(self, inputs, **kwargs):
         # (B, N, T)
@@ -97,7 +98,7 @@ class TimeAgnosticMLP(MLPEncoder):
 
         if self.bins_per_frame != 1:
             b = tf.shape(permuted)[0]
-            reshaped = tf.reshape(permuted, (b, self.shape[0], self.shape[1]))  # (B, Frames, N*bins_per_frame)
+            reshaped = tf.reshape(permuted, self.reshape_shape)  # (B, Frames, N*bins_per_frame)
                                                                                 # N first, then bins_per_frame
         else:
             reshaped = permuted
