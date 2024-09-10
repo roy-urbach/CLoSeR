@@ -574,7 +574,7 @@ class BasicDisagreement(tf.keras.losses.Loss):
     def call(self, y_true, y_pred):
         # y_pred shape (B, DIM, P)
         dist = tf.linalg.norm(y_pred[..., None] - y_pred[..., None, :], axis=-3)    # (B, P, P)
-        mask = tf.tile(~tf.eye(tf.shape(dist)[-1], dtype=tf.bool)[None, None],
+        mask = tf.tile(~tf.eye(tf.shape(dist)[-1], dtype=tf.bool)[None],
                        [tf.shape(dist)[0], 1, 1])
 
         self.disagreement = tf.reduce_mean(dist[mask])
@@ -614,7 +614,7 @@ class DinoLoss(tf.keras.losses.Loss):
         log_ps = tf.math.log(ps)
 
         pair_ce = -tf.einsum('bdp,bdk->bpk', pt, log_ps)     # (B, P, P)
-        mask = tf.tile(~tf.eye(tf.shape(pair_ce)[-1], dtype=tf.bool)[None, None],
+        mask = tf.tile(~tf.eye(tf.shape(pair_ce)[-1], dtype=tf.bool)[None],
                        [tf.shape(pair_ce)[0], 1, 1])
 
         loss = self.cross_entropy = tf.reduce_mean(pair_ce[mask])
