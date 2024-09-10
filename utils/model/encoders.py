@@ -1,7 +1,7 @@
 from tensorflow.keras import layers as tf_layers
 import tensorflow as tf
 
-from utils.model.layers import ViTBlock, MLP, BasicRNNLayer
+from utils.model.layers import ViTBlock, MLP, BasicRNNLayer, ViTOutBlock
 from utils.tf_utils import serialize
 
 
