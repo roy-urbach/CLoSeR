@@ -176,6 +176,35 @@ class VectorTrajectoryDisagreement(tf.keras.losses.Loss):
         return total_loss
 
 
+class ContinuousLoss(tf.keras.losses.Loss):
+    def __init__(self, entropy_w=None, crosspath_w=None, name='continuous_loss'):
+        super().__init__(name=name)
+        self.entropy_w = entropy_w
+        self.crosspath_w = crosspath_w
+
+    def continuous_disagreement(self, embd):
+        dist = tf.linalg.norm(embd[:, 1:] - embd[:, :-1], axis=-2)  # (B, T-1, P)
+        disagreement = tf.reduce_mean(dist)
+        return disagreement
+
+    def crosspath_disagreement(self, embd):
+        dist = tf.linalg.norm(embd[..., None] - embd[..., None, :], axis=-3)  # (B, T, P, P)
+        mask = tf.tile(~tf.eye(tf.shape(dist)[-1], dtype=tf.bool)[None, None],
+                       [tf.shape(dist)[0], tf.shape(dist)[1], 1, 1])
+
+        disagreement = tf.reduce_mean(dist[mask])
+        return disagreement
+
+    def call(self, y_true, y_pred):
+        # y_pred shape (B, T, DIM, P)
+        loss = self.continuous_disagreement(y_pred)
+        if self.crosspath_w is not None:
+            loss = loss + self.crosspath_w * self.crosspath_disagreement(y_pred)
+        if self.entropy_w is not None:
+            loss = loss + self.entropy_w * koleo(y_pred, axis=-2)
+        return loss
+
+
 class BasicDisagreement(tf.keras.losses.Loss):
     def __init__(self, entropy_w=None, name="basic_disagreement"):
         super().__init__(name=name)
