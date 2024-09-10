@@ -177,10 +177,12 @@ class VectorTrajectoryDisagreement(tf.keras.losses.Loss):
 
 
 class ContinuousLoss(tf.keras.losses.Loss):
-    def __init__(self, entropy_w=None, crosspath_w=None, name='continuous_loss'):
+    def __init__(self, entropy_w=None, crosspath_w=None, nonlocal_w=None, nonlocal_kwrags=None, name='continuous_loss'):
         super().__init__(name=name)
         self.entropy_w = entropy_w
         self.crosspath_w = crosspath_w
+        self.nonlocal_w = nonlocal_w
+        self.nonlocal_kwargs = nonlocal_kwrags
 
     def continuous_disagreement(self, embd):
         dist = tf.linalg.norm(embd[:, 1:] - embd[:, :-1], axis=-2)  # (B, T-1, P)
@@ -195,6 +197,18 @@ class ContinuousLoss(tf.keras.losses.Loss):
         disagreement = tf.reduce_mean(dist[mask])
         return disagreement
 
+    def nonlocal_contrast(self, embd, temperature=1., eps=1e-4):
+        # y_pred shape (B, T, DIM, P)
+        dists = tf.linalg.norm(embd[:, None, ..., None] - embd[None, ..., None, :], axis=-3)    # (B, B, T, P, P)
+        # self.calculate_cross_path_agreement(dists)
+        sim = tf.maximum(tf.math.exp(-(dists**2)/temperature), eps)
+        log_z = tf.reduce_logsumexp(sim, axis=1)
+        all_pair_loss = log_z - tf.math.log(sim[tf.eye(tf.shape(sim)[0]) != 0])   # -log(pi)=-log(simii/zi)=-log(simii)+log(zi)
+        mask = tf.tile(~tf.eye(tf.shape(all_pair_loss)[-1], dtype=tf.bool)[None, None],
+                       [tf.shape(all_pair_loss)[0], tf.shape(all_pair_loss)[1], 1, 1])
+        relevant_pairs_loss = all_pair_loss[mask]
+        return tf.reduce_mean(relevant_pairs_loss)
+
     def call(self, y_true, y_pred):
         # y_pred shape (B, T, DIM, P)
         loss = self.continuous_disagreement(y_pred)
@@ -202,6 +216,8 @@ class ContinuousLoss(tf.keras.losses.Loss):
             loss = loss + self.crosspath_w * self.crosspath_disagreement(y_pred)
         if self.entropy_w is not None:
             loss = loss + self.entropy_w * koleo(y_pred, axis=-2)
+        if self.nonlocal_w is not None:
+            loss = loss + self.nonlocal_w * self.nonlocal_contrast(y_pred, **self.nonlocal_kwargs)
         return loss
 
 
