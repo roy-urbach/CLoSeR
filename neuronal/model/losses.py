@@ -177,12 +177,12 @@ class VectorTrajectoryDisagreement(tf.keras.losses.Loss):
 
 
 class ContinuousLoss(tf.keras.losses.Loss):
-    def __init__(self, entropy_w=None, crosspath_w=None, nonlocal_w=None, nonlocal_kwrags=None, name='continuous_loss'):
+    def __init__(self, entropy_w=None, crosspath_w=None, nonlocal_w=None, nonlocal_kwargs=None, name='continuous_loss'):
         super().__init__(name=name)
         self.entropy_w = entropy_w
         self.crosspath_w = crosspath_w
         self.nonlocal_w = nonlocal_w
-        self.nonlocal_kwargs = nonlocal_kwrags
+        self.nonlocal_kwargs = nonlocal_kwargs
 
     def continuous_disagreement(self, embd):
         dist = tf.linalg.norm(embd[:, 1:] - embd[:, :-1], axis=-2)  # (B, T-1, P)
