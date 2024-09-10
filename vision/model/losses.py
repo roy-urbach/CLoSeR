@@ -562,3 +562,24 @@ class LogLikelihoodIterativeSoftmax(Loss):
                         log_likelihood = diag_logits - log_z                    # (B, )
                         loss = loss - tf.reduce_mean(log_likelihood)
         return loss / (tf.cast(n ** 2, dtype=loss.dtype) if self.a is None else tf.reduce_sum(tf.cast(self.a, dtype=loss.dtype)))
+
+
+class BasicDisagreement(tf.keras.losses.Loss):
+    def __init__(self, entropy_w=None, name="basic_disagreement"):
+        super().__init__(name=name)
+        self.entropy_w = entropy_w
+        self.disagreement = None
+        self.koleo = None
+
+    def call(self, y_true, y_pred):
+        # y_pred shape (B, DIM, P)
+        dist = tf.linalg.norm(y_pred[..., None] - y_pred[..., None, :], axis=-3)    # (B, P, P)
+        mask = tf.tile(~tf.eye(tf.shape(dist)[-1], dtype=tf.bool)[None, None],
+                       [tf.shape(dist)[0], 1, 1])
+
+        self.disagreement = tf.reduce_mean(dist[mask])
+        loss = self.disagreement
+        if self.entropy_w is not None:
+            self.koleo = koleo(y_pred, axis=-2)
+            loss = loss + self.koleo * self.entropy_w
+        return loss

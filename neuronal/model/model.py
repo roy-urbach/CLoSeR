@@ -76,7 +76,6 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
 
     outputs = [embedding]
 
-
     # Readout part (with stopgrad if classifier=False):
 
     encoder_removed_bins = embedding.shape[1] == frames
