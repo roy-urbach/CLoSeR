@@ -84,7 +84,7 @@ class TimeAgnosticMLP(MLPEncoder):
 
     def build(self, input_shape):
         # (B, N, T)
-        B = input_shape[0]
+        B = -1
         N = input_shape[1]
         T = input_shape[2]
         frames = T // self.bins_per_frame
