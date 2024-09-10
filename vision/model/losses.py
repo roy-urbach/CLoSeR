@@ -583,3 +583,42 @@ class BasicDisagreement(tf.keras.losses.Loss):
             self.koleo = koleo(y_pred, axis=-2)
             loss = loss + self.koleo * self.entropy_w
         return loss
+
+
+class DinoLoss(tf.keras.losses.Loss):
+    def __init__(self, entropy_w=0.1, sn=False, eps=1e-3, name="dino_loss"):
+        super().__init__(name=name)
+        self.entropy_w = entropy_w
+        self.eps = eps
+        self.cross_entropy = None
+        self.koleo = None
+        self.sn = sn
+
+    def softmax(self, embd, axis=-2, stable=True):
+        if stable:
+            embd = embd - tf.reduce_max(embd, axis=axis, keepdims=True)
+        exps = tf.maximum(tf.math.exp(embd), self.eps)
+        softmaxed = exps / tf.reduce_sum(exps, axis=axis, keepdims=True)
+        return softmaxed
+
+    def sinkhorn_knopp(self, embd, axis=-2):
+        raise NotImplementedError()
+
+    def call(self, y_true, y_pred):
+        ps = self.softmax(y_pred, axis=-2)  # (B, DIM, P)
+        if self.sn:
+            pt = self.sinkhorn_knopp(tf.stop_gradient(y_pred), axis=-2)
+        else:
+            pt = tf.stop_gradient(ps)
+
+        log_ps = tf.math.log(ps)
+
+        pair_ce = -tf.einsum('bdp,bdk->bpk', pt, log_ps)     # (B, P, P)
+        mask = tf.tile(~tf.eye(tf.shape(pair_ce)[-1], dtype=tf.bool)[None, None],
+                       [tf.shape(pair_ce)[0], 1, 1])
+
+        loss = self.cross_entropy = tf.reduce_mean(pair_ce[mask])
+        if self.entropy_w is not None:
+            self.koleo = koleo(y_pred, axis=-2)
+            loss = loss + self.koleo * self.entropy_w
+        return loss
