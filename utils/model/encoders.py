@@ -97,7 +97,6 @@ class TimeAgnosticMLP(MLPEncoder):
         permuted = tf.transpose(inputs, [0, 2, 1])     # (B, T, N)
 
         if self.bins_per_frame != 1:
-            b = tf.shape(permuted)[0]
             reshaped = tf.reshape(permuted, self.reshape_shape)  # (B, Frames, N*bins_per_frame)
                                                                                 # N first, then bins_per_frame
         else:

@@ -72,16 +72,25 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
     encoders = [enc_init(i) for i in range(len(pathways))] if encoder_per_path else [enc_init(None)] * len(pathways)
 
     embedding = Stack(name='embedding', axis=-1)(*[encoder(pathway) for encoder, pathway in zip(encoders, pathways)])
-    # (B, T, DIM, P)
+    # (B, T or T/bins_per_frame, DIM, P), where or depends on encoder
 
     outputs = [embedding]
 
-    last_step_embedding = embedding[:, -bins_per_frame:]    # (B, bins_per_frame, DIM, P)
+
+    # Readout part (with stopgrad if classifier=False):
+
+    encoder_removed_bins = embedding.shape[1] == frames
+    if encoder_removed_bins:
+        last_step_embedding = embedding[:, -1]
+    else:
+        last_step_embedding = embedding[:, -bins_per_frame:]
+        last_step_embedding = tf.reshape(last_step_embedding,     # (B, DIMS*bins_per_frame, P)
+                                         (tf.shape(last_step_embedding)[0],
+                                          embedding.shape[-2] * bins_per_frame,
+                                          len(pathways)))
+
     embedding_for_classification = last_step_embedding if classifier else tf.stop_gradient(last_step_embedding)
-    embedding_for_classification = tf.reshape(embedding_for_classification,     # (B, DIMS*bins_per_frame, P)
-                                              (tf.shape(embedding_for_classification)[0],
-                                               embedding.shape[-2] * bins_per_frame,
-                                               len(pathways)))
+
     path_divide_embedding = tf.unstack(embedding_for_classification, axis=-1)   # List[(B, DIMS*bins_per_frame)]
 
     labels = [eval(label) if isinstance(label, str) else label for label in labels]
