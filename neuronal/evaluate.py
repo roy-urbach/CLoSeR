@@ -10,20 +10,25 @@ from utils.utils import printd
 import numpy as np
 
 
-def get_masked_ds(model, dataset):
+def get_masked_ds(model, dataset, union=False, bins_per_frame=1):
     if isinstance(model, str):
         model = load_model_from_json(model, Modules.NEURONAL)
     aug_layer = model.get_layer("data_augmentation")
     pathway_indices = model.get_layer('pathways').indices.numpy()
-    setup_func = lambda x: np.transpose(aug_layer(x).numpy()[:, pathway_indices - model.get_layer('pathways').shift], [0, 1, 3, 2]).reshape(
-        x.shape[0], -1, pathway_indices.shape[-1])
-    ds = Data(setup_func(dataset.get_x_train()), dataset.get_y_train(),
-              setup_func(dataset.get_x_test()), dataset.get_y_test())
+    if union:
+        union = pathway_indices.unique() - model.get_layer("pathways").shift
+        setup_func = lambda x: aug_layer(x).numpy()[:, union]
+    else:
+        setup_func = lambda x: np.transpose(aug_layer(x).numpy()[:, pathway_indices - model.get_layer('pathways').shift], [0, 1, 3, 2]).reshape(
+            x.shape[0], -1, pathway_indices.shape[-1])
+
+    ds = Data(setup_func(dataset.get_x_train())[..., -bins_per_frame:], dataset.get_y_train(),
+              setup_func(dataset.get_x_test())[..., -bins_per_frame:], dataset.get_y_test())
     return ds
 
 
 def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEURONAL, labels=[Labels.STIMULUS, Labels.FRAME],
-             knn=False, linear=True, ensemble=True, ensemble_knn=False, save_results=False, override=False, **kwargs):
+             knn=False, linear=True, ensemble=True, save_results=False, override=False, **kwargs):
 
     if isinstance(model, str):
         model_kwargs = module.load_json(model, config=True)
@@ -68,11 +73,19 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
 
         if knn:
             for k in [1] + list(range(5, 21, 5)):
-                if f'k={k}' not in results:
-                    printd(f"{label.value.name}_k={k}:", end='\t')
-                    results[f"{label.value.name}_k={k}"] = classify_head_eval(embd_dataset,
-                                                                              categorical=label.value.kind == CATEGORICAL,
-                                                                              linear=False, k=k, **kwargs)
+                cur_name = f"{label.value.name}_k={k}"
+                if cur_name not in results:
+                    printd(cur_name, ":", end='\t')
+                    results[cur_name] = classify_head_eval(embd_dataset,
+                                                           categorical=label.value.kind == CATEGORICAL,
+                                                           linear=False, k=k, **kwargs)
+                    save_res()
+                cur_name = f"{label.value.name}_inp_k={k}"
+                if cur_name not in results:
+                    printd(cur_name, ":", end='\t')
+                    results[cur_name] = classify_head_eval(get_masked_ds(model, dataset=basic_dataset, union=True),
+                                                           categorical=label.value.kind == CATEGORICAL,
+                                                           linear=False, k=k, **kwargs)
                     save_res()
 
         if linear:
@@ -80,6 +93,12 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                 results[f'{label.value.name}_linear'] = classify_head_eval(embd_dataset,
                                                                            categorical=label.value.kind == CATEGORICAL,
                                                                            linear=True, svm=False, **kwargs)
+                save_res()
+
+            if f'{label.value.name}_input_linear' not in results:
+                results[f'{label.value.name}_input_linear'] = classify_head_eval(get_masked_ds(model, dataset=basic_dataset, union=True),
+                                                                                 categorical=label.value.kind == CATEGORICAL,
+                                                                                 linear=True, svm=False, **kwargs)
                 save_res()
 
         if ensemble:
@@ -96,9 +115,20 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                                                            voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean]), **kwargs)
                 save_res()
 
-        if ensemble_knn:
-            results.update(classify_head_eval_ensemble(embd_dataset, linear=False, svm=False, k=15,
-                                                       categorical=label.value.kind == CATEGORICAL,
-                                                       voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean]), **kwargs)
-            save_res()
+        if ensemble and knn:
+            for k in [1] + list(range(5, 21, 5)):
+                results.update(classify_head_eval_ensemble(embd_dataset, linear=False, svm=False, k=k,
+                                                           base_name=f"{label.value.name}_k={k}_",
+                                                           categorical=label.value.kind == CATEGORICAL,
+                                                           voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean]), **kwargs)
+                save_res()
+
+                masked_ds = get_masked_ds(model, dataset=basic_dataset)
+                results.update(classify_head_eval_ensemble(masked_ds, base_name=f"{label.value.name}_input_k={k}_",
+                                                                svm=False, k=k, linear=False,
+                                                                categorical=label.value.kind == CATEGORICAL,
+                                                                voting_methods=[
+                                                                    EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean],
+                                                                **kwargs))
+                save_res()
     return results

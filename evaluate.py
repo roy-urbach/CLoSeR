@@ -25,7 +25,6 @@ def main():
         parser.add_argument('--knn', action=argparse.BooleanOptionalAction, default=False)
         parser.add_argument('--linear', action=argparse.BooleanOptionalAction, default=True)
         parser.add_argument('--ensemble', action=argparse.BooleanOptionalAction, default=True)
-        parser.add_argument('--ensemble_knn', action=argparse.BooleanOptionalAction, default=False)
         parser.add_argument('--override', action=argparse.BooleanOptionalAction, default=False)
         return parser.parse_args()
 
@@ -46,7 +45,7 @@ def main():
             return module.load_evaluation_json(args.json)
 
     try:
-        res = module.evaluate(args.json, knn=args.knn, linear=args.linear, ensemble=args.ensemble, ensemble_knn=args.ensemble_knn,
+        res = module.evaluate(args.json, knn=args.knn, linear=args.linear, ensemble=args.ensemble,
                               save_results=True, dataset=None, override=args.override)
     finally:
         os.remove(evaluating_fn)
