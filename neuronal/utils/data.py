@@ -200,13 +200,14 @@ class Trial:
 
 
 class SessionDataGenerator(tf.keras.utils.Sequence):
-    def __init__(self, session_id, frames_per_sample=10, bins_per_frame=1,
+    def __init__(self, session_id, frames_per_sample=10, bins_per_frame=1, num_units=None,
                  stimuli=NATURAL_MOVIES, areas=None, train=True, val=False, test=False, binary=False, random=False):
         super(SessionDataGenerator, self).__init__()
         self.session_id = streval(session_id)
         if self.session_id not in SESSIONS:
             assert self.session_id in np.arange(len(SESSIONS))
             self.session_id = SESSIONS[self.session_id]
+        self.max_num_units = num_units
         self.session = Session(self.session_id)
         self.frames_per_sample = frames_per_sample
         self.bins_per_frame = bins_per_frame
@@ -243,7 +244,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
     def clone(self, **kwargs):
         self_kwargs = dict(session_id=self.session_id, frames_per_sample=self.frames_per_sample,
                            bins_per_frame=self.bins_per_frame, stimuli=self.stimuli, areas=self.areas, train=self.train,
-                           val=self.val, test=self.test)
+                           val=self.val, test=self.test, num_units=self.max_num_units)
         self_kwargs.update(**kwargs)
         clone = SessionDataGenerator(**self_kwargs)
         clone.name_to_label = {k: v for k, v in self.name_to_label.items()}
@@ -320,6 +321,16 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
                                                                       as_matrix=True))
                     if self.num_units is None:
                         self.num_units = len(self.spikes[stimulus][-1])
+
+            if self.max_num_units is not None and self.num_units > self.max_num_units:
+                new_spikes = {}
+                for stim, spikes in self.spikes.items():
+                    if self.areas_in_spikes():
+                        new_spikes[stim] = {area: [sp[:self.max_num_units] for sp in area_spikes] for area, area_spikes in spikes.items()}
+                    else:
+                        new_spikes[stim] = [sp[:self.max_num_units] for sp in spikes]
+                self.spikes = new_spikes
+                self.num_units = self.max_num_units
 
     def get_shape(self):
         if self.areas_in_spikes():
