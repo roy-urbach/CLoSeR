@@ -16,7 +16,7 @@ def get_masked_ds(model, dataset, union=False, bins_per_frame=1):
     aug_layer = model.get_layer("data_augmentation")
     pathway_indices = model.get_layer('pathways').indices.numpy()
     if union:
-        union = pathway_indices.unique() - model.get_layer("pathways").shift
+        union = np.unique(pathway_indices) - model.get_layer("pathways").shift
         setup_func = lambda x: aug_layer(x).numpy()[:, union]
     else:
         setup_func = lambda x: np.transpose(aug_layer(x).numpy()[:, pathway_indices - model.get_layer('pathways').shift], [0, 1, 3, 2]).reshape(
