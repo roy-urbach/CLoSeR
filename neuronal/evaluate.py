@@ -17,13 +17,13 @@ def get_masked_ds(model, dataset, union=False, bins_per_frame=1):
     pathway_indices = model.get_layer('pathways').indices.numpy()
     if union:
         union = np.unique(pathway_indices) - model.get_layer("pathways").shift
-        setup_func = lambda x: aug_layer(x).numpy()[:, union]
+        setup_func = lambda x: aug_layer(x).numpy()[:, union, ..., -bins_per_frame:]
     else:
-        setup_func = lambda x: np.transpose(aug_layer(x).numpy()[:, pathway_indices - model.get_layer('pathways').shift], [0, 1, 3, 2]).reshape(
+        setup_func = lambda x: np.transpose(aug_layer(x).numpy()[:, pathway_indices - model.get_layer('pathways').shift, ..., -bins_per_frame:], [0, 1, 3, 2]).reshape(
             x.shape[0], -1, pathway_indices.shape[-1])
 
-    ds = Data(setup_func(dataset.get_x_train())[..., -bins_per_frame:], dataset.get_y_train(),
-              setup_func(dataset.get_x_test())[..., -bins_per_frame:], dataset.get_y_test())
+    ds = Data(setup_func(dataset.get_x_train()), dataset.get_y_train(),
+              setup_func(dataset.get_x_test()), dataset.get_y_test())
     return ds
 
 
