@@ -14,12 +14,13 @@ def get_masked_ds(model, dataset, union=False, bins_per_frame=1):
     if isinstance(model, str):
         model = load_model_from_json(model, Modules.NEURONAL)
     aug_layer = model.get_layer("data_augmentation")
-    pathway_indices = model.get_layer('pathways').indices.numpy()
+    pathways = model.get_layer('pathways')
+    pathway_indices = pathways.indices.numpy()
     if union:
         union = np.unique(pathway_indices) - model.get_layer("pathways").shift
         setup_func = lambda x: aug_layer(x).numpy()[:, union, ..., -bins_per_frame:]
     else:
-        setup_func = lambda x: np.transpose(aug_layer(x).numpy()[:, pathway_indices - model.get_layer('pathways').shift, ..., -bins_per_frame:], [0, 1, 3, 2]).reshape(
+        setup_func = lambda x: np.transpose(aug_layer(x).numpy()[:, pathway_indices - pathways.shift, ..., -bins_per_frame:], [0, 1, 3, 2]).reshape(
             x.shape[0], -1, pathway_indices.shape[-1])
 
     ds = Data(setup_func(dataset.get_x_train()), dataset.get_y_train(),
@@ -80,7 +81,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                                                            categorical=label.value.kind == CATEGORICAL,
                                                            linear=False, k=k, **kwargs)
                     save_res()
-                cur_name = f"{label.value.name}_inp_k={k}"
+                cur_name = f"{label.value.name}_input_k={k}"
                 if cur_name not in results:
                     printd(cur_name, ":", end='\t')
                     results[cur_name] = classify_head_eval(get_masked_ds(model, dataset=basic_dataset, union=True),

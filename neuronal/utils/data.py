@@ -203,12 +203,17 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
     def __init__(self, session_id, frames_per_sample=10, bins_per_frame=1, num_units=None,
                  stimuli=NATURAL_MOVIES, areas=None, train=True, val=False, test=False, binary=False, random=False):
         super(SessionDataGenerator, self).__init__()
-        self.session_id = streval(session_id)
-        if self.session_id not in SESSIONS:
-            assert self.session_id in np.arange(len(SESSIONS))
-            self.session_id = SESSIONS[self.session_id]
-        self.max_num_units = num_units
-        self.session = Session(self.session_id)
+        session_ids = streval(session_id)
+        if not isinstance(session_id, int):
+            session_ids = [session_id]
+        self.session_ids = []
+        for ses_id in session_ids:
+            if ses_id not in SESSIONS:
+                assert ses_id in np.arange(len(SESSIONS))
+                ses_id = SESSIONS[ses_id]
+            self.session_ids.append(ses_id)
+        self.sessions = [Session(ses_id) for ses_id in self.session_ids]
+
         self.frames_per_sample = frames_per_sample
         self.bins_per_frame = bins_per_frame
         self.spikes = {}    # {stim: {area: List[trial_activity_mat]}} if areas else {stim: List[trial_activity_mat]}
@@ -216,6 +221,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
         self.single_area = areas[0] if areas and len(areas) == 1 else None
         self.stimuli = np.array(stimuli)
         self.bins_per_sample = frames_per_sample * bins_per_frame
+        self.max_num_units = num_units
         self.order = None
         self.num_units = None
         self.binary = binary
@@ -242,7 +248,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
         return True
 
     def clone(self, **kwargs):
-        self_kwargs = dict(session_id=self.session_id, frames_per_sample=self.frames_per_sample,
+        self_kwargs = dict(session_id=self.session_ids, frames_per_sample=self.frames_per_sample,
                            bins_per_frame=self.bins_per_frame, stimuli=self.stimuli, areas=self.areas, train=self.train,
                            val=self.val, test=self.test, num_units=self.max_num_units)
         self_kwargs.update(**kwargs)
@@ -284,8 +290,10 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
         for stimulus in self.stimuli:
             self.spikes[stimulus] = {area: [] for area in self.areas} if self.areas_in_spikes() else []
 
-            trials = self.session.get_trials(stimulus)
-            normed_inds = np.linspace(0, BLOCKS, len(trials)+1) % 1
+            trials = []
+            for session in self.sessions:
+                trials.append(session.get_trials(stimulus))
+            normed_inds = np.tile(np.linspace(0, BLOCKS, len(trials)+1) % 1, len(self.sessions))
             if self.train:
                 trial_mask = normed_inds <= 0.6
             elif self.val:
