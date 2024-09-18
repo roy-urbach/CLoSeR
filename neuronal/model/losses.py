@@ -177,15 +177,16 @@ class VectorTrajectoryDisagreement(tf.keras.losses.Loss):
 
 
 class ContinuousLoss(tf.keras.losses.Loss):
-    def __init__(self, entropy_w=None, crosspath_w=None, nonlocal_w=None, nonlocal_kwargs=None, name='continuous_loss'):
+    def __init__(self, entropy_w=None, crosspath_w=None, nonlocal_w=None, nonlocal_kwargs=None, eps=None, name='continuous_loss'):
         super().__init__(name=name)
         self.entropy_w = entropy_w
         self.crosspath_w = crosspath_w
         self.nonlocal_w = nonlocal_w
         self.nonlocal_kwargs = nonlocal_kwargs
+        self.eps = eps if eps is not None else 0.
 
     def continuous_disagreement(self, embd):
-        dist = tf.linalg.norm(embd[:, 1:] - embd[:, :-1], axis=-2)  # (B, T-1, P)
+        dist = tf.maximum(tf.linalg.norm(embd[:, 1:] - embd[:, :-1], axis=-2), self.eps)  # (B, T-1, P)
         disagreement = tf.reduce_mean(dist)
         return disagreement
 
@@ -199,7 +200,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
 
     def nonlocal_contrast(self, embd, temperature=1., eps=1e-4):
         # y_pred shape (B, T, DIM, P)
-        dists = tf.linalg.norm(embd[:, None, ..., None] - embd[None, ..., None, :], axis=-3)    # (B, B, T, P, P)
+        dists = tf.maximum(tf.linalg.norm(embd[:, None, ..., None] - embd[None, ..., None, :], axis=-3), self.eps)    # (B, B, T, P, P)
         # self.calculate_cross_path_agreement(dists)
         sim = tf.maximum(tf.math.exp(-(dists**2)/temperature), eps)
         log_z = tf.reduce_logsumexp(sim, axis=1)
