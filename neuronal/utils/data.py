@@ -295,7 +295,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
             trials = []
             for session in self.sessions:
                 trials.append(session.get_trials(stimulus))
-            normed_inds = np.tile(np.linspace(0, BLOCKS, len(trials)+1) % 1, len(self.sessions))
+            normed_inds = np.tile(np.linspace(0, BLOCKS, len(trials[0])+1) % 1, len(self.sessions))
             if self.train:
                 trial_mask = normed_inds <= 0.6
             elif self.val:
