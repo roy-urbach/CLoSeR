@@ -308,29 +308,29 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
             self.possible_trials[stimulus] = np.where(trial_mask)[0]
 
             self.num_units = {area: None for area in self.areas} if self.areas_in_spikes() else None
+            for ses_trials in trials:
+                for i, trial in enumerate(ses_trials):
+                    if not trial_mask[i]: continue
+                    if self.areas is not None:
+                        if self.single_area:
+                            self.spikes[stimulus].append(trial.get_spike_bins(area=self.single_area,
+                                                                              bins_per_frame=self.bins_per_frame,
+                                                                              as_matrix=True))
+                            if self.num_units is None:
+                                self.num_units = len(self.spikes[stimulus][-1])
+                        else:
+                            for area in self.areas:
+                                self.spikes[stimulus][area].append(trial.get_spike_bins(area=area,
+                                                                                        bins_per_frame=self.bins_per_frame,
+                                                                                        as_matrix=True))
+                                if self.num_units[area] is None:
+                                    self.num_units[area] = len(self.spikes[stimulus][area][-1])
 
-            for i, trial in enumerate(trials):
-                if not trial_mask[i]: continue
-                if self.areas is not None:
-                    if self.single_area:
-                        self.spikes[stimulus].append(trial.get_spike_bins(area=self.single_area,
-                                                                          bins_per_frame=self.bins_per_frame,
+                    else:
+                        self.spikes[stimulus].append(trial.get_spike_bins(bins_per_frame=self.bins_per_frame,
                                                                           as_matrix=True))
                         if self.num_units is None:
                             self.num_units = len(self.spikes[stimulus][-1])
-                    else:
-                        for area in self.areas:
-                            self.spikes[stimulus][area].append(trial.get_spike_bins(area=area,
-                                                                                    bins_per_frame=self.bins_per_frame,
-                                                                                    as_matrix=True))
-                            if self.num_units[area] is None:
-                                self.num_units[area] = len(self.spikes[stimulus][area][-1])
-
-                else:
-                    self.spikes[stimulus].append(trial.get_spike_bins(bins_per_frame=self.bins_per_frame,
-                                                                      as_matrix=True))
-                    if self.num_units is None:
-                        self.num_units = len(self.spikes[stimulus][-1])
 
             if self.max_num_units is not None and self.num_units > self.max_num_units:
                 new_spikes = {}
