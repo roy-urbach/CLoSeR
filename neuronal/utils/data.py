@@ -206,7 +206,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
         session_ids = streval(session_id)
         if isinstance(session_ids, int):
             session_ids = [session_ids]
-        else:
+        elif len(session_ids) > 1:
             raise NotImplementedError("Not supporting multiple sessions yet")
         self.session_ids = []
         for ses_id in session_ids:
