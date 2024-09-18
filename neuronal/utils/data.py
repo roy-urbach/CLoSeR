@@ -204,7 +204,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
                  stimuli=NATURAL_MOVIES, areas=None, train=True, val=False, test=False, binary=False, random=False):
         super(SessionDataGenerator, self).__init__()
         session_ids = streval(session_id)
-        if not isinstance(session_ids, int):
+        if isinstance(session_ids, int):
             session_ids = [session_ids]
         else:
             raise NotImplementedError("Not supporting multiple sessions yet")
