@@ -1,3 +1,4 @@
+from utils.model.callbacks import StopIfNaN
 from utils.modules import Modules
 from utils.measures.utils import measure_model
 import os
@@ -19,6 +20,9 @@ def main():
     args.json = ".".join(args.json.split(".")[:-1]) if args.json.endswith(".json") else args.json
     module = Modules.get_module(args.module)
     measuring_fn = os.path.join(module.get_models_path(), args.json, 'is_measuring')
+
+    if os.path.exists(os.path.join(module.get_models_path(), args.json, StopIfNaN.FILENAME)):
+        print(f"NaN issue, not measuring")
 
     if os.path.exists(measuring_fn):
         print("already measuring!")

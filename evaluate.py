@@ -1,3 +1,4 @@
+from utils.model.callbacks import StopIfNaN
 from utils.modules import Modules
 import os
 
@@ -32,6 +33,9 @@ def main():
     args.json = ".".join(args.json.split(".")[:-1]) if args.json.endswith(".json") else args.json
     module = Modules.get_module(args.module)
     evaluating_fn = os.path.join(module.get_models_path(), args.json, 'is_evaluating')
+
+    if os.path.exists(os.path.join(module.get_models_path(), args.json, StopIfNaN.FILENAME)):
+        print(f"NaN issue, not evaluating")
 
     if os.path.exists(evaluating_fn):
         print("already evaluating!")
