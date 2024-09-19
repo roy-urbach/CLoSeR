@@ -1,7 +1,25 @@
 import tensorflow as tf
+from tensorflow.keras.src.utils import io_utils
+import os
 
 from utils.modules import Modules
 from utils.tf_utils import history_fn_name
+
+
+class StopIfNaN(tf.keras.callbacks.Callback):
+    FILENAME = 'nan'
+    def __init__(self, module: Modules, *args, **kwargs):
+        super(StopIfNaN, self).__init__(*args, **kwargs)
+        self.module = module
+
+    def on_batch_end(self, batch, logs=None):
+        if logs is not None:
+            if 'loss' in logs:
+                if tf.math.is_nan(logs["loss"][-1]).numpy():
+                    io_utils.print_msg(f"Early stopping because of NaN in loss")
+                    self.model.stop_training = True
+                    with open(os.path.join(self.module.get_models_path(), self.model.name, StopIfNaN.FILENAME), 'w') as f:
+                        f.write("Yup")
 
 
 class SaveOptimizerCallback(tf.keras.callbacks.Callback):

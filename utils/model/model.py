@@ -1,5 +1,4 @@
-from utils.data import gen_to_tf_dataset
-from utils.model.callbacks import SaveOptimizerCallback, ErasePreviousCallback, SaveHistory
+from utils.model.callbacks import SaveOptimizerCallback, ErasePreviousCallback, SaveHistory, StopIfNaN
 from utils.model.losses import NullLoss
 from utils.modules import Modules
 from utils.tf_utils import get_weights_fn, serialize
@@ -139,7 +138,7 @@ def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_
                                                                         save_best_only=False,
                                                                         verbose=1),
                                      SaveOptimizerCallback(module), ErasePreviousCallback(module),
-                                     SaveHistory(module)]
+                                     SaveHistory(module), StopIfNaN(module)]
                           )
         history = model.fit(x=dataset.get_x_train(),
                             y=dataset.get_y_train(),

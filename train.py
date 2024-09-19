@@ -1,6 +1,7 @@
 import argparse
 import os
 
+from utils.model.callbacks import StopIfNaN
 from utils.modules import Modules
 
 
@@ -28,6 +29,9 @@ def run():
 
     import sys
     sys.stdout.flush()
+
+    if os.path.exists(module.get_models_path(), model_name, StopIfNaN.FILENAME):
+        print(f"NaN issue, not training")
 
     training_fn = os.path.join(module.get_models_path(), model_name, "is_training")
     if os.path.exists(training_fn):
