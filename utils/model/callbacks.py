@@ -1,5 +1,4 @@
 import tensorflow as tf
-from tensorflow.keras.src.utils import io_utils
 import os
 
 from utils.modules import Modules
@@ -18,7 +17,7 @@ class StopIfNaN(tf.keras.callbacks.Callback):
         if logs is not None:
             if 'loss' in logs:
                 if tf.math.is_nan(logs["loss"][-1]).numpy():
-                    io_utils.print_msg(f"Early stopping because of NaN in loss")
+                    print(f"Early stopping because of NaN in loss")
                     self.model.stop_training = True
                     if self.save:
                         with open(os.path.join(self.module.get_models_path(), self.model.name, StopIfNaN.FILENAME), 'w') as f:
