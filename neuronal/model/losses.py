@@ -177,13 +177,14 @@ class VectorTrajectoryDisagreement(tf.keras.losses.Loss):
 
 
 class ContinuousLoss(tf.keras.losses.Loss):
-    def __init__(self, entropy_w=None, crosspath_w=None, nonlocal_w=None, nonlocal_kwargs=None, eps=None, name='continuous_loss'):
+    def __init__(self, entropy_w=None, crosspath_w=None, nonlocal_w=None, nonlocal_kwargs=None, eps=None, contrast_in_time_w=None, name='continuous_loss'):
         super().__init__(name=name)
         self.entropy_w = entropy_w
         self.crosspath_w = crosspath_w
         self.nonlocal_w = nonlocal_w
         self.nonlocal_kwargs = nonlocal_kwargs
         self.eps = eps if eps is not None else 0.
+        self.contrast_in_time_w = contrast_in_time_w
 
     def continuous_disagreement(self, embd):
         dist = tf.maximum(tf.linalg.norm(embd[:, 1:] - embd[:, :-1], axis=-2), self.eps)  # (B, T-1, P)
@@ -202,9 +203,36 @@ class ContinuousLoss(tf.keras.losses.Loss):
         # y_pred shape (B, T, DIM, P)
         dists = tf.maximum(tf.linalg.norm(embd[:, None, ..., None] - embd[None, ..., None, :], axis=-3), self.eps)    # (B, B, T, P, P)
         # self.calculate_cross_path_agreement(dists)
-        sim = tf.maximum(tf.math.exp(-(dists**2)/temperature), eps)
+        sim = tf.maximum(tf.math.exp(-(dists**2)/temperature), eps) # The bug is here
         log_z = tf.reduce_logsumexp(sim, axis=1)
         all_pair_loss = log_z - tf.math.log(sim[tf.eye(tf.shape(sim)[0]) != 0])   # -log(pi)=-log(simii/zi)=-log(simii)+log(zi)
+        mask = tf.tile(~tf.eye(tf.shape(all_pair_loss)[-1], dtype=tf.bool)[None, None],
+                       [tf.shape(all_pair_loss)[0], tf.shape(all_pair_loss)[1], 1, 1])
+        relevant_pairs_loss = all_pair_loss[mask]
+        return tf.reduce_mean(relevant_pairs_loss)
+
+    def nonlocal_contrast_without_bug(self, embd, temperature=10.):
+        # y_pred shape (B, T, DIM, P)
+        dists = tf.maximum(tf.linalg.norm(embd[:, None, ..., None] - embd[None, ..., None, :], axis=-3), self.eps)    # (B, B, T, P, P)
+        # self.calculate_cross_path_agreement(dists)
+        sim = -(dists**2)/temperature
+        log_z = tf.reduce_logsumexp(sim, axis=1)
+        all_pair_loss = log_z - sim[tf.eye(tf.shape(sim)[0]) != 0]   # -log(pi)=-log(simii/zi)=-log(simii)+log(zi)
+        mask = tf.tile(~tf.eye(tf.shape(all_pair_loss)[-1], dtype=tf.bool)[None, None],
+                       [tf.shape(all_pair_loss)[0], tf.shape(all_pair_loss)[1], 1, 1])
+        relevant_pairs_loss = all_pair_loss[mask]
+        return tf.reduce_mean(relevant_pairs_loss)
+
+    def contrast_in_time(self, embd, temperature=10., eps=1e-4):
+        # embd shape (B, T, DIM, P)
+        pos_sub = embd[:, 1:, ..., None] - embd[:, 1:, ..., None, :]
+        neg_sub = embd[:, 1:, ..., None] - embd[:, :-1, ..., None, :]
+        sub_to_logit = lambda sub: -(tf.maximum(tf.linalg.norm(sub, axis=-3), eps)**2) / temperature
+        pos_logit = sub_to_logit(pos_sub)   # (B, T-1, P, P)
+        neg_logit = sub_to_logit(neg_sub)   # (B, T-1, P, P)
+
+        log_z = tf.reduce_logsumexp(tf.stack([pos_logit, neg_logit], axis=-1), axis=-1)
+        all_pair_loss = log_z - pos_logit
         mask = tf.tile(~tf.eye(tf.shape(all_pair_loss)[-1], dtype=tf.bool)[None, None],
                        [tf.shape(all_pair_loss)[0], tf.shape(all_pair_loss)[1], 1, 1])
         relevant_pairs_loss = all_pair_loss[mask]
@@ -218,7 +246,14 @@ class ContinuousLoss(tf.keras.losses.Loss):
         if self.entropy_w is not None:
             loss = loss + self.entropy_w * koleo(y_pred, axis=-2)
         if self.nonlocal_w is not None:
-            loss = loss + self.nonlocal_w * self.nonlocal_contrast(y_pred, **self.nonlocal_kwargs)
+            use_buggy_version = self.nonlocal_kwargs.pop("bug", True)
+            if use_buggy_version:
+                nonlocal_contrast = self.nonlocal_contrast
+            else:
+                nonlocal_contrast = self.nonlocal_contrast_without_bug
+            loss = loss + self.nonlocal_w * nonlocal_contrast(y_pred, **self.nonlocal_kwargs)
+        if self.contrast_in_time_w is not None:
+            loss = loss + self.contrast_in_time_w * self.contrast_in_time(y_pred)
         return loss
 
 
