@@ -1,5 +1,6 @@
 import tensorflow as tf
 import os
+import numpy as np
 
 from utils.modules import Modules
 from utils.tf_utils import history_fn_name
@@ -16,7 +17,7 @@ class StopIfNaN(tf.keras.callbacks.Callback):
     def on_batch_end(self, batch, logs=None):
         if logs is not None:
             if 'loss' in logs:
-                if tf.math.is_nan(logs["loss"][-1]).numpy():
+                if np.isnan(logs["loss"]):
                     print(f"Early stopping because of NaN in loss")
                     self.model.stop_training = True
                     if self.save:
