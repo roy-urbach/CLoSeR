@@ -30,7 +30,7 @@ def run():
     import sys
     sys.stdout.flush()
 
-    if os.path.exists(module.get_models_path(), model_name, StopIfNaN.FILENAME):
+    if os.path.exists(os.path.join(module.get_models_path(), model_name, StopIfNaN.FILENAME)):
         print(f"NaN issue, not training")
 
     training_fn = os.path.join(module.get_models_path(), model_name, "is_training")
