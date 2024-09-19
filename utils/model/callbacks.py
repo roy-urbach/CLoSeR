@@ -18,7 +18,7 @@ class StopIfNaN(tf.keras.callbacks.Callback):
         if logs is not None:
             if 'loss' in logs:
                 if np.isnan(logs["loss"]):
-                    print(f"Early stopping because of NaN in loss")
+                    print(f"\nEarly stopping because of NaN in loss")
                     self.model.stop_training = True
                     if self.save:
                         with open(os.path.join(self.module.get_models_path(), self.model.name, StopIfNaN.FILENAME), 'w') as f:
