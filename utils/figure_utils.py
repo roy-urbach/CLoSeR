@@ -190,7 +190,7 @@ def gather_results_over_all_args(model_format, args, module=Modules.VISION, name
             if val is np.nan and print_missing:
                 print(f"val is nan: {model_name}")
             if res is None:
-                res = np.full(list(shape) + [len(seeds)] + ([2] if not measure else (list(val.shape) if isinstance(val, np.ndarray) else [2])), np.nan)
+                res = np.full(list(shape) + [len(seeds)] + ([val.shape[-1]] if not measure else (list(val.shape) if isinstance(val, np.ndarray) else [val.shape[-1]])), np.nan)
             cur = res
             for cur_ind in inds:
                 cur = cur[cur_ind]
@@ -245,10 +245,10 @@ def plot_lines_different_along_d(model_format, module:Modules, seeds, args, ds, 
     fig = plt.figure() if fig is None else fig
     plt.suptitle(model_format + " " + name + f" different {arg}")
     only_test = measure or not train
-    for i in range(2):
-        if only_test and not i: continue
-        ax = plt.subplot(2-only_test,1,i+1-only_test, sharey=ax)
-        plt.title(["Train", "Test"][i])
+    for i in range(res.shape[-1]):
+        if only_test and i != (res.shape[-1] - 1): continue
+        ax = plt.subplot(res.shape[-1]-only_test,1,i+1-only_test, sharey=ax)
+        plt.title(["Train", "Test"] if res.shape[-1] == 2 else ['Train', 'Val', 'Test'][i])
         if arg:
             for ind, identity in enumerate(args):
                 relevant_part = res[ind, ..., i] if not measure else np.stack([np.stack([res[ind, i_d, s][mask if mask is not None else ~np.eye(res.shape[-1], dtype=bool)]
