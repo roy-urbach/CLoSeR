@@ -92,7 +92,10 @@ def classify_head_eval_ensemble(dataset, linear=True, k=10, base_name='',
 
     if dataset.get_x_val() is not None and linear:
         for i, voting_method in enumerate(voting_methods):
-            (ind_train, ind_val, ind_test), (ens_train, ens_val, ens_test) = ensemble.fit_with_validation(x_train, y_train, dataset.get_x_val(), dataset.get_y_val(), x_test, y_test)
+            (ind_train, ind_val, ind_test), (ens_train, ens_val, ens_test) = ensemble.fit_with_validation(x_train, y_train,
+                                                                                                          dataset.get_x_val(), dataset.get_y_val(),
+                                                                                                          x_test, y_test,
+                                                                                                          voting_method=voting_method)
             if not i:
                 for p, pathway in enumerate(ensemble.models):
                     res[base_name + f'pathway{p}_{name}'] = (ind_train[p], ind_val[p], ind_test[p])
