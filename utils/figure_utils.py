@@ -195,7 +195,7 @@ def gather_results_over_all_args(model_format, args, module=Modules.VISION, name
                 cur = res
                 for cur_ind in inds:
                     cur = cur[cur_ind]
-                if cur[s].size != val.size and print_missing:
+                if cur[s].shape != np.array(val).shape and print_missing:
                     print(f"val is shaped 2 instead of 3 for {model_name}")
                 cur[s] = val if val.size == cur[s].size else np.array([val[0], np.nan, val[1]])
     return res
