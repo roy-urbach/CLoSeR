@@ -30,7 +30,7 @@ def get_masked_ds(model, dataset, union=False, bins_per_frame=1):
 
 
 def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEURONAL, labels=[Labels.STIMULUS, Labels.FRAME],
-             knn=False, linear=True, ensemble=True, save_results=False, override=False, **kwargs):
+             knn=False, linear=True, ensemble=True, save_results=False, override=False, override_linear=False, **kwargs):
 
     if isinstance(model, str):
         model_kwargs = module.load_json(model, config=True)
@@ -101,13 +101,13 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                     save_res()
 
         if linear:
-            if f'{label.value.name}_linear' not in results:
+            if f'{label.value.name}_linear' not in results or override_linear:
                 results[f'{label.value.name}_linear'] = classify_head_eval(embd_dataset,
                                                                            categorical=label.value.kind == CATEGORICAL,
                                                                            linear=True, svm=False, **kwargs)
                 save_res()
 
-            if f'{label.value.name}_input_linear' not in results:
+            if f'{label.value.name}_input_linear' not in results or override_linear:
                 results[f'{label.value.name}_input_linear'] = classify_head_eval(get_masked_ds(model, dataset=basic_dataset, union=True),
                                                                                  categorical=label.value.kind == CATEGORICAL,
                                                                                  linear=True, svm=False, **kwargs)
@@ -120,7 +120,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                                                        voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean], **kwargs))
             save_res()
 
-            if not any([k.startswith(f"{label.value.name}_input_pathway") for k in results.keys()]):
+            if not any([k.startswith(f"{label.value.name}_input_pathway") for k in results.keys()]) or override_linear:
                 masked_ds = get_masked_ds(model, dataset=basic_dataset)
                 results.update(classify_head_eval_ensemble(masked_ds, base_name=f"{label.value.name}_input_", svm=False,
                                                            categorical=label.value.kind == CATEGORICAL,
