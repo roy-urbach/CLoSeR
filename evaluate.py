@@ -45,7 +45,7 @@ def main():
         with open(evaluating_fn, 'w') as f:
             f.write("Yes!")
 
-    if not args.override:
+    if not args.override and not args.override_linear:
         if not check_evaluation_time(args.json, module):
             return module.load_evaluation_json(args.json)
 
