@@ -189,7 +189,7 @@ def gather_results_over_all_args(model_format, args, module=Modules.VISION, name
                 val = dct.get(name, np.nan)
             if val is np.nan and print_missing:
                 print(f"val is nan: {model_name}")
-            if not np.isnan(val):
+            if not np.isnan(val).all():
                 if res is None:
                     res = np.full(list(shape) + [len(seeds)] + ([len(val)] if not measure else (list(val.shape) if isinstance(val, np.ndarray) else [len(val)])), np.nan)
                 cur = res
