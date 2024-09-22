@@ -236,7 +236,7 @@ def plot_lines_different_along_d(model_format, module:Modules, seeds, args, ds, 
                                                                                                      args={arg: args, 'd': ds} if arg else {'d': ds},
                                                                                                      measure=measure,
                                                                                                      **kwargs)
-    if np.isnan(res).all():
+    if res is None or np.isnan(res).all():
         print(f"for {model_format} and {name}, everything is nan, so not plotting")
         return
     # means = np.nanmean(res, axis=2)
@@ -248,7 +248,7 @@ def plot_lines_different_along_d(model_format, module:Modules, seeds, args, ds, 
     only_test = measure or not train
     for i in range(res.shape[-1]):
         if only_test and i != (res.shape[-1] - 1): continue
-        ax = plt.subplot(res.shape[-1]-only_test,1,i+1-only_test, sharey=ax)
+        ax = plt.subplot(1 if only_test else res.shape[-1], 1, 1 if only_test else i+1, sharey=ax)
         plt.title(["Train", "Test"] if res.shape[-1] == 2 else ['Train', 'Val', 'Test'][i])
         if arg:
             for ind, identity in enumerate(args):
