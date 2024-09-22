@@ -1,10 +1,12 @@
 class Data:
-    def __init__(self, x_train, y_train, x_test, y_test, val_split=0.1, normalize=False,
+    def __init__(self, x_train, y_train, x_test, y_test, x_val=None, y_val=None, val_split=None, normalize=False,
                  img_normalize=False, flatten_y=True):
         self.x_train = x_train
         self.y_train = y_train
         self.x_test = x_test
         self.y_test = y_test
+        self.x_val = x_val
+        self.y_val = y_val
         self.val_split = val_split
         self.shape = x_train[0].shape
         if img_normalize:
@@ -49,6 +51,12 @@ class Data:
 
     def get_y_test(self):
         return self.y_test
+
+    def get_x_val(self):
+        return self.x_val
+
+    def get_y_val(self):
+        return self.y_val
 
     def get_val_split(self):
         return self.val_split

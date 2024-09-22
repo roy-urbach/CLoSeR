@@ -52,9 +52,15 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
 
     x_train_embd = transform_embedding(model.predict(dataset.get_x_train())[0])
     x_test_embd = transform_embedding(model.predict(dataset.get_x_test())[0])
+    x_val = dataset.get_x_val()
+    if x_val is not None:
+        x_val_embd = transform_embedding(model.predict(x_val)[0])
+    else:
+        x_val_embd = None
 
     y_train = dataset.get_y_train(labels)
     y_test = dataset.get_y_test(labels)
+    y_val = dataset.get_y_val(labels)
 
 
     results = module.load_evaluation_json(model.name) if not override else {}
@@ -66,9 +72,13 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
 
     for label in labels:
         print(f"evaluating label {label.value.name}")
-        basic_dataset = Data(dataset.get_x_train(), y_train[label.value.name], dataset.get_x_test(), y_test[label.value.name])
+        basic_dataset = Data(dataset.get_x_train(), y_train[label.value.name],
+                             dataset.get_x_test(), y_test[label.value.name],
+                             x_val=dataset.get_x_val(), y_val=y_val[label.value.name] if y_val is not None else None)
 
-        embd_dataset = Data(x_train_embd, y_train[label.value.name], x_test_embd, y_test[label.value.name])
+        embd_dataset = Data(x_train_embd, y_train[label.value.name],
+                            x_test_embd, y_test[label.value.name],
+                            x_val=x_val_embd, y_val=y_val[label.value.name] if y_val is not None else None)
 
         from utils.evaluation.evaluation import classify_head_eval
 

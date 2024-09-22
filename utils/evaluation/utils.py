@@ -2,8 +2,10 @@ from utils.io_utils import load_json, save_json
 from utils.io_utils import get_file_time
 from utils.modules import Modules
 import os
+import numpy as np
 
 RESULTS_FILE_NAME = 'classification_eval'
+CS = np.array([1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1, 10])
 
 
 @Modules.add_method

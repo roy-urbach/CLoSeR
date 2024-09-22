@@ -28,6 +28,11 @@ class Labels(Enum):
     FRAME = Label("normedframe", CONTINUOUS, 1)
 
 
+class SplitScheme(Enum):
+    LAST = ([(0, 0.6)], [(0.6, 0.8)], [(0.8, 1.0)])
+    EVEN = ([(0, 0.2)], )
+
+
 def loadz(npz_path):
     dct = {k: v for k, v in np.load(npz_path, allow_pickle=True).items()}
     return dct
@@ -201,7 +206,8 @@ class Trial:
 
 class SessionDataGenerator(tf.keras.utils.Sequence):
     def __init__(self, session_id, frames_per_sample=10, bins_per_frame=1, num_units=None,
-                 stimuli=NATURAL_MOVIES, areas=None, train=True, val=False, test=False, binary=False, random=False):
+                 stimuli=NATURAL_MOVIES, areas=None, train=True, val=False, test=False, binary=False, random=False,
+                 split_scheme='last'):
         super(SessionDataGenerator, self).__init__()
         session_ids = streval(session_id)
         if isinstance(session_ids, int):
