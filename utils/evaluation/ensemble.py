@@ -55,7 +55,7 @@ class EnsembleModel:
                         self.best_CS[i] = C
                         self.scores_test[i] = model.score(np.take(X_test, i, axis=self.ensemble_axis), y_test)
                         self.scores_train[i] = model.score(np.take(X_train, i, axis=self.ensemble_axis), y_train)
-            self.models = [self.CS_models[self.CS.index(C)][i] for i, C in enumerate(self.best_CS)]
+            self.models = [self.CS_models[np.where(self.CS == C)[0][0]][i] for i, C in enumerate(self.best_CS)]
 
         ensemble_score_train = None
         ensemble_score_val = None
@@ -88,7 +88,7 @@ class EnsembleModel:
             self.models.append(model.fit(X_train_single, y_train))
 
     def predict(self, X, voting_method=EnsembleVotingMethods.ArgmaxMeanProb, CS=None):
-        models = self.models if CS is None else [self.CS_models[self.CS.index(C)][i] for i, C in enumerate(CS)]
+        models = self.models if CS is None else [self.CS_models[np.where(self.CS == C)[0][0]][i] for i, C in enumerate(CS)]
         probs = np.stack([getattr(model, self.get_score)(X_single)
                           for model, X_single in zip(models, self.split(X))], axis=-1)
         return voting_method.value(probs)
