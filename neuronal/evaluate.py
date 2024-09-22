@@ -83,23 +83,6 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
 
         from utils.evaluation.evaluation import classify_head_eval
 
-        if knn:
-            for k in [1] + list(range(5, 21, 5)):
-                cur_name = f"{label.value.name}_k={k}"
-                if cur_name not in results:
-                    printd(cur_name, ":", end='\t')
-                    results[cur_name] = classify_head_eval(embd_dataset,
-                                                           categorical=label.value.kind == CATEGORICAL,
-                                                           linear=False, k=k, **kwargs)
-                    save_res()
-                cur_name = f"{label.value.name}_input_k={k}"
-                if cur_name not in results:
-                    printd(cur_name, ":", end='\t')
-                    results[cur_name] = classify_head_eval(get_masked_ds(model, dataset=basic_dataset, union=True),
-                                                           categorical=label.value.kind == CATEGORICAL,
-                                                           linear=False, k=k, **kwargs)
-                    save_res()
-
         if linear:
             if f'{label.value.name}_linear' not in results or override_linear:
                 results[f'{label.value.name}_linear'] = classify_head_eval(embd_dataset,
@@ -126,6 +109,23 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                                                            categorical=label.value.kind == CATEGORICAL,
                                                            voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean]), **kwargs)
                 save_res()
+
+        if knn:
+            for k in [1] + list(range(5, 21, 5)):
+                cur_name = f"{label.value.name}_k={k}"
+                if cur_name not in results:
+                    printd(cur_name, ":", end='\t')
+                    results[cur_name] = classify_head_eval(embd_dataset,
+                                                           categorical=label.value.kind == CATEGORICAL,
+                                                           linear=False, k=k, **kwargs)
+                    save_res()
+                cur_name = f"{label.value.name}_input_k={k}"
+                if cur_name not in results:
+                    printd(cur_name, ":", end='\t')
+                    results[cur_name] = classify_head_eval(get_masked_ds(model, dataset=basic_dataset, union=True),
+                                                           categorical=label.value.kind == CATEGORICAL,
+                                                           linear=False, k=k, **kwargs)
+                    save_res()
 
         if ensemble and knn:
             for k in [1] + list(range(5, 21, 5)):

@@ -57,6 +57,8 @@ class SplitScheme(Enum):
             return comp < 0.6
         elif self == SplitScheme.ODD_MOD_5:
             return (comp % 2) == 0
+        else:
+            raise NotImplementedError()
 
     def get_val_mask(self, num_trials, num_sessions):
         comp = self.computation(num_trials, num_sessions)
@@ -64,6 +66,8 @@ class SplitScheme(Enum):
             return 0.6 <= comp < 0.8
         elif self == SplitScheme.ODD_MOD_5:
             return comp == 1
+        else:
+            raise NotImplementedError()
 
     def get_test_mask(self, num_trials, num_sessions):
         comp = self.computation(num_trials, num_sessions)
@@ -71,6 +75,8 @@ class SplitScheme(Enum):
             return 0.8 <= comp
         elif self == SplitScheme.ODD_MOD_5:
             return comp == 3
+        else:
+            raise NotImplementedError()
 
 
 def loadz(npz_path):
