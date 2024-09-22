@@ -29,8 +29,48 @@ class Labels(Enum):
 
 
 class SplitScheme(Enum):
-    LAST = ([(0, 0.6)], [(0.6, 0.8)], [(0.8, 1.0)])
-    EVEN = ([(0, 0.2)], )
+    LAST = 'last'
+    ODD_MOD_5 = 'odd_mod_5'
+
+    @staticmethod
+    def get_split_scheme(scheme):
+        if isinstance(scheme, SplitScheme):
+            return scheme
+        relevant_schemes = [sch for sch in SplitScheme if scheme in (sch.name, sch.value)]
+        if not len(relevant_schemes):
+            raise ValueError(f"No scheme named {scheme}")
+        else:
+            return relevant_schemes[0]
+
+    def computation(self, num_trials, num_sessions):
+        if self == SplitScheme.LAST:
+            comp = np.tile(np.linspace(0, BLOCKS, num_trials + 1) % 1, num_sessions)
+        elif self == SplitScheme.ODD_MOD_5:
+            comp = np.tile(np.arange(num_trials) % 5, num_sessions)
+        else:
+            raise NotImplementedError()
+        return comp
+
+    def get_train_mask(self, num_trials, num_sessions):
+        comp = self.computation(num_trials, num_sessions)
+        if self == SplitScheme.LAST:
+            return comp < 0.6
+        elif self == SplitScheme.ODD_MOD_5:
+            return (comp % 2) == 0
+
+    def get_val_mask(self, num_trials, num_sessions):
+        comp = self.computation(num_trials, num_sessions)
+        if self == SplitScheme.LAST:
+            return 0.6 <= comp < 0.8
+        elif self == SplitScheme.ODD_MOD_5:
+            return comp == 1
+
+    def get_test_mask(self, num_trials, num_sessions):
+        comp = self.computation(num_trials, num_sessions)
+        if self == SplitScheme.LAST:
+            return 0.8 <= comp
+        elif self == SplitScheme.ODD_MOD_5:
+            return comp == 3
 
 
 def loadz(npz_path):
@@ -207,7 +247,7 @@ class Trial:
 class SessionDataGenerator(tf.keras.utils.Sequence):
     def __init__(self, session_id, frames_per_sample=10, bins_per_frame=1, num_units=None,
                  stimuli=NATURAL_MOVIES, areas=None, train=True, val=False, test=False, binary=False, random=False,
-                 split_scheme='last'):
+                 split_scheme=SplitScheme.LAST):
         super(SessionDataGenerator, self).__init__()
         session_ids = streval(session_id)
         if isinstance(session_ids, int):
@@ -236,6 +276,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
         self.possible_trials = {}
         self.random = random
 
+        self.split_scheme = SplitScheme.get_split_scheme(split_scheme)
         assert not (test and val)
         self.train = train
         self.train_ds = self if train else None
@@ -258,7 +299,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
     def clone(self, **kwargs):
         self_kwargs = dict(session_id=self.session_ids, frames_per_sample=self.frames_per_sample,
                            bins_per_frame=self.bins_per_frame, stimuli=self.stimuli, areas=self.areas, train=self.train,
-                           val=self.val, test=self.test, num_units=self.max_num_units)
+                           val=self.val, test=self.test, num_units=self.max_num_units, split_scheme=self.split_scheme)
         self_kwargs.update(**kwargs)
         clone = SessionDataGenerator(**self_kwargs)
         clone.name_to_label = {k: v for k, v in self.name_to_label.items()}
@@ -301,16 +342,16 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
             trials = []
             for session in self.sessions:
                 trials.append(session.get_trials(stimulus))
-            normed_inds = np.tile(np.linspace(0, BLOCKS, len(trials[0])+1) % 1, len(self.sessions))
+
             if self.train:
-                trial_mask = normed_inds <= 0.6
+                trial_mask = self.split_scheme.get_train_mask(len(trials[0]), len(self.sessions))
             elif self.val:
-                trial_mask = (normed_inds >= 0.6) & (normed_inds < 0.8)
+                trial_mask = self.split_scheme.get_val_mask(len(trials[0]), len(self.sessions))
             elif self.test:
-                trial_mask = normed_inds >= 0.8
+                trial_mask = self.split_scheme.get_test_mask(len(trials[0]), len(self.sessions))
             else:
                 # If we want the full session
-                trial_mask = np.full_like(normed_inds, True)
+                trial_mask = np.full(len(trials), True)
             self.possible_trials[stimulus] = np.where(trial_mask)[0]
 
             self.num_units = {area: None for area in self.areas} if self.areas_in_spikes() else None
