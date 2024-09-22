@@ -28,11 +28,18 @@ def classify_head_eval(dataset, m=lambda x: x.reshape(x.shape[0], -1), categoric
         val_dataset = Data(x_train, y_train, dataset.get_x_val(), dataset.get_y_val())
         best_score = None
         winner_C = None
+        prev_train, prev_val = None, None
         for C in CS:
-            score = classify_head_eval(val_dataset, m=m, categorical=categorical, pca=pca, linear=linear, samples=samples, k=k, C=C)[1]
-            if best_score is None or score > best_score:
+            print(f"{C=}")
+            cur_train, cur_val = classify_head_eval(val_dataset, m=m, categorical=categorical, pca=pca, linear=linear,
+                                                    samples=samples, k=k, C=C, **kwargs)
+            if prev_train is not None and cur_train > prev_train and cur_val < prev_val:
+                break
+            if best_score is None or cur_val > best_score:
                 winner_C = C
-                best_score = score
+                best_score = cur_val
+            prev_train = cur_train
+            prev_val = cur_val
         kwargs.update(C=winner_C)
 
     score_kwargs = {}

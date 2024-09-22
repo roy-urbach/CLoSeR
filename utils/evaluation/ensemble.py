@@ -79,6 +79,7 @@ class EnsembleModel:
         return (self.scores_train, self.scores_val, self.scores_test), (ensemble_score_train, ensemble_score_val, ensemble_score_test)
 
     def fit(self, X_train, y_train, CS=None):
+        self.models = []
         from sklearn.base import clone as sklearn_clone
         for i, X_train_single in counter(enumerate(self.split(X_train))):
             model = sklearn_clone(self.base_model)
