@@ -127,7 +127,7 @@ def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_
 
     model, max_epoch = load_or_create_model(model_name, module, dataset=dataset, print_log=True, **kwargs)
 
-    # TODO: regression callback?
+    # TODO: add scheduler
 
     if num_epochs > max_epoch:
         printd(f"Fitting the model (with {model.count_params()} parameters)!")

@@ -16,14 +16,15 @@ class MLP(tf_layers.Layer):
         self.dense = [tf_layers.Dense(units, activation=tf.nn.gelu, kernel_regularizer=kernel_regularizer, name=self.name + f'_fc{i}')
                       for i, units in enumerate(self.hidden_units)]
         self.dropout = [tf_layers.Dropout(dropout_rate, name=self.name + f'_do{i}')
-                        for i, _ in enumerate(self.hidden_units)]
+                        for i, _ in enumerate(self.hidden_units)] if dropout_rate else None
         self.depth = len(hidden_units)
 
     def call(self, inputs, training=None):
         x = inputs
         for l in range(self.depth):
             x = self.dense[l](x)
-            x = self.dropout[l](x, training=training)
+            if self.dropout is not None:
+                x = self.dropout[l](x, training=training)
         return x
 
     def get_config(self):
