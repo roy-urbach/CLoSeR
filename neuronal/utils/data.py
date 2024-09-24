@@ -42,17 +42,17 @@ class SplitScheme(Enum):
         else:
             return relevant_schemes[0]
 
-    def computation(self, num_trials, num_sessions):
+    def computation(self, num_trials):
         if self == SplitScheme.LAST:
-            comp = np.tile(np.linspace(0, BLOCKS, num_trials + 1) % 1, num_sessions)
+            comp = np.linspace(0, BLOCKS, num_trials + 1) % 1
         elif self == SplitScheme.ODD_MOD_5:
-            comp = np.tile(np.arange(num_trials) % 5, num_sessions)
+            comp = np.arange(num_trials) % 5
         else:
             raise NotImplementedError()
         return comp
 
-    def get_train_mask(self, num_trials, num_sessions):
-        comp = self.computation(num_trials, num_sessions)
+    def get_train_mask(self, num_trials):
+        comp = self.computation(num_trials)
         if self == SplitScheme.LAST:
             return comp < 0.6
         elif self == SplitScheme.ODD_MOD_5:
@@ -60,8 +60,8 @@ class SplitScheme(Enum):
         else:
             raise NotImplementedError()
 
-    def get_val_mask(self, num_trials, num_sessions):
-        comp = self.computation(num_trials, num_sessions)
+    def get_val_mask(self, num_trials):
+        comp = self.computation(num_trials)
         if self == SplitScheme.LAST:
             return 0.6 <= comp < 0.8
         elif self == SplitScheme.ODD_MOD_5:
@@ -69,8 +69,8 @@ class SplitScheme(Enum):
         else:
             raise NotImplementedError()
 
-    def get_test_mask(self, num_trials, num_sessions):
-        comp = self.computation(num_trials, num_sessions)
+    def get_test_mask(self, num_trials):
+        comp = self.computation(num_trials)
         if self == SplitScheme.LAST:
             return 0.8 <= comp
         elif self == SplitScheme.ODD_MOD_5:
@@ -258,8 +258,6 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
         session_ids = streval(session_id)
         if isinstance(session_ids, int):
             session_ids = [session_ids]
-        elif len(session_ids) > 1:
-            raise NotImplementedError("Not supporting multiple sessions yet")
         self.session_ids = []
         for ses_id in session_ids:
             if ses_id not in SESSIONS:
@@ -350,40 +348,51 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
                 trials.append(session.get_trials(stimulus))
 
             if self.train:
-                trial_mask = self.split_scheme.get_train_mask(len(trials[0]), len(self.sessions))
+                trial_mask = self.split_scheme.get_train_mask(len(trials[0]))
             elif self.val:
-                trial_mask = self.split_scheme.get_val_mask(len(trials[0]), len(self.sessions))
+                trial_mask = self.split_scheme.get_val_mask(len(trials[0]))
             elif self.test:
-                trial_mask = self.split_scheme.get_test_mask(len(trials[0]), len(self.sessions))
+                trial_mask = self.split_scheme.get_test_mask(len(trials[0]))
             else:
                 # If we want the full session
                 trial_mask = np.full(len(trials), True)
             self.possible_trials[stimulus] = np.where(trial_mask)[0]
 
             self.num_units = {area: None for area in self.areas} if self.areas_in_spikes() else None
-            for ses_trials in trials:
-                for i, trial in enumerate(ses_trials):
-                    if not trial_mask[i]: continue
-                    if self.areas is not None:
-                        if self.single_area:
-                            self.spikes[stimulus].append(trial.get_spike_bins(area=self.single_area,
-                                                                              bins_per_frame=self.bins_per_frame,
-                                                                              as_matrix=True))
-                            if self.num_units is None:
-                                self.num_units = len(self.spikes[stimulus][-1])
-                        else:
-                            for area in self.areas:
-                                self.spikes[stimulus][area].append(trial.get_spike_bins(area=area,
-                                                                                        bins_per_frame=self.bins_per_frame,
-                                                                                        as_matrix=True))
-                                if self.num_units[area] is None:
-                                    self.num_units[area] = len(self.spikes[stimulus][area][-1])
+            assert len(set([len(ses_trials) for ses_trials in trials])) == 1
+            trials_by_order = list(map(list, zip(*trials)))
+
+            for i, aligned_trials in enumerate(trials_by_order):
+                if self.num_units is None and self.areas_in_spikes():
+                    self.num_units = {}
+                if not trial_mask[i]: continue
+
+                aligned_trials_spikes = {area: [] for area in self.areas} if self.areas_in_spikes() else []
+                aligned_trials_units = {area: 0 for area in self.areas} if self.areas_in_spikes() else 0
+                for trial in aligned_trials:
+                    if self.areas_in_spikes():
+                        for area in self.areas:
+                            aligned_trials_spikes[area].append(trial.get_spike_bins(area=area,
+                                                                                    bins_per_frame=self.bins_per_frame,
+                                                                                    as_matrix=True))
+                            aligned_trials_units[area] += len(aligned_trials_spikes[area][-1])
 
                     else:
-                        self.spikes[stimulus].append(trial.get_spike_bins(bins_per_frame=self.bins_per_frame,
+                        aligned_trials_spikes.append(trial.get_spike_bins(area=self.single_area if self.single_area else None,
+                                                                          bins_per_frame=self.bins_per_frame,
                                                                           as_matrix=True))
-                        if self.num_units is None:
-                            self.num_units = len(self.spikes[stimulus][-1])
+                        if aligned_trials_units is not None:
+                            aligned_trials_units += len(aligned_trials_spikes[-1])
+
+                if self.areas_in_spikes():
+                    for area in self.areas:
+                        self.spikes[stimulus][area].append(np.concatenate(aligned_trials_spikes[area], axis=0))
+                        if self.num_units[area] is None:
+                            self.num_units[area] = aligned_trials_units[area]
+                else:
+                    self.spikes[stimulus].append(np.concatenate(aligned_trials_spikes, axis=0))
+                    if self.num_units is None:
+                        self.num_units = aligned_trials_units
 
             if self.max_num_units is not None and self.num_units > self.max_num_units:
                 new_spikes = {}
