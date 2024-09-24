@@ -30,7 +30,7 @@ def get_masked_ds(model, dataset, union=False, bins_per_frame=1):
 
 
 def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEURONAL, labels=[Labels.STIMULUS, Labels.FRAME],
-             knn=False, linear=True, ensemble=True, save_results=False, override=False, override_linear=False, **kwargs):
+             knn=False, linear=True, ensemble=True, save_results=False, override=False, override_linear=False, inp=True, **kwargs):
 
     if isinstance(model, str):
         model_kwargs = module.load_json(model, config=True)
@@ -90,7 +90,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                                                                            linear=True, svm=False, **kwargs)
                 save_res()
 
-            if f'{label.value.name}_input_linear' not in results or override_linear:
+            if inp and (f'{label.value.name}_input_linear' not in results or override_linear):
                 results[f'{label.value.name}_input_linear'] = classify_head_eval(get_masked_ds(model, dataset=basic_dataset, union=True),
                                                                                  categorical=label.value.kind == CATEGORICAL,
                                                                                  linear=True, svm=False, **kwargs)
@@ -103,7 +103,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                                                        voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean], **kwargs))
             save_res()
 
-            if not any([k.startswith(f"{label.value.name}_input_pathway") for k in results.keys()]) or override_linear:
+            if inp and (not any([k.startswith(f"{label.value.name}_input_pathway") for k in results.keys()]) or override_linear):
                 masked_ds = get_masked_ds(model, dataset=basic_dataset)
                 results.update(classify_head_eval_ensemble(masked_ds, base_name=f"{label.value.name}_input_", svm=False,
                                                            categorical=label.value.kind == CATEGORICAL,
@@ -120,7 +120,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                                                            linear=False, k=k, **kwargs)
                     save_res()
                 cur_name = f"{label.value.name}_input_k={k}"
-                if cur_name not in results:
+                if inp and (cur_name not in results):
                     printd(cur_name, ":", end='\t')
                     results[cur_name] = classify_head_eval(get_masked_ds(model, dataset=basic_dataset, union=True),
                                                            categorical=label.value.kind == CATEGORICAL,
@@ -135,12 +135,13 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                                                            voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean]), **kwargs)
                 save_res()
 
-                masked_ds = get_masked_ds(model, dataset=basic_dataset)
-                results.update(classify_head_eval_ensemble(masked_ds, base_name=f"{label.value.name}_input_k={k}_",
-                                                                svm=False, k=k, linear=False,
-                                                                categorical=label.value.kind == CATEGORICAL,
-                                                                voting_methods=[
-                                                                    EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean],
-                                                                **kwargs))
-                save_res()
+                if inp:
+                    masked_ds = get_masked_ds(model, dataset=basic_dataset)
+                    results.update(classify_head_eval_ensemble(masked_ds, base_name=f"{label.value.name}_input_k={k}_",
+                                                                    svm=False, k=k, linear=False,
+                                                                    categorical=label.value.kind == CATEGORICAL,
+                                                                    voting_methods=[
+                                                                        EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean],
+                                                                    **kwargs))
+                    save_res()
     return results

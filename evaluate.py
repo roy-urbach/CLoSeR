@@ -25,6 +25,7 @@ def main():
         parser.add_argument('-m', '--module', type=str, default=Modules.VISION, choices=Modules.get_cmd_module_options())
         parser.add_argument('--knn', action=argparse.BooleanOptionalAction, default=False)
         parser.add_argument('--linear', action=argparse.BooleanOptionalAction, default=True)
+        parser.add_argument('--no_inp', action=argparse.BooleanOptionalAction, default=False)
         parser.add_argument('--ensemble', action=argparse.BooleanOptionalAction, default=True)
         parser.add_argument('--override', action=argparse.BooleanOptionalAction, default=False)
         parser.add_argument('--override_linear', action=argparse.BooleanOptionalAction, default=False)
@@ -51,7 +52,8 @@ def main():
 
     try:
         res = module.evaluate(args.json, knn=args.knn, linear=args.linear, ensemble=args.ensemble,
-                              save_results=True, dataset=None, override=args.override, override_linear=args.override_linear)
+                              save_results=True, dataset=None, override=args.override, override_linear=args.override_linear,
+                              inp=not args.no_inp)
     finally:
         os.remove(evaluating_fn)
 

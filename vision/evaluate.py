@@ -24,7 +24,7 @@ def get_masked_ds(model, dataset=Cifar10()):
 
 
 def evaluate(model, module: Modules=Modules.VISION, knn=False, linear=True, ensemble=True, ensemble_knn=False,
-             save_results=False, override=False, dataset:Optional[Data]=Cifar10(), **kwargs):
+             save_results=False, override=False, inp=True, dataset:Optional[Data]=Cifar10(), **kwargs):
 
     if isinstance(model, str):
         model_kwargs = module.load_json(model, config=True)
@@ -62,12 +62,12 @@ def evaluate(model, module: Modules=Modules.VISION, knn=False, linear=True, ense
         results.update(classify_head_eval_ensemble(embd_dataset, linear=True, svm=False,
                                                    voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb], **kwargs))
         save_res()
-
-        if not any([k.startswith("image_pathway") for k in results.keys()]):
-            masked_ds = get_masked_ds(model, dataset=dataset)
-            results.update(classify_head_eval_ensemble(masked_ds, base_name='image_', svm=False,
-                                                       voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb]), **kwargs)
-            save_res()
+        if inp:
+            if not any([k.startswith("image_pathway") for k in results.keys()]):
+                masked_ds = get_masked_ds(model, dataset=dataset)
+                results.update(classify_head_eval_ensemble(masked_ds, base_name='image_', svm=False,
+                                                           voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb]), **kwargs)
+                save_res()
 
     if ensemble_knn:
         results.update(classify_head_eval_ensemble(embd_dataset, linear=False, svm=False, k=15,
