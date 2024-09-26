@@ -239,7 +239,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
         if triplet:
             all_pair_loss = tf.maximum(pos_dist - neg_dist, 0.)
         else:
-            dist_to_logit = lambda dist: -dist**2 / temperature
+            dist_to_logit = lambda dist: -(dist**2) / temperature
             pos_logit = dist_to_logit(pos_dist)   # (B, T-1, P, P)
             neg_logit = dist_to_logit(neg_dist)   # (B, T-1, P, P)
 

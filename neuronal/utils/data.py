@@ -129,6 +129,9 @@ class Session:
     def get_area_units(self, area):
         return self.units[self.units.ecephys_structure_acronym == area].unit_id.to_numpy()
 
+    def units_per_area(self):
+        return self.get_units().unit_id.groupby(self.get_units().ecephys_structure_acronym).count().to_dict()
+
     def __repr__(self):
         return f"<Session {self.session_id}>"
 
