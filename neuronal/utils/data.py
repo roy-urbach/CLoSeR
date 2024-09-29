@@ -117,6 +117,22 @@ class Session:
         self.units = pd.read_csv(os.path.join(self._path, "units.csv"))
         self.probes = pd.read_csv(os.path.join(self._path, "probes.csv"))
 
+        self._check_validity()
+
+    def _check_validity(self):
+        self.get_units().insert(1, "valid", [True] * self.get_units().shape[0], True)
+        for stim, trials in self.get_trials():
+            for trial in trials:
+                invalid = trial.get_invalid_times()
+                if invalid.size:
+                    if invalid.shape[0] > 1:
+                        raise NotImplementedError()
+                    else:
+                        tags = invalid.tags.item().split("'")[-2]
+                        if tags.startswith('probe'):
+                            probe_id = self.probes.id[self.probes.description == tags].item()
+                            self.get_units().valid = self.get_units().valid & ~(self.get_units().probe_id == probe_id)
+
     def get_trials(self, stimulus=None):
         if stimulus is not None:
             return self.trials.get(stimulus, [])[:]
@@ -126,11 +142,18 @@ class Session:
     def get_units(self):
         return self.units
 
-    def get_area_units(self, area):
-        return self.units[self.units.ecephys_structure_acronym == area].unit_id.to_numpy()
+    def get_area_units(self, area, df=False):
+        sub_df = self.units[self.units.ecephys_structure_acronym == area]
+        if df:
+            return sub_df
+        else:
+            return sub_df.unit_id.to_numpy()
 
-    def units_per_area(self):
-        return self.get_units().unit_id.groupby(self.get_units().ecephys_structure_acronym).count().to_dict()
+    def units_per_area(self, valid=True):
+        units = self.get_units().copy()
+        if valid:
+            units = units[units.valid]
+        return units.unit_id.groupby(self.get_units().ecephys_structure_acronym).count().to_dict()
 
     def __repr__(self):
         return f"<Session {self.session_id}>"
@@ -372,18 +395,20 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
 
                 aligned_trials_spikes = {area: [] for area in self.areas} if self.areas_in_spikes() else []
                 aligned_trials_units = {area: 0 for area in self.areas} if self.areas_in_spikes() else 0
-                for trial in aligned_trials:
+                for session, trial in zip(self.sessions, aligned_trials):
                     if self.areas_in_spikes():
                         for area in self.areas:
+                            unit_mask = session.get_area_units(area, df=True).valid.to_numpy()
                             aligned_trials_spikes[area].append(trial.get_spike_bins(area=area,
                                                                                     bins_per_frame=self.bins_per_frame,
-                                                                                    as_matrix=True))
+                                                                                    as_matrix=True)[unit_mask])
                             aligned_trials_units[area] += len(aligned_trials_spikes[area][-1])
 
                     else:
+                        unit_mask = (session.get_units() if self.single_area is None else session.get_area_units(self.single_area, df=True)).valid.to_numpy()
                         aligned_trials_spikes.append(trial.get_spike_bins(area=self.single_area if self.single_area else None,
                                                                           bins_per_frame=self.bins_per_frame,
-                                                                          as_matrix=True))
+                                                                          as_matrix=True)[unit_mask])
                         if aligned_trials_units is not None:
                             aligned_trials_units += len(aligned_trials_spikes[-1])
 
