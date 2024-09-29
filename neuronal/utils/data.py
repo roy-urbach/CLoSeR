@@ -4,7 +4,7 @@ import pandas as pd
 from enum import Enum
 
 from neuronal.utils.consts import NEURONAL_BASE_DIR, NATURAL_MOVIES, NATURAL_MOVIES_FRAMES, \
-    NATURAL_MOVIES_TRIALS, SESSIONS, BLOCKS
+    NATURAL_MOVIES_TRIALS, SESSIONS, BLOCKS, VALID_SESSIONS
 import tensorflow as tf
 
 from utils.utils import streval
@@ -281,9 +281,12 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
                  stimuli=NATURAL_MOVIES, areas=None, train=True, val=False, test=False, binary=False, random=False,
                  split_scheme=SplitScheme.LAST):
         super(SessionDataGenerator, self).__init__()
-        session_ids = streval(session_id)
-        if isinstance(session_ids, int):
-            session_ids = [session_ids]
+        if session_id == 'valid':
+            session_ids = VALID_SESSIONS
+        else:
+            session_ids = streval(session_id)
+            if isinstance(session_ids, int):
+                session_ids = [session_ids]
         self.session_ids = []
         for ses_id in session_ids:
             if ses_id not in SESSIONS:
