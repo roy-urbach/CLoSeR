@@ -259,6 +259,8 @@ class Trial:
     def get_spike_bins(self, area=None, bins_per_frame=3, as_matrix=False, **kwargs):
         self._load_spike_bins(bins_per_frame, **kwargs)
         unit_to_bins = self._filter_by_area(self.spike_bins[bins_per_frame], area=area)
+        if not len(unit_to_bins): return None
+
         if as_matrix:
             return np.stack([unit_to_bins[unit] for unit in sorted(unit_to_bins.keys())], axis=0)
         else:
@@ -402,6 +404,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
                     if self.areas_in_spikes():
                         for area in self.areas:
                             unit_mask = session.get_area_units(area, df=True).valid.to_numpy()
+                            if not unit_mask.any(): continue
                             aligned_trials_spikes[area].append(trial.get_spike_bins(area=area,
                                                                                     bins_per_frame=self.bins_per_frame,
                                                                                     as_matrix=True)[unit_mask])
@@ -409,6 +412,8 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
 
                     else:
                         unit_mask = (session.get_units() if self.single_area is None else session.get_area_units(self.single_area, df=True)).valid.to_numpy()
+                        if not unit_mask.any(): continue
+
                         aligned_trials_spikes.append(trial.get_spike_bins(area=self.single_area if self.single_area else None,
                                                                           bins_per_frame=self.bins_per_frame,
                                                                           as_matrix=True)[unit_mask])
