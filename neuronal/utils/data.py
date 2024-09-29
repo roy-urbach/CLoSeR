@@ -121,7 +121,7 @@ class Session:
 
     def _check_validity(self):
         self.get_units().insert(1, "valid", [True] * self.get_units().shape[0], True)
-        for stim, trials in self.get_trials():
+        for stim, trials in self.get_trials().items():
             for trial in trials:
                 invalid = trial.get_invalid_times()
                 if invalid.size:
