@@ -132,3 +132,16 @@ def calculate_square_rows_cols(n):
     cols = int(np.ceil(np.sqrt(n)))
     rows = int(np.ceil(n/cols))
     return rows, cols
+
+
+def colorbar(mappable, ax=None):
+    # https://joseph-long.com/writing/colorbars/
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+    last_axes = plt.gca()
+    ax = mappable.axes if ax is None else ax
+    fig = ax.figure
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.05)
+    cbar = fig.colorbar(mappable, cax=cax)
+    plt.sca(last_axes)
+    return cbar
