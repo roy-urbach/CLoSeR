@@ -284,7 +284,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
         if self.adversarial_w is not None:
             DIM = tf.shape(y_pred)[-2]//2
             embd = y_pred[..., :DIM, :]
-            pred_embd = y_pred[..., DIM:]
+            pred_embd = y_pred[..., DIM:, :]
 
         else:
             embd = y_pred
