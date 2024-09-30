@@ -120,8 +120,13 @@ class RecurrentAdversarial(tf.keras.layers.Layer):
 
     def call(self, inputs):
         embds = self.rnn(inputs)    # (B, T, OUTDIM)
+        print(f"{embds.shape=}")
         embds_as_inp = tf.transpose(embds[:, :-1], [0, 2, 1])   # (B, DIM, T-1)
+        print(f"{embds_as_inp.shape=}")
+
         adverse_embd = self.advers_rnn(embds_as_inp)    # (B, T-1, OUTDIM)
+        print(f"{adverse_embd.shape=}")
+
         concat = tf.concat([embds,
                             tf.concat([adverse_embd, tf.zeros([tf.shape(inputs)[0], 1, self.outdim], dtype=adverse_embd.dtype)], axis=1)],
                            axis=-1)
