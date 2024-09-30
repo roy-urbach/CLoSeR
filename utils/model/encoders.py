@@ -3,6 +3,7 @@ import tensorflow as tf
 
 from utils.model.layers import ViTBlock, MLP, BasicRNNLayer, ViTOutBlock
 from utils.tf_utils import serialize
+from utils.utils import streval
 
 
 class ViTEncoder:
@@ -103,3 +104,26 @@ class TimeAgnosticMLP(MLPEncoder):
             reshaped = permuted
 
         return super().call(reshaped)
+
+
+class RecurrentAdversarial(tf.keras.layers.Layer):
+    def __init__(self, encoder='BasicRNN', name='recurrent_adversarial', **kwargs):
+        super().__init__(name=name)
+        RNN = eval(encoder)
+        self.rnn = RNN(name=name + "_rnn", **kwargs)
+        self.advers_rnn = RNN(name=name + "_adversrnn", **kwargs)
+        self.outdim = None
+
+    def build(self, input_shape):
+        # (B, N, T)
+        self.outdim = input_shape[2]
+
+    def call(self, inputs):
+        embds = self.rnn(inputs)    # (B, T, OUTDIM)
+        embds_as_inp = tf.transpose(embds[:, :-1], [0, 2, 1])   # (B, DIM, T-1)
+        adverse_embd = self.advers_rnn(embds_as_inp)    # (B, T-1, OUTDIM)
+        concat = tf.concatenate([embds,
+                                 tf.concatenate([adverse_embd, tf.zeros(tf.shape(inputs)[0], 1, self.outdim)], axis=1)],
+                                axis=-1)
+        return concat
+

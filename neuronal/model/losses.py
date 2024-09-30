@@ -178,7 +178,7 @@ class VectorTrajectoryDisagreement(tf.keras.losses.Loss):
 
 class ContinuousLoss(tf.keras.losses.Loss):
     def __init__(self, entropy_w=None, crosspath_w=None, nonlocal_w=None, nonlocal_kwargs={}, eps=None,
-                 contrast_in_time_w=None, contrast_in_time_kwargs={}, name='continuous_loss'):
+                 contrast_in_time_w=None, contrast_in_time_kwargs={}, adversarial_w=False, adversarial_kwargs={}, name='continuous_loss'):
         super().__init__(name=name)
         self.entropy_w = entropy_w
         self.crosspath_w = crosspath_w
@@ -187,6 +187,11 @@ class ContinuousLoss(tf.keras.losses.Loss):
         self.eps = eps if eps is not None else 0.
         self.contrast_in_time_w = contrast_in_time_w
         self.contrast_in_time_kwargs = contrast_in_time_kwargs
+        self.adversarial_w = adversarial_w
+        self.adversarial_kwargs = adversarial_kwargs
+        self.P = None
+        self.T = None
+        self.DIM = None
 
     def continuous_disagreement(self, embd):
         dist = tf.maximum(tf.linalg.norm(embd[:, 1:] - embd[:, :-1], axis=-2), self.eps)  # (B, T-1, P)
@@ -250,22 +255,61 @@ class ContinuousLoss(tf.keras.losses.Loss):
         relevant_pairs_loss = all_pair_loss[mask]
         return tf.reduce_mean(relevant_pairs_loss)
 
+    def adversarial_loss(self, embd, pred_embd, pred_w=1., temperature=10., stop_grad_j=False, **kwargs):
+        # (B, T, DIM, P)
+
+        last_embd = embd[:, -1]     # (B, DIM, P)
+        last_pred_embd = pred_embd[:, -1]
+        last_embd_j = last_embd
+        if stop_grad_j:
+            last_embd_j = tf.stop_gradient(last_embd_j)
+
+        # (B, T, DIM, P)
+        pred_dist = tf.linalg.norm(tf.stop_gradient(last_embd) - last_pred_embd, axis=-2)
+        predictivity_loss = tf.reduce_mean(pred_dist)
+
+        pos_dist_sqr = tf.linalg.norm(last_embd[..., None] - last_embd_j[..., None, :], axis=-2)**2
+        neg_dist_sqr = tf.linalg.norm(last_embd_j - tf.stop_gradient(last_pred_embd), axis=-2)**2
+
+        pe_contrast_loss = pos_dist_sqr - tf.reduce_logsumexp(-tf.stack([pos_dist_sqr, neg_dist_sqr[..., None, :]], axis=-1)/temperature,
+                                                              axis=-1)  # (B, P, P)
+        mask = tf.tile(~tf.eye(self.P, dtype=tf.bool)[None, None], [tf.shape(pe_contrast_loss)[0], 1, 1])
+        pe_contrast_loss = tf.reduce_mean(pe_contrast_loss[mask])
+
+        return pred_w * predictivity_loss + pe_contrast_loss
+
     def call(self, y_true, y_pred):
         # y_pred shape (B, T, DIM, P)
-        loss = self.continuous_disagreement(y_pred)
+
+        if self.adversarial_w is not None:
+            DIM = tf.shape(y_pred)[-2]//2
+            embd = y_pred[..., :DIM, :]
+            pred_embd = y_pred[..., DIM:]
+
+        else:
+            embd = y_pred
+            pred_embd = None
+
+        self.T = tf.shape(embd)[1]
+        self.DIM = tf.shape(embd)[2]
+        self.P = tf.shape(embd)[3]
+
+        loss = self.continuous_disagreement(embd)
         if self.crosspath_w is not None:
-            loss = loss + self.crosspath_w * self.crosspath_disagreement(y_pred)
+            loss = loss + self.crosspath_w * self.crosspath_disagreement(embd)
         if self.entropy_w is not None:
-            loss = loss + self.entropy_w * koleo(y_pred, axis=-2)
+            loss = loss + self.entropy_w * koleo(embd, axis=-2)
         if self.nonlocal_w is not None:
             use_buggy_version = self.nonlocal_kwargs.pop("bug", True)
             if use_buggy_version:
                 nonlocal_contrast = self.nonlocal_contrast
             else:
                 nonlocal_contrast = self.nonlocal_contrast_without_bug
-            loss = loss + self.nonlocal_w * nonlocal_contrast(y_pred, **self.nonlocal_kwargs)
+            loss = loss + self.nonlocal_w * nonlocal_contrast(embd, **self.nonlocal_kwargs)
         if self.contrast_in_time_w is not None:
-            loss = loss + self.contrast_in_time_w * self.contrast_in_time(y_pred, **self.contrast_in_time_kwargs)
+            loss = loss + self.contrast_in_time_w * self.contrast_in_time(embd, **self.contrast_in_time_kwargs)
+        if self.adversarial_w is not None:
+            loss = loss + self.adversarial_loss(embd, pred_embd, **self.adversarial_kwargs)
         return loss
 
 
