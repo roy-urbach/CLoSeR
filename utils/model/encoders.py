@@ -37,13 +37,14 @@ class MLPEncoder(MLP):
 
 
 class BasicRNN(tf.keras.layers.Layer):
-    def __init__(self, residual=False, out_dim=None, name='rnn', kernel_regularizer=None, out_regularizer=None,
+    def __init__(self, residual=False, outdim=None, name='rnn', kernel_regularizer=None, out_regularizer=None,
                  **kwargs):
         super().__init__(name=name)
         self.residual = residual
+        self.outdim = outdim
         self.rnn = BasicRNNLayer(name=name + "_internal", kernel_regularizer=kernel_regularizer, **kwargs)
-        self.out_proj = tf.keras.layers.Dense(out_dim, name=name + "_out", kernel_regularizer=kernel_regularizer,
-                                              activity_regularizer=out_regularizer) if out_dim is not None else None
+        self.out_proj = tf.keras.layers.Dense(outdim, name=name + "_out", kernel_regularizer=kernel_regularizer,
+                                              activity_regularizer=out_regularizer) if outdim is not None else None
         self.initial_state = None
 
     def build(self, input_shape):
@@ -116,18 +117,12 @@ class RecurrentAdversarial(tf.keras.layers.Layer):
 
     def build(self, input_shape):
         # (B, N, T)
-        self.outdim = input_shape[1]
+        self.outdim = self.rnn.outdim
 
     def call(self, inputs):
         embds = self.rnn(inputs)    # (B, T, OUTDIM)
-        print(f"{embds.shape=}")
         embds_as_inp = tf.transpose(embds[:, :-1], [0, 2, 1])   # (B, DIM, T-1)
-        print(f"{embds_as_inp.shape=}")
-
         adverse_embd = self.advers_rnn(embds_as_inp)    # (B, T-1, OUTDIM)
-        print(f"{adverse_embd.shape=}")
-
-        print(f"{tf.concat([adverse_embd, tf.zeros([tf.shape(inputs)[0], 1, self.outdim], dtype=adverse_embd.dtype)], axis=1).shape=}")
 
         concat = tf.concat([embds,
                             tf.concat([adverse_embd, tf.zeros([tf.shape(inputs)[0], 1, self.outdim], dtype=adverse_embd.dtype)], axis=1)],
