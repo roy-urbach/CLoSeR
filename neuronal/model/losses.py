@@ -273,7 +273,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
 
         pe_contrast_loss = pos_dist_sqr - tf.reduce_logsumexp(-tf.stack([pos_dist_sqr, neg_dist_sqr[..., None, :]], axis=-1)/temperature,
                                                               axis=-1)  # (B, P, P)
-        mask = tf.tile(~tf.eye(self.P, dtype=tf.bool)[None, None], [tf.shape(pe_contrast_loss)[0], 1, 1])
+        mask = tf.tile(~tf.eye(self.P, dtype=tf.bool)[None], [tf.shape(pe_contrast_loss)[0], 1, 1])
         pe_contrast_loss = tf.reduce_mean(pe_contrast_loss[mask])
 
         return pred_w * predictivity_loss + pe_contrast_loss
