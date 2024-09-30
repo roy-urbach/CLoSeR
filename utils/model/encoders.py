@@ -116,7 +116,7 @@ class RecurrentAdversarial(tf.keras.layers.Layer):
 
     def build(self, input_shape):
         # (B, N, T)
-        self.outdim = input_shape[2]
+        self.outdim = input_shape[1]
 
     def call(self, inputs):
         embds = self.rnn(inputs)    # (B, T, OUTDIM)
