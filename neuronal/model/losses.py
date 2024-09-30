@@ -264,14 +264,19 @@ class ContinuousLoss(tf.keras.losses.Loss):
         if stop_grad_j:
             last_embd_j = tf.stop_gradient(last_embd_j)
 
-        # (B, T, DIM, P)
+        # (B, P)
         pred_dist = tf.linalg.norm(tf.stop_gradient(last_embd) - last_pred_embd, axis=-2)
         predictivity_loss = tf.reduce_mean(pred_dist)
 
-        pos_dist_sqr = tf.linalg.norm(last_embd[..., None] - last_embd_j[..., None, :], axis=-2)**2
+        # (B, P, P)
+        pos_dist_sqr = tf.linalg.norm(last_embd[..., None] - last_embd_j[..., None, :], axis=-3)**2
+
+        # (B, P)
         neg_dist_sqr = tf.linalg.norm(last_embd_j - tf.stop_gradient(last_pred_embd), axis=-2)**2
 
-        pe_contrast_loss = pos_dist_sqr - tf.reduce_logsumexp(-tf.stack([pos_dist_sqr, neg_dist_sqr[..., None, :]], axis=-1)/temperature,
+        pe_contrast_loss = pos_dist_sqr - tf.reduce_logsumexp(-tf.stack([pos_dist_sqr,
+                                                                         tf.tile(neg_dist_sqr[..., None, :], [1, self.P, 1])],
+                                                                        axis=-1)/temperature,
                                                               axis=-1)  # (B, P, P)
         mask = tf.tile(~tf.eye(self.P, dtype=tf.bool)[None], [tf.shape(pe_contrast_loss)[0], 1, 1])
         pe_contrast_loss = tf.reduce_mean(pe_contrast_loss[mask])
