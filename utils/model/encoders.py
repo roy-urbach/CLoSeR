@@ -86,7 +86,7 @@ class LSTM(tf.keras.layers.Layer):
         self.outdim = self.lstm.units
 
     def call(self, inputs, training=False):
-        out = self.lstm(tf.reshape(inputs, [0, 2, 1]), training=training)
+        out = self.lstm(tf.transpose(inputs, [0, 2, 1]), training=training)
         if self.out_regularizer is not None:
             self.add_loss(self.out_regularizer(out))
         return out
