@@ -137,6 +137,7 @@ class RecurrentAdversarial(tf.keras.layers.Layer):
         embds = self.rnn(inputs)    # (B, T, OUTDIM)
         embds_as_inp = tf.transpose(embds[:, :-1], [0, 2, 1])   # (B, DIM, T-1)
         adverse_embd = self.advers_rnn(embds_as_inp)    # (B, T-1, OUTDIM)
+        print(inputs.shape)
         print(embds.shape)
         print(embds_as_inp.shape)
         print(adverse_embd.shape)
