@@ -1,7 +1,7 @@
 from utils.model.losses import GeneralLossByKey, koleo
 import tensorflow as tf
 
-from utils.model.metrics import LossMonitor, LossMonitors
+from utils.model.metrics import LossMonitors
 
 
 class CrossPathwayTemporalContrastiveLoss(tf.keras.losses.Loss):
@@ -180,7 +180,7 @@ class VectorTrajectoryDisagreement(tf.keras.losses.Loss):
 
 class ContinuousLoss(tf.keras.losses.Loss):
     def __init__(self, continuous_w=1., entropy_w=None, crosspath_w=None, nonlocal_w=None, nonlocal_kwargs={}, eps=None,
-                 contrast_in_time_w=None, contrast_in_time_kwargs={}, adversarial_w=False, adversarial_kwargs={}, monitor=False, name='continuous_loss'):
+                 contrast_in_time_w=None, contrast_in_time_kwargs={}, adversarial_w=None, adversarial_pred_w=None, adversarial_kwargs={}, monitor=False, name='continuous_loss'):
         super().__init__(name=name)
         self.entropy_w = entropy_w
         self.crosspath_w = crosspath_w
@@ -190,6 +190,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
         self.contrast_in_time_w = contrast_in_time_w
         self.contrast_in_time_kwargs = contrast_in_time_kwargs
         self.adversarial_w = adversarial_w
+        self.adversarial_pred_w = adversarial_w if adversarial_pred_w is None else adversarial_pred_w
         self.adversarial_kwargs = adversarial_kwargs
         self.P = None
         self.T = None
@@ -290,7 +291,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
 
         return loss
 
-    def adversarial_loss(self, embd, pred_embd, pred_w=1., temperature=10., stop_grad_j=False, **kwargs):
+    def adversarial_loss(self, embd, pred_embd, temperature=10., stop_grad_j=False, **kwargs):
         # (B, T, DIM, P)
 
         last_embd = embd[:, -1]     # (B, DIM, P)
@@ -322,7 +323,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
         if self.monitor is not None:
             self.monitor.update_monitor("adv_inter", tf.reduce_mean(tf.math.exp(-pe_contrast_relevant)))
 
-        return pred_w * predictivity_loss + pe_contrast_loss
+        return self.adversarial_pred_w * predictivity_loss + self.adversarial_w * pe_contrast_loss
 
     def call(self, y_true, y_pred):
         # y_pred shape (B, T, DIM, P)
