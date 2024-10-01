@@ -306,15 +306,15 @@ class ContinuousLoss(tf.keras.losses.Loss):
             self.monitor.update_monitor("pred_distance", predictivity_loss)
 
         # (B, P, P)
-        pos_dist_sqr = tf.maximum(tf.linalg.norm(last_embd[..., None] - last_embd_j[..., None, :], axis=-3), self.eps)**2
+        pos_dist_sqr_normed = (tf.maximum(tf.linalg.norm(last_embd[..., None] - last_embd_j[..., None, :], axis=-3), self.eps)**2) / temperature
 
         # (B, P)
-        neg_dist_sqr = tf.maximum(tf.linalg.norm(last_embd_j - tf.stop_gradient(last_pred_embd), axis=-2), self.eps)**2
+        neg_dist_sqr_normed = (tf.maximum(tf.linalg.norm(last_embd_j - tf.stop_gradient(last_pred_embd), axis=-2), self.eps)**2) / temperature
 
-        pe_contrast_loss = pos_dist_sqr - tf.reduce_logsumexp(-tf.stack([pos_dist_sqr,
-                                                                         tf.tile(neg_dist_sqr[..., None, :], [1, self.P, 1])],
-                                                                        axis=-1)/temperature,
-                                                              axis=-1)  # (B, P, P)
+        pe_contrast_loss = pos_dist_sqr_normed - tf.reduce_logsumexp(-tf.stack([pos_dist_sqr_normed,
+                                                                                tf.tile(neg_dist_sqr_normed[..., None, :], [1, self.P, 1])],
+                                                                                axis=-1),
+                                                                     axis=-1)  # (B, P, P)
         mask = tf.tile(~tf.eye(self.P, dtype=tf.bool)[None], [tf.shape(pe_contrast_loss)[0], 1, 1])
         pe_contrast_relevant = pe_contrast_loss[mask]
         pe_contrast_loss = tf.reduce_mean(pe_contrast_relevant)
