@@ -89,6 +89,7 @@ class LSTM(tf.keras.layers.Layer):
         out = self.lstm(tf.reshape(inputs, [0, 2, 1]), training=training)
         if self.out_regularizer is not None:
             self.add_loss(self.out_regularizer(out))
+        return out
 
 
 class TimeAgnosticMLP(MLPEncoder):
