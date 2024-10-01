@@ -1,6 +1,8 @@
 from utils.model.losses import GeneralLossByKey, koleo
 import tensorflow as tf
 
+from utils.model.metrics import LossMonitor, LossMonitors
+
 
 class CrossPathwayTemporalContrastiveLoss(tf.keras.losses.Loss):
     def __init__(self, *args, a=None, contrast_t=1, start_t=0, temperature=10, cosine=False, stable=True,
@@ -177,8 +179,8 @@ class VectorTrajectoryDisagreement(tf.keras.losses.Loss):
 
 
 class ContinuousLoss(tf.keras.losses.Loss):
-    def __init__(self, entropy_w=None, crosspath_w=None, nonlocal_w=None, nonlocal_kwargs={}, eps=None,
-                 contrast_in_time_w=None, contrast_in_time_kwargs={}, adversarial_w=False, adversarial_kwargs={}, name='continuous_loss'):
+    def __init__(self, continuous_w=1., entropy_w=None, crosspath_w=None, nonlocal_w=None, nonlocal_kwargs={}, eps=None,
+                 contrast_in_time_w=None, contrast_in_time_kwargs={}, adversarial_w=False, adversarial_kwargs={}, monitor=False, name='continuous_loss'):
         super().__init__(name=name)
         self.entropy_w = entropy_w
         self.crosspath_w = crosspath_w
@@ -192,10 +194,30 @@ class ContinuousLoss(tf.keras.losses.Loss):
         self.P = None
         self.T = None
         self.DIM = None
+        self.continuous_w = continuous_w
+
+        if monitor:
+            losses = []
+            if continuous_w:
+                losses.append('continuous')
+            if entropy_w:
+                losses.append("koleo")
+            if crosspath_w:
+                losses.append("distlocal_inter")
+            if nonlocal_w:
+                losses.append("nonlocal_inter")
+            if contrast_in_time_w:
+                losses.append("templocal_inter")
+            if adversarial_w:
+                losses.append("pred_distance")
+                losses.append("adv_inter")
+            self.monitor = LossMonitors(*losses, name="ContinuousLossMonitor")
 
     def continuous_disagreement(self, embd):
         dist = tf.maximum(tf.linalg.norm(embd[:, 1:] - embd[:, :-1], axis=-2), self.eps)  # (B, T-1, P)
         disagreement = tf.reduce_mean(dist)
+        if self.monitor is not None:
+            self.monitor.update_monitor("continuous", disagreement)
         return disagreement
 
     def crosspath_disagreement(self, embd):
@@ -204,6 +226,8 @@ class ContinuousLoss(tf.keras.losses.Loss):
                        [tf.shape(dist)[0], tf.shape(dist)[1], 1, 1])
 
         disagreement = tf.reduce_mean(dist[mask])
+        if self.monitor is not None:
+            self.monitor.update_monitor("distlocal_inter", disagreement)
         return disagreement
 
     def nonlocal_contrast(self, embd, temperature=1., eps=1e-4):
@@ -216,7 +240,10 @@ class ContinuousLoss(tf.keras.losses.Loss):
         mask = tf.tile(~tf.eye(tf.shape(all_pair_loss)[-1], dtype=tf.bool)[None, None],
                        [tf.shape(all_pair_loss)[0], tf.shape(all_pair_loss)[1], 1, 1])
         relevant_pairs_loss = all_pair_loss[mask]
-        return tf.reduce_mean(relevant_pairs_loss)
+        loss = tf.reduce_mean(relevant_pairs_loss)
+        if self.monitor is not None:
+            self.monitor.update_monitor("nonlocal_inter", tf.reduce_mean(tf.math.exp(-relevant_pairs_loss)))
+        return loss
 
     def nonlocal_contrast_without_bug(self, embd, temperature=10.):
         # y_pred shape (B, T, DIM, P)
@@ -228,7 +255,10 @@ class ContinuousLoss(tf.keras.losses.Loss):
         mask = tf.tile(~tf.eye(tf.shape(all_pair_loss)[-1], dtype=tf.bool)[None, None],
                        [tf.shape(all_pair_loss)[0], tf.shape(all_pair_loss)[1], 1, 1])
         relevant_pairs_loss = all_pair_loss[mask]
-        return tf.reduce_mean(relevant_pairs_loss)
+        loss = tf.reduce_mean(relevant_pairs_loss)
+        if self.monitor is not None:
+            self.monitor.update_monitor("nonlocal_inter", tf.reduce_mean(tf.math.exp(-relevant_pairs_loss)))
+        return loss
 
     def contrast_in_time(self, embd, temperature=10., eps=1e-4, triplet=False):
         # embd shape (B, T, DIM, P)
@@ -253,7 +283,12 @@ class ContinuousLoss(tf.keras.losses.Loss):
 
         mask = tf.tile(~tf.eye(p, dtype=tf.bool)[None, None], [b, t-1, 1, 1])
         relevant_pairs_loss = all_pair_loss[mask]
-        return tf.reduce_mean(relevant_pairs_loss)
+        loss = tf.reduce_mean(relevant_pairs_loss)
+
+        if self.monitor is not None:
+            self.monitor.update_monitor("templocal_inter", tf.reduce_mean(tf.math.exp(-relevant_pairs_loss)))
+
+        return loss
 
     def adversarial_loss(self, embd, pred_embd, pred_w=1., temperature=10., stop_grad_j=False, **kwargs):
         # (B, T, DIM, P)
@@ -265,21 +300,27 @@ class ContinuousLoss(tf.keras.losses.Loss):
             last_embd_j = tf.stop_gradient(last_embd_j)
 
         # (B, P)
-        pred_dist = tf.linalg.norm(tf.stop_gradient(last_embd) - last_pred_embd, axis=-2)
+        pred_dist = tf.maximum(tf.linalg.norm(tf.stop_gradient(last_embd) - last_pred_embd, axis=-2), self.eps)
         predictivity_loss = tf.reduce_mean(pred_dist)
+        if self.monitor is not None:
+            self.monitor.update_monitor("pred_distance", predictivity_loss)
 
         # (B, P, P)
-        pos_dist_sqr = tf.linalg.norm(last_embd[..., None] - last_embd_j[..., None, :], axis=-3)**2
+        pos_dist_sqr = tf.maximum(tf.linalg.norm(last_embd[..., None] - last_embd_j[..., None, :], axis=-3), self.eps)**2
 
         # (B, P)
-        neg_dist_sqr = tf.linalg.norm(last_embd_j - tf.stop_gradient(last_pred_embd), axis=-2)**2
+        neg_dist_sqr = tf.maximum(tf.linalg.norm(last_embd_j - tf.stop_gradient(last_pred_embd), axis=-2), self.eps)**2
 
         pe_contrast_loss = pos_dist_sqr - tf.reduce_logsumexp(-tf.stack([pos_dist_sqr,
                                                                          tf.tile(neg_dist_sqr[..., None, :], [1, self.P, 1])],
                                                                         axis=-1)/temperature,
                                                               axis=-1)  # (B, P, P)
         mask = tf.tile(~tf.eye(self.P, dtype=tf.bool)[None], [tf.shape(pe_contrast_loss)[0], 1, 1])
-        pe_contrast_loss = tf.reduce_mean(pe_contrast_loss[mask])
+        pe_contrast_relevant = pe_contrast_loss[mask]
+        pe_contrast_loss = tf.reduce_mean(pe_contrast_relevant)
+
+        if self.monitor is not None:
+            self.monitor.update_monitor("adv_inter", tf.reduce_mean(tf.math.exp(-pe_contrast_relevant)))
 
         return pred_w * predictivity_loss + pe_contrast_loss
 
@@ -299,7 +340,9 @@ class ContinuousLoss(tf.keras.losses.Loss):
         self.DIM = tf.shape(embd)[2]
         self.P = tf.shape(embd)[3]
 
-        loss = self.continuous_disagreement(embd)
+        loss = 0.
+        if self.continuous_w is not None:
+            loss = loss + self.continuous_w * self.continuous_disagreement(embd)
         if self.crosspath_w is not None:
             loss = loss + self.crosspath_w * self.crosspath_disagreement(embd)
         if self.entropy_w is not None:
