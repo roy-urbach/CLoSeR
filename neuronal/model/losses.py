@@ -346,7 +346,10 @@ class ContinuousLoss(tf.keras.losses.Loss):
         if self.crosspath_w is not None:
             loss = loss + self.crosspath_w * self.crosspath_disagreement(embd)
         if self.entropy_w is not None:
-            loss = loss + self.entropy_w * koleo(embd, axis=-2)
+            koleo_loss = koleo(embd, axis=-2)
+            if self.monitor is not None:
+                self.monitor.update_monitor("koleo", koleo_loss)
+            loss = loss + self.entropy_w * koleo_loss
         if self.nonlocal_w is not None:
             use_buggy_version = self.nonlocal_kwargs.pop("bug", True)
             if use_buggy_version:
