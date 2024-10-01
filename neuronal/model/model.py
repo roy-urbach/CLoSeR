@@ -171,7 +171,7 @@ def compile_model(model, dataset, loss=CrossPathwayTemporalContrastiveLoss, loss
 
     for loss in losses.values():
         if hasattr(loss, "monitor"):
-            for k, m in loss.monitor.monitors.values():
+            for k, m in loss.monitor.monitors.items():
                 metrics[k] = m
 
     optimizer = get_optimizer(optimizer_cls=optimizer_cls, **optimizer_kwargs)
