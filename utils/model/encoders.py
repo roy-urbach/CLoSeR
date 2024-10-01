@@ -79,12 +79,15 @@ class BasicRNN(tf.keras.layers.Layer):
 
 
 class LSTM(tf.keras.layers.Layer):
-    def __init__(self, *args, name='lstm', **kwargs):
+    def __init__(self, *args, name='lstm', out_regularizer=None, **kwargs):
         super().__init__(name=name)
         self.lstm = tf.keras.layers.LSTM(*args, return_sequences=True, **kwargs)
+        self.out_regularizer = out_regularizer
 
     def call(self, inputs, training=False):
-        return self.lstm(tf.reshape(inputs, [0, 2, 1]), training=training)
+        out = self.lstm(tf.reshape(inputs, [0, 2, 1]), training=training)
+        if self.out_regularizer is not None:
+            self.add_loss(self.out_regularizer(out))
 
 
 class TimeAgnosticMLP(MLPEncoder):
