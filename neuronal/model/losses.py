@@ -311,7 +311,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
         # (B, P)
         neg_dist_sqr_normed = (tf.maximum(tf.linalg.norm(last_embd_j - tf.stop_gradient(last_pred_embd), axis=-2), self.eps)**2) / temperature
 
-        pe_contrast_loss = pos_dist_sqr_normed - tf.reduce_logsumexp(-tf.stack([pos_dist_sqr_normed,
+        pe_contrast_loss = pos_dist_sqr_normed + tf.reduce_logsumexp(-tf.stack([pos_dist_sqr_normed,
                                                                                 tf.tile(neg_dist_sqr_normed[..., None, :], [1, self.P, 1])],
                                                                                 axis=-1),
                                                                      axis=-1)  # (B, P, P)
