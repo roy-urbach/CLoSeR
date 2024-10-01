@@ -171,8 +171,12 @@ def compile_model(model, dataset, loss=CrossPathwayTemporalContrastiveLoss, loss
 
     for loss in losses.values():
         if hasattr(loss, "monitor"):
+            if 'embedding' not in metrics:
+                metrics['embedding'] = []
+            elif not isinstance(metrics['embedding'], list):
+                metrics['embedding'] = [metrics['embedding']]
             for k, m in loss.monitor.monitors.items():
-                metrics[k] = m
+                metrics['embedding'].append(m)
 
     optimizer = get_optimizer(optimizer_cls=optimizer_cls, **optimizer_kwargs)
     model.compile(optimizer=optimizer, loss=losses, metrics=metrics)
