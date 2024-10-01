@@ -83,6 +83,7 @@ class LSTM(tf.keras.layers.Layer):
         super().__init__(name=name)
         self.lstm = tf.keras.layers.LSTM(*args, return_sequences=True, **kwargs)
         self.out_regularizer = out_regularizer
+        self.outdim = self.lstm.units
 
     def call(self, inputs, training=False):
         out = self.lstm(tf.reshape(inputs, [0, 2, 1]), training=training)
