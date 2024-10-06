@@ -343,7 +343,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
         _std = tf.math.reduce_std(tf.stop_gradient(inenc_dists), axis=(0, 1))  # (T, P, )
         mult = tf.einsum('ijtn,ijtm->tnm', inenc_dists, inenc_dists)  # (T, P, P)
 
-        temporal_mean_correlation = tf.reduce_mean((mult / corr_size - _mean[None] * _mean[:, None]) / (_std[None] * _std[:, None]), axis=0)
+        temporal_mean_correlation = tf.reduce_mean((mult / corr_size - _mean[:, None] * _mean[..., None]) / (_std[:, None] * _std[..., None]), axis=0)
 
         mean_corr = tf.reduce_mean(temporal_mean_correlation[~tf.eye(self.P, dtype=tf.bool)])
 
