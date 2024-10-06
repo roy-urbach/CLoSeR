@@ -180,8 +180,9 @@ class VectorTrajectoryDisagreement(tf.keras.losses.Loss):
 
 class ContinuousLoss(tf.keras.losses.Loss):
     def __init__(self, continuous_w=1., entropy_w=None, crosspath_w=None, nonlocal_w=None, nonlocal_kwargs={}, eps=None,
-                 contrast_in_time_w=None, contrast_in_time_kwargs={}, adversarial_w=None, adversarial_pred_w=None, adversarial_kwargs={}, monitor=False, name='continuous_loss'):
+                 contrast_in_time_w=None, contrast_in_time_kwargs={}, push_corr_w=None, adversarial_w=None, adversarial_pred_w=None, adversarial_kwargs={}, monitor=False, name='continuous_loss'):
         super().__init__(name=name)
+        self.continuous_w = continuous_w
         self.entropy_w = entropy_w
         self.crosspath_w = crosspath_w
         self.nonlocal_w = nonlocal_w
@@ -189,13 +190,13 @@ class ContinuousLoss(tf.keras.losses.Loss):
         self.eps = eps if eps is not None else 0.
         self.contrast_in_time_w = contrast_in_time_w
         self.contrast_in_time_kwargs = contrast_in_time_kwargs
+        self.push_corr_w = push_corr_w
         self.adversarial_w = adversarial_w
         self.adversarial_pred_w = adversarial_w if adversarial_pred_w is None else adversarial_pred_w
         self.adversarial_kwargs = adversarial_kwargs
         self.P = None
         self.T = None
         self.DIM = None
-        self.continuous_w = continuous_w
 
         if monitor:
             losses = []
@@ -209,6 +210,8 @@ class ContinuousLoss(tf.keras.losses.Loss):
                 losses.append("nonlocal_inter")
             if contrast_in_time_w:
                 losses.append("templocal_inter")
+            if push_corr_w:
+                losses.append("push_corr")
             if adversarial_w:
                 losses.append("pred_distance")
                 losses.append("adv_inter")
@@ -325,6 +328,30 @@ class ContinuousLoss(tf.keras.losses.Loss):
 
         return self.adversarial_pred_w * predictivity_loss + self.adversarial_w * pe_contrast_loss
 
+    def nonlocal_push(self, embd):
+        inenc_dists = tf.maximum(tf.linalg.norm(embd[:, None] - embd[None], axis=-2), self.eps)  # (B, B, T, P)
+
+        b = tf.shape(inenc_dists)[0]
+        t = tf.shape(inenc_dists)[-2]
+        p = tf.shape(inenc_dists)[-1]
+
+        if self.remove_diag:
+            inenc_dists = tf.reshape(inenc_dists[tf.tile(~tf.eye(b, dtype=tf.bool)[..., None, None], [1, 1, t, p])], (b - 1, b, t, p))
+
+        corr_size = b*(b-1)
+        _mean = tf.math.reduce_mean(tf.stop_gradient(inenc_dists), axis=(0, 1))  # (T, P, )
+        _std = tf.math.reduce_std(tf.stop_gradient(inenc_dists), axis=(0, 1))  # (T, P, )
+        mult = tf.einsum('ijn,ijm->nm', inenc_dists, inenc_dists)  # (P, P)
+
+        temporal_mean_correlation = tf.reduce_mean((mult / corr_size - _mean[None] * _mean[:, None]) / (_std[None] * _std[:, None]), axis=0)
+
+        mean_corr = tf.reduce_mean(temporal_mean_correlation[~tf.eye(p, dtype=tf.bool)])
+
+        if self.monitor is not None:
+            self.monitor.update_monitor("push_corr", mean_corr)
+        loss = mean_corr
+        return loss
+
     def call(self, y_true, y_pred):
         # y_pred shape (B, T, DIM, P)
 
@@ -362,6 +389,8 @@ class ContinuousLoss(tf.keras.losses.Loss):
             loss = loss + self.contrast_in_time_w * self.contrast_in_time(embd, **self.contrast_in_time_kwargs)
         if self.adversarial_w is not None:
             loss = loss + self.adversarial_loss(embd, pred_embd, **self.adversarial_kwargs)
+        if self.push_corr_w is not None:
+            loss = loss + self.push_corr_w * self.nonlocal_push(embd)
         return loss
 
 
