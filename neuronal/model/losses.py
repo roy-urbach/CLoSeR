@@ -216,6 +216,8 @@ class ContinuousLoss(tf.keras.losses.Loss):
                 losses.append("pred_distance")
                 losses.append("adv_inter")
             self.monitor = LossMonitors(*losses, name="ContinuousLossMonitor")
+        else:
+            self.monitor = None
 
     def continuous_disagreement(self, embd):
         dist = tf.maximum(tf.linalg.norm(embd[:, 1:] - embd[:, :-1], axis=-2), self.eps)  # (B, T-1, P)
