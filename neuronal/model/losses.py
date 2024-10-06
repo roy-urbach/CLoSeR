@@ -337,8 +337,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
         t = tf.shape(inenc_dists)[-2]
         p = tf.shape(inenc_dists)[-1]
 
-        if self.remove_diag:
-            inenc_dists = tf.reshape(inenc_dists[tf.tile(~tf.eye(b, dtype=tf.bool)[..., None, None], [1, 1, t, p])], (b - 1, b, t, p))
+        inenc_dists = tf.reshape(inenc_dists[tf.tile(~tf.eye(b, dtype=tf.bool)[..., None, None], [1, 1, t, p])], (b - 1, b, t, p))
 
         corr_size = b*(b-1)
         _mean = tf.math.reduce_mean(tf.stop_gradient(inenc_dists), axis=(0, 1))  # (T, P, )
