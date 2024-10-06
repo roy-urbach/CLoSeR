@@ -330,7 +330,9 @@ class ContinuousLoss(tf.keras.losses.Loss):
 
         return self.adversarial_pred_w * predictivity_loss + self.adversarial_w * pe_contrast_loss
 
-    def nonlocal_push(self, embd):
+    def nonlocal_push(self, embd, last_step=True):
+        if last_step:
+            embd = embd[..., -1:, :]
         inenc_dists = tf.maximum(tf.linalg.norm(embd[:, None] - embd[None], axis=-2), self.eps)  # (B, B, T, P)
 
         b = tf.shape(inenc_dists)[0]
