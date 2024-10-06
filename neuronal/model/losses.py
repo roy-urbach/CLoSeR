@@ -334,19 +334,18 @@ class ContinuousLoss(tf.keras.losses.Loss):
         inenc_dists = tf.maximum(tf.linalg.norm(embd[:, None] - embd[None], axis=-2), self.eps)  # (B, B, T, P)
 
         b = tf.shape(inenc_dists)[0]
-        t = tf.shape(inenc_dists)[-2]
-        p = tf.shape(inenc_dists)[-1]
 
-        inenc_dists = tf.reshape(inenc_dists[tf.tile(~tf.eye(b, dtype=tf.bool)[..., None, None], [1, 1, t, p])], (b - 1, b, t, p))
+        inenc_dists = tf.reshape(inenc_dists[tf.tile(~tf.eye(b, dtype=tf.bool)[..., None, None], [1, 1, self.T, self.P])],
+                                 (b - 1, b, self.T, self.P))
 
         corr_size = b*(b-1)
         _mean = tf.math.reduce_mean(tf.stop_gradient(inenc_dists), axis=(0, 1))  # (T, P, )
         _std = tf.math.reduce_std(tf.stop_gradient(inenc_dists), axis=(0, 1))  # (T, P, )
-        mult = tf.einsum('ijn,ijm->nm', inenc_dists, inenc_dists)  # (P, P)
+        mult = tf.einsum('ijtn,ijtm->tnm', inenc_dists, inenc_dists)  # (T, P, P)
 
         temporal_mean_correlation = tf.reduce_mean((mult / corr_size - _mean[None] * _mean[:, None]) / (_std[None] * _std[:, None]), axis=0)
 
-        mean_corr = tf.reduce_mean(temporal_mean_correlation[~tf.eye(p, dtype=tf.bool)])
+        mean_corr = tf.reduce_mean(temporal_mean_correlation[~tf.eye(self.P, dtype=tf.bool)])
 
         if self.monitor is not None:
             self.monitor.update_monitor("push_corr", mean_corr)
