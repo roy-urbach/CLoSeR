@@ -330,7 +330,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
 
         return self.adversarial_pred_w * predictivity_loss + self.adversarial_w * pe_contrast_loss
 
-    def nonlocal_push(self, embd, last_step=True):
+    def nonlocal_push(self, embd, last_step=True, exp=True, temperature=10.):
         if last_step:
             embd = embd[..., -1:, :]
         inenc_dists = tf.maximum(tf.linalg.norm(embd[:, None] - embd[None], axis=-2), self.eps)  # (B, B, T, P)
@@ -339,6 +339,8 @@ class ContinuousLoss(tf.keras.losses.Loss):
 
         inenc_dists = tf.reshape(inenc_dists[tf.tile(~tf.eye(b, dtype=tf.bool)[..., None, None], [1, 1, self.T, self.P])],
                                  (b - 1, b, self.T, self.P))
+        if exp:
+            inenc_dists = tf.math.exp(-inenc_dists**2 / temperature)
 
         corr_size = float(b*(b-1))
         _mean = tf.math.reduce_mean(tf.stop_gradient(inenc_dists), axis=(0, 1))  # (T, P, )
@@ -351,7 +353,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
 
         if self.monitor is not None:
             self.monitor.update_monitor("push_corr", mean_corr)
-        loss = mean_corr
+        loss = mean_corr**2
         return loss
 
     def call(self, y_true, y_pred):
