@@ -66,7 +66,7 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
     if random_rotation:
         from scipy.stats import special_ortho_group as randorth
         pathways = [tf.keras.layers.Dense(pathways[0].shape[1], name=f'random_rotation{p}',
-                                          kernel_initializer=lambda shape, dtype: randorth.rvs(shape=shape[0], dtype=dtype),
+                                          kernel_initializer=lambda shape, dtype: randorth.rvs(shape[0], dtype=dtype),
                                           trainable=False,
                                           use_bias=False)(path_inp) for p, path_inp in enumerate(pathways)]
 
