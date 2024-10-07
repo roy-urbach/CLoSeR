@@ -193,7 +193,14 @@ class ContinuousLoss(tf.keras.losses.Loss):
         self.contrast_in_time_kwargs = contrast_in_time_kwargs
         self.push_corr_w = push_corr_w
         self.adversarial_w = adversarial_w
-        self.adversarial_pred_w = adversarial_w if adversarial_pred_w is None else adversarial_pred_w if predictive_w is None else predictive_w
+        if adversarial_pred_w is not None:
+            self.adversarial_pred_w = adversarial_pred_w
+        elif adversarial_w is not None:
+            self.adversarial_pred_w = adversarial_w
+        elif predictive_w is not None:
+            self.adversarial_pred_w = predictive_w
+        else:
+            self.adversarial_pred_w = None
         self.predictive_w = predictive_w
         self.adversarial_kwargs = adversarial_kwargs
         self.P = None
