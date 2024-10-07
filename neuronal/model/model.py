@@ -37,7 +37,7 @@ class SplitPathwaysNeuronal(SplitPathways):
 
 def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
                  classifier=False, l2=False, kernel_regularizer=None,
-                 encoder='BasicRNN', encoder_per_path=False,
+                 encoder='BasicRNN', encoder_per_path=False, random_rotation=False,
                  pathway_classification=True, pathway_classification_allpaths=False,
                  ensemble_classification=True, classifier_pathways=True,
                  augmentation_kwargs={}, encoder_kwargs={}, pathways_kwargs={}, labels=Labels):
@@ -62,6 +62,14 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
     else:
         pathways = SplitPathwaysNeuronal(units, name='pathways', **pathways_kwargs)(augmented)  # (B, d*S, N, T)
         pathways = tf.unstack(pathways, axis=-2)  # List[(B, d*S, T)]
+
+    if random_rotation:
+        from scipy.stats import special_ortho_group as randorth
+        pathways = [tf.keras.layers.Dense(pathways[0].shape[1], name=f'random_rotation{p}',
+                                          kernel_initializer=lambda shape, dtype: randorth.rvs(path_inp.shape[1]),
+                                          trainable=False,
+                                          use_bias=False)(path_inp) for p, path_inp in enumerate(pathways)]
+
 
     import utils.model.encoders
     Encoder = get_class(encoder, utils.model.encoders)
