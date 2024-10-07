@@ -170,7 +170,7 @@ def compile_model(model, dataset, loss=CrossPathwayTemporalContrastiveLoss, loss
             metrics[f'ensemble_logits_{label.value.name}'] = label_class_metric[label.value.name]()
 
     for loss in losses.values():
-        if hasattr(loss, "monitor"):
+        if hasattr(loss, "monitor") and loss.monitor is not None:
             if 'embedding' not in metrics:
                 metrics['embedding'] = []
             elif not isinstance(metrics['embedding'], list):
