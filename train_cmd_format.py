@@ -84,7 +84,7 @@ def get_cmd():
     if 'gpu' in args.queue:
         bsub_call += f" -gpu num=1:j_exclusive=no:gmem={args.mem}GB"
     else:
-        bsub_call += f' -R rusage[mem={RUSAGE}]'
+        bsub_call += f' -R rusage[mem={args.rusage}]'
     train_call = f'python3 train.py -b {args.batch} -e {args.epochs} --json {model_name} -m {args.module}'
     cmd = [*bsub_call.split(), *bsub_args, f'"{train_call}"']
     return ' '.join(cmd)
