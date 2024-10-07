@@ -37,7 +37,7 @@ class SplitPathwaysNeuronal(SplitPathways):
 
 def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
                  classifier=False, l2=False, kernel_regularizer=None,
-                 encoder='BasicRNN', encoder_per_path=False, random_rotation=False,
+                 encoder='BasicRNN', encoder_per_path=False, random_rotation=False, random_rotations=False,
                  pathway_classification=True, pathway_classification_allpaths=False,
                  ensemble_classification=True, classifier_pathways=True,
                  augmentation_kwargs={}, encoder_kwargs={}, pathways_kwargs={}, labels=Labels):
@@ -63,13 +63,20 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
         pathways = SplitPathwaysNeuronal(units, name='pathways', **pathways_kwargs)(augmented)  # (B, d*S, N, T)
         pathways = tf.unstack(pathways, axis=-2)  # List[(B, d*S, T)]
 
-    if random_rotation:
+    if random_rotations:
         from scipy.stats import special_ortho_group as randorth
         pathways = [tf.transpose(tf.keras.layers.Dense(pathways[0].shape[1], name=f'random_rotation{p}',
                                           kernel_initializer=lambda shape, dtype: tf.constant(randorth.rvs(shape[0]), dtype=dtype),
                                           trainable=False,
                                           use_bias=False)(tf.transpose(path_inp, [0, 2,1])), [0, 2, 1]) for p, path_inp in enumerate(pathways)]
 
+    if random_rotation:
+        from scipy.stats import special_ortho_group as randorth
+        rotation = tf.keras.layers.Dense(pathways[0].shape[1], name=f'random_rotation',
+                                          kernel_initializer=lambda shape, dtype: tf.constant(randorth.rvs(shape[0]), dtype=dtype),
+                                          trainable=False,
+                                          use_bias=False)
+        pathways = [tf.transpose(rotation(tf.transpose(path_inp, [0, 2,1])), [0, 2, 1]) for p, path_inp in enumerate(pathways)]
 
     import utils.model.encoders
     Encoder = get_class(encoder, utils.model.encoders)
