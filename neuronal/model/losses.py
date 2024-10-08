@@ -373,7 +373,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
         shape = [b, self.P, self.P-1]
 
         mean_pe, pe = self._predictor_loss(last_embd, last_pred_embd, axis=-2, return_mat=True)     # (1, ), (B, P)
-        pe_diff = tf.stop_gradient(pe[..., None] - pe[..., None])     # (B, P, P)
+        pe_diff = tf.stop_gradient(pe[..., None] - pe[:, None])     # (B, P, P)
         pe_diff_no_diag = tf.maximum(tf.reshape(pe_diff[mask], shape), self.eps)
         exps = tf.math.exp(-pe_diff_no_diag**2)
         z = tf.reduce_sum(exps, axis=-1, keepdims=True)
