@@ -380,7 +380,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
         z = tf.reduce_sum(exps, axis=-1, keepdims=True)
         w = exps / z
 
-        pe_weighted_cross = tf.einsum('bij,bij->', w, tf.reshape(dist[mask], tf.shape(exps))) / (self.P * b)
+        pe_weighted_cross = tf.einsum('bij,bij->', w, tf.reshape(dist[mask], tf.shape(exps))) / tf.cast(self.P * b, exps.dtype)
         if self.monitor is not None:
             self.monitor.update_monitor("pe_weighted_cross_distance", pe_weighted_cross)
 
