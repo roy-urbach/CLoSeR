@@ -97,7 +97,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                                                                                  linear=True, svm=False, **kwargs)
                 save_res()
 
-                if dataset.frame_per_sample > 1:
+                if dataset.frames_per_sample > 1:
                     results[f'{label.value.name}_alltime_input_linear'] = classify_head_eval(
                         get_masked_ds(model, dataset=basic_dataset, union=True, last_frame=False),
                         categorical=label.value.kind == CATEGORICAL,
