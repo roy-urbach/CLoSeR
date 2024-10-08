@@ -40,24 +40,36 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
             dataset = module.get_class_from_data(model_kwargs['dataset'])(**model_kwargs.get('data_kwargs', {}))
 
     bins_per_frame = dataset.bins_per_frame
-    def transform_embedding(embedding):
-        encoder_removed_bins = model.get_layer("pathways").output_shape[-1] != model.get_layer("embedding").output_shape[1]
-        if encoder_removed_bins:
-            last_step_embedding = embedding[:, -1]
+    def transform_embedding(embedding, last_frame=True):
+        if last_frame:
+            encoder_removed_bins = model.get_layer("pathways").output_shape[-1] != model.get_layer("embedding").output_shape[1]
+            if encoder_removed_bins:
+                last_step_embedding = embedding[:, -1]
+            else:
+                last_step_embedding = embedding[:, -bins_per_frame:]    # (B, bins_per_frame, DIM, P)
+                last_step_embedding = last_step_embedding.reshape(last_step_embedding.shape[0],
+                                                                  last_step_embedding.shape[-2] * bins_per_frame,
+                                                                  last_step_embedding.shape[-1])  # (B, DIMS*bins_per_frame, P)
+            return last_step_embedding
         else:
-            last_step_embedding = embedding[:, -bins_per_frame:]    # (B, bins_per_frame, DIM, P)
-            last_step_embedding = last_step_embedding.reshape(last_step_embedding.shape[0],
-                                                              last_step_embedding.shape[-2] * bins_per_frame,
-                                                              last_step_embedding.shape[-1])  # (B, DIMS*bins_per_frame, P)
-        return last_step_embedding
+            return embedding.reshape(embedding.shape[0], embedding.shape[-2] * embedding.shape[-3], embedding.shape[-1])
 
-    x_train_embd = transform_embedding(model.predict(dataset.get_x_train())[0])
-    x_test_embd = transform_embedding(model.predict(dataset.get_x_test())[0])
+    x_train_pred = model.predict(dataset.get_x_train())[0]
+    x_test_pred = model.predict(dataset.get_x_test())[0]
+    x_train_embd = transform_embedding(x_train_pred)
+    x_train_embd_alltime = transform_embedding(x_train_pred, last_frame=False)
+
+    x_test_embd = transform_embedding(x_test_pred)
+    x_test_embd_alltime = transform_embedding(x_test_pred, last_frame=False)
+
     x_val = dataset.get_x_val()
     if x_val is not None:
-        x_val_embd = transform_embedding(model.predict(x_val)[0])
+        x_val_pred = model.predict(x_val)[0]
+        x_val_embd = transform_embedding(x_val_pred)
+        x_val_embd_alltime = transform_embedding(x_val_pred, last_frame=False)
     else:
         x_val_embd = None
+        x_val_embd_alltime = None
 
     y_train = dataset.get_y_train(labels)
     y_test = dataset.get_y_test(labels)
@@ -80,6 +92,9 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
         embd_dataset = Data(x_train_embd, y_train[label.value.name],
                             x_test_embd, y_test[label.value.name],
                             x_val=x_val_embd, y_val=y_val[label.value.name] if y_val is not None else None)
+        embd_alltime_dataset = Data(x_train_embd_alltime, y_train[label.value.name],
+                                    x_test_embd_alltime, y_test[label.value.name],
+                                    x_val=x_val_embd_alltime, y_val=y_val[label.value.name] if y_val is not None else None)
 
         from utils.evaluation.evaluation import classify_head_eval
 
@@ -89,6 +104,13 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                                                                            categorical=label.value.kind == CATEGORICAL,
                                                                            linear=True, svm=False, **kwargs)
                 save_res()
+
+            if dataset.frames_per_sample > 1:
+                if f'{label.value.name}_alltime_linear' not in results or override_linear:
+                    results[f'{label.value.name}_alltime_linear'] = classify_head_eval(embd_alltime_dataset,
+                                                                                       categorical=label.value.kind == CATEGORICAL,
+                                                                                       linear=True, svm=False, **kwargs)
+                    save_res()
 
             if inp and (f'{label.value.name}_input_linear' not in results or override_linear):
                 results[f'{label.value.name}_input_linear'] = classify_head_eval(get_masked_ds(model, dataset=basic_dataset,
@@ -110,6 +132,15 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                                                        categorical=label.value.kind == CATEGORICAL,
                                                        voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean], **kwargs))
             save_res()
+
+            if dataset.frames_per_sample > 1:
+                results.update(classify_head_eval_ensemble(embd_alltime_dataset, linear=True, svm=False,
+                                                           base_name=f"{label.value.name}_alltime",
+                                                           categorical=label.value.kind == CATEGORICAL,
+                                                           voting_methods=[
+                                                               EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean],
+                                                           **kwargs))
+                save_res()
 
             if inp and (not any([k.startswith(f"{label.value.name}_input_pathway") for k in results.keys()]) or override_linear):
                 masked_ds = get_masked_ds(model, dataset=basic_dataset, bins_per_frame=dataset.bins_per_frame)
@@ -138,6 +169,16 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                                                            categorical=label.value.kind == CATEGORICAL,
                                                            linear=False, k=k, **kwargs)
                     save_res()
+
+                if dataset.frames_per_sample > 1:
+                    cur_name = f"{label.value.name}_alltime_k={k}"
+                    if cur_name not in results:
+                        printd(cur_name, ":", end='\t')
+                        results[cur_name] = classify_head_eval(embd_alltime_dataset,
+                                                               categorical=label.value.kind == CATEGORICAL,
+                                                               linear=False, k=k, **kwargs)
+                        save_res()
+
                 cur_name = f"{label.value.name}_input_k={k}"
                 if inp and (cur_name not in results):
                     printd(cur_name, ":", end='\t')
@@ -164,6 +205,15 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                                                            categorical=label.value.kind == CATEGORICAL,
                                                            voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean]), **kwargs)
                 save_res()
+
+                if dataset.frames_per_sample > 1:
+                    results.update(classify_head_eval_ensemble(embd_alltime_dataset, linear=False, svm=False, k=k,
+                                                               base_name=f"{label.value.name}_alltime_k={k}_",
+                                                               categorical=label.value.kind == CATEGORICAL,
+                                                               voting_methods=[
+                                                                   EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean]),
+                                   **kwargs)
+                    save_res()
 
                 if inp:
                     masked_ds = get_masked_ds(model, dataset=basic_dataset, bins_per_frame=bins_per_frame)
