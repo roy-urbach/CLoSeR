@@ -369,7 +369,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
 
         last_embd = embd[:,-1]
         last_pred_embd = pred_embd[:, -1]
-        dist = tf.linalg.norm(last_embd[..., None] - tf.stop_gradient(last_pred_embd[..., None, :]), axis=-3)  # (B, T, P, P)
+        dist = tf.linalg.norm(last_embd[..., None] - tf.stop_gradient(last_pred_embd[..., None, :]), axis=-3)  # (B, P, P)
         mean_pe, pe = self._predictor_loss(last_embd, last_pred_embd, axis=-2, return_mat=True)     # (B, P)
         pe_diff = tf.stop_gradient(pe[..., None] - pe[..., None])     # (B, P, P)
 
@@ -380,7 +380,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
         z = tf.reduce_sum(exps, axis=-1, keepdims=True)
         w = exps / z
 
-        pe_weighted_cross = tf.einsum('bij,bij->', w, tf.reshape(dist[mask], tf.shape(exps))) / tf.cast(self.P * b, exps.dtype)
+        pe_weighted_cross = tf.einsum('bij,bij->', w, tf.reshape(dist[mask], [tf.shape(pe_diff)[0], self.P, self.P-1])) / tf.cast(self.P * b, exps.dtype)
         if self.monitor is not None:
             self.monitor.update_monitor("pe_weighted_cross_distance", pe_weighted_cross)
 
