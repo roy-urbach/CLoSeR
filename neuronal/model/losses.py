@@ -370,8 +370,8 @@ class ContinuousLoss(tf.keras.losses.Loss):
         last_embd = embd[:,-1]
         last_pred_embd = pred_embd[:, -1]
         dist = tf.linalg.norm(last_embd[..., None] - tf.stop_gradient(last_pred_embd[..., None, :]), axis=-3)  # (B, T, P, P)
-        mean_pe, pe = tf.stop_gradient(self._predictor_loss(last_embd, last_pred_embd, axis=-2, return_mat=True))     # (B, P)
-        pe_diff = pe[..., None] - pe[..., None]     # (B, P, P)
+        mean_pe, pe = self._predictor_loss(last_embd, last_pred_embd, axis=-2, return_mat=True)     # (B, P)
+        pe_diff = tf.stop_gradient(pe[..., None] - pe[..., None])     # (B, P, P)
 
         mask = tf.tile(~tf.eye(self.P), [tf.shape(pe_diff)[0], 1, 1])
         pe_diff_no_diag = tf.maximum(tf.reshape(pe_diff[mask],
