@@ -384,7 +384,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
         if self.monitor is not None:
             self.monitor.update_monitor("pe_weighted_cross_distance", pe_weighted_cross)
 
-        return self.pe_w * pe_weighted_cross + self.predictive_w * mean_pe
+        return self.pe_w * pe_weighted_cross + self.adversarial_pred_w * mean_pe
 
     def nonlocal_push(self, embd, last_step=True, exp=True, temperature=10.):
         if last_step:
