@@ -181,7 +181,7 @@ class VectorTrajectoryDisagreement(tf.keras.losses.Loss):
 class ContinuousLoss(tf.keras.losses.Loss):
     def __init__(self, continuous_w=1., entropy_w=None, crosspath_w=None, nonlocal_w=None, nonlocal_kwargs={}, eps=None,
                  contrast_in_time_w=None, contrast_in_time_kwargs={}, push_corr_w=None, predictive_w=None,
-                 adversarial_w=None, adversarial_pred_w=None, pe_w=None, adversarial_kwargs={}, monitor=False, name='continuous_loss'):
+                 adversarial_w=None, adversarial_pred_w=None, pe_w=None, pe_push_w=None, adversarial_kwargs={}, monitor=False, name='continuous_loss'):
         super().__init__(name=name)
         self.continuous_w = continuous_w
         self.entropy_w = entropy_w
@@ -194,6 +194,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
         self.push_corr_w = push_corr_w
         self.adversarial_w = adversarial_w
         self.pe_w = pe_w
+        self.pe_push_w = pe_push_w
         if adversarial_pred_w is not None:
             self.adversarial_pred_w = adversarial_pred_w
         elif adversarial_w is not None:
@@ -202,6 +203,8 @@ class ContinuousLoss(tf.keras.losses.Loss):
             self.adversarial_pred_w = predictive_w
         elif pe_w is not None:
             self.adversarial_pred_w = pe_w
+        elif pe_push_w is not None:
+            self.adversarial_pred_w = pe_push_w
         else:
             self.adversarial_pred_w = None
         self.predictive_w = predictive_w
@@ -227,7 +230,9 @@ class ContinuousLoss(tf.keras.losses.Loss):
             if adversarial_w:
                 losses.append("adv_inter")
             if pe_w:
-                losses.append("pe_weighted_cross_distance", )
+                losses.append("pe_weighted_cross_distance")
+            if pe_push_w:
+                losses.append("pe_weighted_push_cross_distance")
             if adversarial_w or predictive_w or pe_w:
                 losses.append("pred_distance")
 
@@ -236,6 +241,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
             self.monitor = None
 
     def continuous_disagreement(self, embd):
+        # embd shape (B, T, DIM, P)
         dist = tf.maximum(tf.linalg.norm(embd[:, 1:] - embd[:, :-1], axis=-2), self.eps)  # (B, T-1, P)
         disagreement = tf.reduce_mean(dist)
         if self.monitor is not None:
@@ -373,20 +379,38 @@ class ContinuousLoss(tf.keras.losses.Loss):
         shape = [b, self.P, self.P-1]
 
         mean_pe, pe = self._predictor_loss(last_embd, last_pred_embd, axis=-2, return_mat=True)     # (1, ), (B, P)
-        pe_diff = tf.stop_gradient(pe[..., None] - pe[:, None])     # (B, P, P)
-        pe_diff_no_diag = tf.maximum(tf.reshape(pe_diff[mask], shape), self.eps)
-        exps = tf.math.exp(-pe_diff_no_diag**2)
-        z = tf.reduce_sum(exps, axis=-1, keepdims=True)
-        w = exps / z
 
-        dist = tf.linalg.norm(last_embd[..., None] - tf.stop_gradient(last_embd[..., None, :]), axis=-3)  # (B, P, P)
-        dist_no_diag = tf.reshape(dist[mask], shape)
+        loss = self.adversarial_pred_w * mean_pe
 
-        pe_weighted_cross = tf.einsum('bij,bij->', w, dist_no_diag) / tf.cast(self.P * b, dtype=exps.dtype)
-        if self.monitor is not None:
-            self.monitor.update_monitor("pe_weighted_cross_distance", pe_weighted_cross)
+        if self.pe_w is not None or self.pe_push_w is not None:
 
-        return self.pe_w * pe_weighted_cross + self.adversarial_pred_w * mean_pe
+            dist = tf.linalg.norm(last_embd[..., None] - tf.stop_gradient(last_embd[..., None, :]),
+                                  axis=-3)  # (B, P, P)
+            dist_no_diag = tf.reshape(dist[mask], shape)
+
+            pe_diff = tf.stop_gradient(pe[..., None] - pe[:, None])     # (B, P, P)
+            pe_diff_no_diag = tf.maximum(tf.reshape(pe_diff[mask], shape), self.eps)
+            exps = tf.math.exp(-pe_diff_no_diag**2)
+
+            if self.pe_w is not None:
+                z = tf.reduce_sum(exps, axis=-1, keepdims=True)
+                w = exps / z
+                pe_weighted_cross = tf.einsum('bij,bij->', w, dist_no_diag) / tf.cast(self.P * b, dtype=exps.dtype)
+                if self.monitor is not None:
+                    self.monitor.update_monitor("pe_weighted_cross_distance", pe_weighted_cross)
+
+                loss = loss + self.pe_w * pe_weighted_cross
+
+            if self.pe_push_w is not None:
+                push_exps = 1/exps
+                push_z = tf.reduce_sum(push_exps, axis=-1, keepdims=True)
+                push_w = push_exps / push_z
+                push_pe_weighted_cross = tf.einsum('bij,bij->', push_w, tf.minimum(dist_no_diag, _max)) / tf.cast(self.P * b, dtype=exps.dtype)
+                if self.monitor is not None:
+                    self.monitor.update_monitor("pe_weighted_push_cross_distance", push_pe_weighted_cross)
+                loss = loss + self.pe_push_w * push_pe_weighted_cross
+
+        return loss
 
     def nonlocal_push(self, embd, last_step=True, exp=True, temperature=10.):
         if last_step:
@@ -453,7 +477,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
             loss = loss + self.adversarial_loss(embd, pred_embd, **self.adversarial_kwargs)
         if self.predictive_w is not None:
             loss = loss + self.predictive_loss(embd, pred_embd, **self.adversarial_kwargs)
-        if self.pe_w is not None:
+        if self.pe_w is not None or self.pe_push_w is not None:
             loss = loss + self.prediction_error_loss(embd, pred_embd, **self.adversarial_kwargs)
         if self.push_corr_w is not None:
             loss = loss + self.push_corr_w * self.nonlocal_push(embd)
