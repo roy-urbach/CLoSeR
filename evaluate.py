@@ -32,6 +32,7 @@ def main():
         parser.add_argument('--override', action=argparse.BooleanOptionalAction, default=False)
         parser.add_argument('--fill', action=argparse.BooleanOptionalAction, default=False)
         parser.add_argument('--override_linear', action=argparse.BooleanOptionalAction, default=False)
+        parser.add_argument('--ks', type=str, default=[1] + list(range(5, 21, 5)), help='what ks to use')
         return parser.parse_args()
 
     args = parse()
