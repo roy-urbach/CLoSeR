@@ -20,7 +20,7 @@ def get_masked_ds(model, dataset, union=False, bins_per_frame=1, last_frame=True
         union = np.unique(pathway_indices) - model.get_layer("pathways").shift
         setup_func = lambda x: aug_layer(x).numpy()[:, union, ..., -bins_per_frame if last_frame else 0:]
     else:
-        setup_func = lambda x: np.transpose(aug_layer(x).numpy()[:, pathway_indices - pathways.shift, ..., -bins_per_frame:], [0, 1, 3, 2]).reshape(
+        setup_func = lambda x: np.transpose(aug_layer(x).numpy()[:, pathway_indices - pathways.shift, ..., -bins_per_frame if last_frame else 0:], [0, 1, 3, 2]).reshape(
             x.shape[0], -1, pathway_indices.shape[-1])
 
     ds = Data(setup_func(dataset.get_x_train()), dataset.get_y_train(),
