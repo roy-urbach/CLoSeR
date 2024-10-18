@@ -370,7 +370,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
 
         return self.adversarial_pred_w * predictivity_loss + self.predictive_w * pe_loss
 
-    def prediction_error_loss(self, embd, pred_embd, _max=1):
+    def prediction_error_loss(self, embd, pred_embd, _max=1, push_pe_diff_min=None):
         b = tf.shape(embd)[0]
 
         last_embd = embd[:,-1]  # (B, DIM, P)
@@ -405,7 +405,10 @@ class ContinuousLoss(tf.keras.losses.Loss):
                 push_exps = 1/exps
                 push_z = tf.reduce_sum(push_exps, axis=-1, keepdims=True)
                 push_w = push_exps / push_z
-                push_pe_weighted_cross = tf.einsum('bij,bij->', push_w, tf.minimum(dist_no_diag, _max)) / tf.cast(self.P * b, dtype=exps.dtype)
+                dist_no_diag_clipped = tf.minimum(dist_no_diag, _max)
+                if push_pe_diff_min is not None:
+                    push_w = tf.where(tf.math.abs(pe_diff_no_diag) < push_pe_diff_min, 0., push_w)
+                push_pe_weighted_cross = tf.einsum('bij,bij->', push_w, dist_no_diag_clipped) / tf.cast(self.P * b, dtype=exps.dtype)
                 if self.monitor is not None:
                     self.monitor.update_monitor("pe_weighted_push_cross_distance", push_pe_weighted_cross)
                 loss = loss + self.pe_push_w * push_pe_weighted_cross
