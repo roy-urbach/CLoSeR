@@ -2,6 +2,8 @@ from utils.model.callbacks import StopIfNaN
 from utils.modules import Modules
 import os
 
+from utils.utils import streval
+
 
 def check_evaluation_time(model, module: Modules):
     from utils.io_utils import get_output_time
@@ -28,6 +30,7 @@ def main():
         parser.add_argument('--no_inp', action=argparse.BooleanOptionalAction, default=False)
         parser.add_argument('--ensemble', action=argparse.BooleanOptionalAction, default=True)
         parser.add_argument('--override', action=argparse.BooleanOptionalAction, default=False)
+        parser.add_argument('--fill', action=argparse.BooleanOptionalAction, default=False)
         parser.add_argument('--override_linear', action=argparse.BooleanOptionalAction, default=False)
         return parser.parse_args()
 
@@ -46,14 +49,14 @@ def main():
         with open(evaluating_fn, 'w') as f:
             f.write("Yes!")
 
-    if not args.override and not args.override_linear:
+    if not args.override and not args.override_linear and not args.fill:
         if not check_evaluation_time(args.json, module):
             return module.load_evaluation_json(args.json)
 
     try:
         res = module.evaluate(args.json, knn=args.knn, linear=args.linear, ensemble=args.ensemble,
                               save_results=True, dataset=None, override=args.override, override_linear=args.override_linear,
-                              inp=not args.no_inp)
+                              inp=not args.no_inp, ks=streval(args.ks))
     finally:
         os.remove(evaluating_fn)
 

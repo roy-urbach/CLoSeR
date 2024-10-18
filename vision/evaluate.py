@@ -24,7 +24,7 @@ def get_masked_ds(model, dataset=Cifar10()):
 
 
 def evaluate(model, module: Modules=Modules.VISION, knn=False, linear=True, ensemble=True, ensemble_knn=False,
-             save_results=False, override=False, inp=True, dataset:Optional[Data]=Cifar10(), **kwargs):
+             save_results=False, override=False, inp=True, dataset:Optional[Data]=Cifar10(), ks=[1] + list(range(5, 50, 5)), **kwargs):
 
     if isinstance(model, str):
         model_kwargs = module.load_json(model, config=True)
@@ -47,7 +47,7 @@ def evaluate(model, module: Modules=Modules.VISION, knn=False, linear=True, ense
     save_res = lambda *inputs: module.save_evaluation_json(model.name, results) if save_results else None
 
     if knn:
-        for k in [1] + list(range(5, 50, 5)):
+        for k in ks:
             if f'k={k}' not in results:
                 printd(f"k={k}:", end='\t')
                 results[f"k={k}"] = classify_head_eval(embd_dataset, linear=False, k=k, **kwargs)
