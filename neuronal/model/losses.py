@@ -334,17 +334,19 @@ class ContinuousLoss(tf.keras.losses.Loss):
         else:
             return div
 
-    def distance(self, arr1, arr2, axis, log=False):
+    def distance(self, arr1, arr2, axis, log=False, use_eps=True, hard_log=False):
         if self.softmax:
             arr1 = tf.nn.softmax(arr1, axis=axis)
             arr2 = tf.nn.softmax(arr2, axis=axis)
             dist = self.jsd(arr1, arr2, axis=axis)
         else:
             dist = tf.linalg.norm(arr1 - arr2, axis=axis)
-        if self.eps is not None:
+        if self.eps is not None and use_eps:
             dist = tf.maximum(dist, self.eps)
         if log:
             dist = self.dist2logdist(dist)
+        if hard_log and not self.log:
+            dist = tf.math.log(dist)
         return dist
 
     def dist2logdist(self, dist):
@@ -479,6 +481,21 @@ class ContinuousLoss(tf.keras.losses.Loss):
         loss = mean_corr**2
         return loss
 
+    def koleo(self, embd):
+        b = tf.shape(embd)[0]
+        log_dist = self.distance(embd[None], embd[:, None], axis=-2, log=True, use_eps=False, hard_log=True)
+        shape_without_b = log_dist.get_shape().as_list()[2:]
+        mask = tf.tile(tf.reshape(tf.eye(b) < 1, [b] * 2 + [1] * len(shape_without_b)), [1] * 2 + shape_without_b)
+        log_dist = tf.where(mask, log_dist, tf.reduce_max(log_dist))
+
+        min_dist = tf.reduce_min(log_dist, axis=1)
+        out = -min_dist
+
+        if self.monitor is not None:
+            self.monitor.update_monitor("koleo", out)
+
+        return out
+
     def call(self, y_true, y_pred):
         # y_pred shape (B, T, DIM, P)
 
@@ -501,10 +518,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
         if self.crosspath_w is not None:
             loss = loss + self.crosspath_w * self.crosspath_disagreement(embd)
         if self.entropy_w is not None:
-            koleo_loss = koleo(embd, axis=-2)
-            if self.monitor is not None:
-                self.monitor.update_monitor("koleo", koleo_loss)
-            loss = loss + self.entropy_w * koleo_loss
+            loss = loss + self.entropy_w * self.koleo(embd)
         if self.nonlocal_w is not None:
             use_buggy_version = self.nonlocal_kwargs.pop("bug", True)
             if use_buggy_version:
