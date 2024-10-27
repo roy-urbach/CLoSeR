@@ -345,7 +345,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
             dist = tf.maximum(dist, self.eps)
         if log:
             dist = self.dist2logdist(dist)
-        if hard_log and not self.log:
+        if hard_log and not self.log_dist:
             dist = tf.math.log(dist)
         return dist
 
