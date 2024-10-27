@@ -402,7 +402,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
             dist_no_diag = tf.reshape(dist[mask], shape)
 
             pe_diff = tf.stop_gradient(pe[..., None] - pe[:, None])     # (B, P, P)
-            pe_diff_no_diag = self.dist2logdist(tf.maximum(tf.reshape(pe_diff[mask], shape), self.eps))
+            pe_diff_no_diag = tf.maximum(tf.reshape(pe_diff[mask], shape), self.eps)
             exps = tf.math.exp(-pe_diff_no_diag**2)
 
             if self.pe_w is not None:
