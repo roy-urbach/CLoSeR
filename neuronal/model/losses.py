@@ -179,11 +179,12 @@ class VectorTrajectoryDisagreement(tf.keras.losses.Loss):
 
 
 class ContinuousLoss(tf.keras.losses.Loss):
-    def __init__(self, continuous_w=1., entropy_w=None, crosspath_w=None, nonlocal_w=None, nonlocal_kwargs={}, eps=None,
+    def __init__(self, softmax=False, continuous_w=1., entropy_w=None, crosspath_w=None, nonlocal_w=None, nonlocal_kwargs={}, eps=None,
                  contrast_in_time_w=None, contrast_in_time_kwargs={}, push_corr_w=None, predictive_w=None,
                  adversarial_w=None, adversarial_pred_w=None, pe_w=None, pe_push_w=None, adversarial_kwargs={},
                  log_dist=False, monitor=False, name='continuous_loss'):
         super().__init__(name=name)
+        self.softmax = softmax
         self.continuous_w = continuous_w
         self.entropy_w = entropy_w
         self.crosspath_w = crosspath_w
@@ -322,6 +323,30 @@ class ContinuousLoss(tf.keras.losses.Loss):
 
         return loss
 
+    def dkl(self, arr1, arr2, axis=-1):
+        return tf.reduce_sum(arr1 * tf.math.log(arr2), axis=axis)
+
+    def jsd(self, arr1, arr2, sqrt=False, axis=-1):
+        m = (arr1 + arr2) / 2
+        div = (self.dkl(arr1, m, axis=axis) + self.dkl(arr2, m, axis=axis)) / 2
+        if sqrt:
+            return tf.sqrt(div)
+        else:
+            return div
+
+    def distance(self, arr1, arr2, axis, log=False):
+        if self.softmax:
+            arr1 = tf.nn.softmax(arr1, axis=axis)
+            arr2 = tf.nn.softmax(arr2, axis=axis)
+            dist = self.jsd(arr1, arr2, axis=axis)
+        else:
+            dist = tf.linalg.norm(arr1 - arr2, axis=axis)
+        if self.eps is not None:
+            dist = tf.maximum(dist, self.eps)
+        if log:
+            dist = self.dist2logdist(dist)
+        return dist
+
     def dist2logdist(self, dist):
         if self.log_dist:
             return tf.math.log(dist)
@@ -348,12 +373,12 @@ class ContinuousLoss(tf.keras.losses.Loss):
         predictivity_loss = self._predictor_loss(last_embd, last_pred_embd, axis=-2)
 
         # (B, P, P)
-        pos_dist_sqr_normed = (tf.maximum(tf.linalg.norm(last_embd[..., None] - last_embd_j[..., None, :],
-                                                         axis=-3), self.eps)**2) / temperature
+        pos_dist_sqr_normed = (self.distance(last_embd[..., None], last_embd_j[..., None, :],
+                                             axis=-3, log=False)**2) / temperature
 
         # (B, P)
-        neg_dist_sqr_normed = (tf.maximum(tf.linalg.norm(last_embd_j - tf.stop_gradient(last_pred_embd),
-                                                         axis=-2), self.eps)**2) / temperature
+        neg_dist_sqr_normed = (self.distance(last_embd_j, tf.stop_gradient(last_pred_embd),
+                                             axis=-2, log=False)**2) / temperature
 
         pe_contrast_loss = pos_dist_sqr_normed + tf.reduce_logsumexp(-tf.stack([pos_dist_sqr_normed,
                                                                                 tf.tile(neg_dist_sqr_normed[..., None, :], [1, self.P, 1])],
@@ -377,8 +402,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
         # (B, P)
         predictivity_loss = self._predictor_loss(last_embd, last_pred_embd, axis=-2)
 
-        pred_pe = self.dist2logdist(tf.maximum(tf.linalg.norm(last_embd - tf.stop_gradient(last_pred_embd),
-                                                              axis=-2), self.eps))
+        pred_pe = self.distance(last_embd, tf.stop_gradient(last_pred_embd), log=True, axis=-2)
         pe_loss = (tf.reduce_mean(pred_pe) - pe)**2
 
         return self.adversarial_pred_w * predictivity_loss + self.predictive_w * pe_loss
@@ -397,8 +421,8 @@ class ContinuousLoss(tf.keras.losses.Loss):
 
         if self.pe_w is not None or self.pe_push_w is not None:
 
-            dist = tf.linalg.norm(last_embd[..., None] - tf.stop_gradient(last_embd[..., None, :]),
-                                  axis=-3)  # (B, P, P)
+            dist = self.distance(last_embd[..., None], tf.stop_gradient(last_embd[..., None, :]),
+                                 axis=-3, log=True)  # (B, P, P)
             dist_no_diag = tf.reshape(dist[mask], shape)
 
             pe_diff = tf.stop_gradient(pe[..., None] - pe[:, None])     # (B, P, P)
@@ -432,7 +456,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
     def nonlocal_push(self, embd, last_step=True, exp=True, temperature=10.):
         if last_step:
             embd = embd[..., -1:, :]
-        inenc_dists = self.dist2logdist(tf.maximum(tf.linalg.norm(embd[:, None] - embd[None], axis=-2), self.eps))  # (B, B, T, P)
+        inenc_dists = self.distance(embd[:, None], embd[None], axis=-2, log=True)  # (B, B, T, P)
 
         b = tf.shape(inenc_dists)[0]
 
