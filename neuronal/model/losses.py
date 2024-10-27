@@ -489,7 +489,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
         log_dist = tf.where(mask, log_dist, tf.reduce_max(log_dist))
 
         min_dist = tf.reduce_min(log_dist, axis=1)
-        out = -min_dist
+        out = -tf.reduce_mean(min_dist)
 
         if self.monitor is not None:
             self.monitor.update_monitor("koleo", out)
