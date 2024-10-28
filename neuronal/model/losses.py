@@ -493,13 +493,13 @@ class ContinuousLoss(tf.keras.losses.Loss):
 
     def koleo(self, embd):
         b = tf.shape(embd)[0]
-        log_dist = self.distance(embd[None], embd[:, None], axis=-2, log=True, use_eps=False, hard_log=True)
-        shape_without_b = log_dist.get_shape().as_list()[2:]
+        dist = self.distance(embd[None], embd[:, None], axis=-2, log=False, use_eps=False)
+        shape_without_b = dist.get_shape().as_list()[2:]
         mask = tf.tile(tf.reshape(tf.eye(b) < 1, [b] * 2 + [1] * len(shape_without_b)), [1] * 2 + shape_without_b)
-        log_dist = tf.where(mask, log_dist, tf.reduce_max(log_dist))
+        log_dist = tf.where(mask, dist, tf.reduce_max(dist))
 
         min_dist = tf.reduce_min(log_dist, axis=1)
-        out = -tf.reduce_mean(min_dist)
+        out = -tf.reduce_mean(tf.math.log(min_dist))
 
         if self.monitor is not None:
             self.monitor.update_monitor("koleo", out)
