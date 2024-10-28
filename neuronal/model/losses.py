@@ -182,9 +182,10 @@ class ContinuousLoss(tf.keras.losses.Loss):
     def __init__(self, softmax=False, continuous_w=1., entropy_w=None, crosspath_w=None, nonlocal_w=None, nonlocal_kwargs={}, eps=None,
                  contrast_in_time_w=None, contrast_in_time_kwargs={}, push_corr_w=None, predictive_w=None,
                  adversarial_w=None, adversarial_pred_w=None, pe_w=None, pe_push_w=None, adversarial_kwargs={},
-                 log_dist=False, monitor=False, name='continuous_loss'):
+                 log_dist=False, monitor=False, centering=False, name='continuous_loss'):
         super().__init__(name=name)
         self.softmax = softmax
+        self.centering = centering
         self.continuous_w = continuous_w
         self.entropy_w = entropy_w
         self.crosspath_w = crosspath_w
@@ -423,7 +424,15 @@ class ContinuousLoss(tf.keras.losses.Loss):
 
         if self.pe_w is not None or self.pe_push_w is not None:
 
-            dist = self.distance(last_embd[..., None], tf.stop_gradient(last_embd[..., None, :]),
+            other_embd = tf.stop_gradient(last_embd)
+            if self.centering:
+                if self.C is None:
+                    self.running_mean = tf.reduce_mean(other_embd, axis=0)
+                else:
+                    self.running_mean = self.running_mean * 0.9 + tf.reduce_mean(other_embd, axis=0) * 0.1
+                other_embd = other_embd - self.running_mean[None]
+
+            dist = self.distance(last_embd[..., None], other_embd[..., None, :],
                                  axis=-3, log=True)  # (B, P, P)
             dist_no_diag = tf.reshape(dist[mask], shape)
 
