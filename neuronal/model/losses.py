@@ -426,7 +426,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
 
             other_embd = tf.stop_gradient(last_embd)
             if self.centering:
-                if self.C is None:
+                if self.running_mean is None:
                     self.running_mean = tf.reduce_mean(other_embd, axis=0)
                 else:
                     self.running_mean = self.running_mean * 0.9 + tf.reduce_mean(other_embd, axis=0) * 0.1
