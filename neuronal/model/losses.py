@@ -186,8 +186,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
         super().__init__(name=name)
         self.softmax = softmax
         self.centering = centering
-        self.running_mean = tf.Variable(0.0, trainable=False)
-        self.running_mean_start = True
+        self.running_mean = None
         self.continuous_w = continuous_w
         self.entropy_w = entropy_w
         self.crosspath_w = crosspath_w
@@ -428,9 +427,8 @@ class ContinuousLoss(tf.keras.losses.Loss):
 
             other_embd = tf.stop_gradient(last_embd)
             if self.centering:
-                if self.running_mean_start is None:
-                    self.running_mean_start = False
-                    self.running_mean.assign(tf.reduce_mean(other_embd, axis=0))
+                if self.running_mean is None:
+                    self.running_mean = tf.Variable(tf.reduce_mean(other_embd, axis=0), trainable=False)
                 else:
                     self.running_mean.assign(self.running_mean * 0.9 + tf.reduce_mean(other_embd, axis=0) * 0.1)
                 other_embd = other_embd - self.running_mean[None]
