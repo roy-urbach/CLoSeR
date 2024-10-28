@@ -186,6 +186,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
         super().__init__(name=name)
         self.softmax = softmax
         self.centering = centering
+        self.running_mean = None
         self.continuous_w = continuous_w
         self.entropy_w = entropy_w
         self.crosspath_w = crosspath_w
