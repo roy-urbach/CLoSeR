@@ -179,11 +179,12 @@ class VectorTrajectoryDisagreement(tf.keras.losses.Loss):
 
 
 class ContinuousLoss(tf.keras.losses.Loss):
-    def __init__(self, softmax=False, continuous_w=1., entropy_w=None, crosspath_w=None, nonlocal_w=None, nonlocal_kwargs={}, eps=None,
+    def __init__(self, softmax=False, l1=False, continuous_w=1., entropy_w=None, crosspath_w=None, nonlocal_w=None, nonlocal_kwargs={}, eps=None,
                  contrast_in_time_w=None, contrast_in_time_kwargs={}, push_corr_w=None, predictive_w=None,
                  adversarial_w=None, adversarial_pred_w=None, pe_w=None, pe_push_w=None, adversarial_kwargs={},
                  log_dist=False, monitor=False, centering=False, name='continuous_loss'):
         super().__init__(name=name)
+        self.l1 = l1
         self.softmax = softmax
         self.centering = centering
         self.running_mean = None
@@ -341,6 +342,8 @@ class ContinuousLoss(tf.keras.losses.Loss):
             arr1 = tf.nn.softmax(arr1, axis=axis)
             arr2 = tf.nn.softmax(arr2, axis=axis)
             dist = self.jsd(arr1, arr2, axis=axis)
+        elif self.l1:
+            dist = tf.linalg.abs(arr1 - arr2, axis=axis)
         else:
             dist = tf.linalg.norm(arr1 - arr2, axis=axis)
         if self.eps is not None and use_eps:
