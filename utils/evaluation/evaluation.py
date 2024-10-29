@@ -22,7 +22,7 @@ def linear_head_eval(svm=True, C=1e-2, categorical=False, **kwargs):
 
 
 def classify_head_eval(dataset, m=lambda x: x.reshape(x.shape[0], -1), categorical=False,
-                       pca=False, linear=True, samples=0, k=10, CS=CS, **kwargs):
+                       pca=False, linear=True, samples=0, k=10, CS=CS, all_CS=False, **kwargs):
     (x_train, y_train), (x_test, y_test) = dataset.get_all()
     if dataset.get_x_val() is not None and linear:
         val_dataset = Data(x_train, y_train, dataset.get_x_val(), dataset.get_y_val())
@@ -33,7 +33,7 @@ def classify_head_eval(dataset, m=lambda x: x.reshape(x.shape[0], -1), categoric
             print(f"{C=}")
             cur_train, cur_val = classify_head_eval(val_dataset, m=m, categorical=categorical, pca=pca, linear=linear,
                                                     samples=samples, k=k, C=C, **kwargs)
-            if prev_train is not None and cur_train > prev_train and cur_val < prev_val:
+            if all_CS and prev_train is not None and cur_train > prev_train and cur_val < prev_val:
                 break
             if best_score is None or cur_val > best_score:
                 winner_C = C
