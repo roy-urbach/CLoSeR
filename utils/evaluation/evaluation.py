@@ -33,7 +33,7 @@ def classify_head_eval(dataset, m=lambda x: x.reshape(x.shape[0], -1), categoric
             print(f"{C=}")
             cur_train, cur_val = classify_head_eval(val_dataset, m=m, categorical=categorical, pca=pca, linear=linear,
                                                     samples=samples, k=k, C=C, **kwargs)
-            if all_CS and prev_train is not None and cur_train > prev_train and cur_val < prev_val:
+            if not all_CS and prev_train is not None and cur_train > prev_train and cur_val < prev_val:
                 break
             if best_score is None or cur_val > best_score:
                 winner_C = C
