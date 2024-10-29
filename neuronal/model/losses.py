@@ -343,7 +343,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
             arr2 = tf.nn.softmax(arr2, axis=axis)
             dist = self.jsd(arr1, arr2, axis=axis)
         elif self.l1:
-            dist = tf.linalg.reduce_sum(tf.abs(arr1 - arr2), axis=axis)
+            dist = tf.reduce_sum(tf.abs(arr1 - arr2), axis=axis)
         else:
             dist = tf.linalg.norm(arr1 - arr2, axis=axis)
         if self.eps is not None and use_eps:
