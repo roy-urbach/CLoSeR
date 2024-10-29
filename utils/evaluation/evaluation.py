@@ -14,7 +14,7 @@ def linear_head_eval(svm=True, C=1e-2, categorical=False, **kwargs):
             model = SVC(kernel='linear', C=C, max_iter=int(1e7), **kwargs)
         else:
             from sklearn.linear_model import LogisticRegression
-            model = LogisticRegression(C=C, penalty=None if C!=0 else 'l2', **kwargs)
+            model = LogisticRegression(C=C if C > 0 else 1, penalty=None if C==0 else 'l2', **kwargs)
     else:
         from sklearn.linear_model import Ridge
         model = Ridge(alpha=C, **kwargs)
