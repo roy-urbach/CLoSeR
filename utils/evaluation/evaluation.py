@@ -22,7 +22,7 @@ def linear_head_eval(svm=True, C=1e-2, categorical=False, **kwargs):
 
 
 def classify_head_eval(dataset, m=lambda x: x.reshape(x.shape[0], -1), categorical=False,
-                       pca=False, linear=True, samples=0, k=10, CS=CS, all_CS=False, **kwargs):
+                       pca=False, linear=True, samples=0, k=10, CS=CS, all_CS=True, **kwargs):
     (x_train, y_train), (x_test, y_test) = dataset.get_all()
     if dataset.get_x_val() is not None and linear:
         val_dataset = Data(x_train, y_train, dataset.get_x_val(), dataset.get_y_val())
