@@ -89,7 +89,13 @@ class EnsembleModel:
         for i, X_train_single in counter(enumerate(self.split(X_train))):
             model = sklearn_clone(self.base_model)
             if CS is not None:
-                model.C = CS[i]
+                C = CS[i]
+                if C == 0:
+                    self.base_model.penalty = None
+                    self.base_model.C = 1
+                else:
+                    self.base_model.penalty = 'l2'
+                    self.base_model.C = C
             self.models.append(model.fit(X_train_single, y_train))
 
     def predict(self, X, voting_method=EnsembleVotingMethods.ArgmaxMeanProb, CS=None):
