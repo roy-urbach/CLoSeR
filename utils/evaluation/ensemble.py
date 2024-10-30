@@ -45,7 +45,12 @@ class EnsembleModel:
             self.best_CS = [None] * len(self.scores_val)
             for C in self.CS:
                 print(f"{C=}")
-                self.base_model.C = C
+                if C == 0:
+                    self.base_model.penalty = None
+                    self.base_model.C = 1
+                else:
+                    self.base_model.penalty = 'l2'
+                    self.base_model.C = C
                 self.fit(X_train, y_train, CS=[C]*len(self.scores_val))
                 self.CS_models.append(self.models)
                 for i, model in enumerate(self.models):
