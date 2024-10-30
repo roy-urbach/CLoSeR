@@ -138,7 +138,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                     save_res()
 
         if ensemble:
-            if not any(['linear' in k and 'ensemble' in k and 'alltime' not in k and label.value.name in k for k in results]):
+            if not any(['linear' in k and 'ensemble' in k and 'alltime' not in k and label.value.name in k for k in results]) or override_linear:
                 printd("ensemble linear")
                 results.update(classify_head_eval_ensemble(embd_dataset, linear=True, svm=False,
                                                            base_name=f"{label.value.name}_",
@@ -147,7 +147,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                 save_res()
 
             if dataset.frames_per_sample > 1:
-                if not any(['linear' in k and 'ensemble' in k and 'alltime' in k and label.value.name in k for k in results]):
+                if not any(['linear' in k and 'ensemble' in k and 'alltime' in k and label.value.name in k for k in results]) or override_linear:
                     printd("ensemble linear alltime")
                     results.update(classify_head_eval_ensemble(embd_alltime_dataset, linear=True, svm=False,
                                                                base_name=f"{label.value.name}_alltime",
