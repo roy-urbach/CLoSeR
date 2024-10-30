@@ -95,16 +95,16 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
         basic_dataset = Data(dataset.get_x_train(), y_train[label.value.name],
                              dataset.get_x_test(), y_test[label.value.name],
                              x_val=dataset.get_x_val(), y_val=y_val[label.value.name] if y_val is not None else None,
-                             axis=-2, normalize=True)
+                             normalize=True)
 
         embd_dataset = Data(x_train_embd, y_train[label.value.name],
                             x_test_embd, y_test[label.value.name],
                             x_val=x_val_embd, y_val=y_val[label.value.name] if y_val is not None else None,
-                            axis=-2, normalize=True)
+                            normalize=True)
         embd_alltime_dataset = Data(x_train_embd_alltime, y_train[label.value.name],
                                     x_test_embd_alltime, y_test[label.value.name],
                                     x_val=x_val_embd_alltime, y_val=y_val[label.value.name] if y_val is not None else None,
-                                    axis=-2, normalize=True)
+                                    normalize=True)
 
         from utils.evaluation.evaluation import classify_head_eval
 
