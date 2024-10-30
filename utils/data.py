@@ -1,3 +1,5 @@
+import numpy as np
+
 class Data:
     def __init__(self, x_train, y_train, x_test, y_test, x_val=None, y_val=None, val_split=None, normalize=False,
                  img_normalize=False, flatten_y=True):
@@ -28,10 +30,11 @@ class Data:
     def normalize_data(self):
         mean = self.x_train.mean(axis=0, keepdims=True)
         std = self.x_train.std(ddof=1, axis=0, keepdims=True)
-        self.x_train = (self.x_train - mean) / std
-        self.x_test = (self.x_test - mean) / std
+        self.x_train = np.true_divide(self.x_train - mean, std, where=(std > 0) & ~np.isnan(std), out=np.zeros_like(self.x_train))
+        self.x_test = np.true_divide(self.x_test - mean, std, where=(std > 0) & ~np.isnan(std), out=np.zeros_like(self.x_test))
         if self.x_val is not None:
-            self.x_val = (self.x_val - mean) / std
+            self.x_val = np.true_divide(self.x_val - mean, std, where=(std > 0) & ~np.isnan(std),
+                                         out=np.zeros_like(self.x_val))
 
     def get_all(self):
         return self.get_train(), self.get_test()
