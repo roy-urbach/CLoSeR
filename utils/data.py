@@ -1,6 +1,6 @@
 class Data:
     def __init__(self, x_train, y_train, x_test, y_test, x_val=None, y_val=None, val_split=None, normalize=False,
-                 img_normalize=False, flatten_y=True, axis=-1):
+                 img_normalize=False, flatten_y=True):
         self.x_train = x_train
         self.y_train = y_train
         self.x_test = x_test
@@ -9,7 +9,6 @@ class Data:
         self.y_val = y_val
         self.val_split = val_split
         self.shape = x_train[0].shape
-        self.axis = axis
         if img_normalize:
             self.image_normalize_data()
         if normalize:
@@ -27,8 +26,8 @@ class Data:
         self.x_test = self.x_test / 255
 
     def normalize_data(self):
-        mean = self.x_train.mean(axis=self.axis, keepdims=True)
-        std = self.x_train.std(ddof=1, axis=self.axis, keepdims=True)
+        mean = self.x_train.mean(axis=0, keepdims=True)
+        std = self.x_train.std(ddof=1, axis=0, keepdims=True)
         self.x_train = (self.x_train - mean) / std
         self.x_test = (self.x_test - mean) / std
         if self.x_val is not None:
