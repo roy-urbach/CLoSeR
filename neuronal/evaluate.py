@@ -36,9 +36,13 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
     if isinstance(model, str):
         model_kwargs = module.load_json(model, config=True)
         assert model_kwargs is not None
+        printd("loading model...", end='\t')
         model = load_model_from_json(model, module)
+        printd("done")
         if dataset is None:
+            printd("loading dataset...", end='\t')
             dataset = module.get_class_from_data(model_kwargs['dataset'])(**model_kwargs.get('data_kwargs', {}))
+            printd("done")
 
     bins_per_frame = dataset.bins_per_frame
     def transform_embedding(embedding, last_frame=True):
@@ -55,6 +59,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
         else:
             return embedding.reshape(embedding.shape[0], embedding.shape[-2] * embedding.shape[-3], embedding.shape[-1])
 
+    printd("getting predictions...", end='\t')
     x_train_pred = model.predict(dataset.get_x_train())[0]
     x_test_pred = model.predict(dataset.get_x_test())[0]
     x_train_embd = transform_embedding(x_train_pred)
@@ -76,6 +81,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
     y_test = dataset.get_y_test(labels)
     y_val = dataset.get_y_val(labels)
 
+    printd("done")
 
     results = module.load_evaluation_json(model.name) if not override else {}
 
@@ -85,7 +91,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
     save_res = lambda *inputs: module.save_evaluation_json(model.name, results) if save_results else None
 
     for label in labels:
-        print(f"evaluating label {label.value.name}")
+        printd(f"evaluating label {label.value.name}")
         basic_dataset = Data(dataset.get_x_train(), y_train[label.value.name],
                              dataset.get_x_test(), y_test[label.value.name],
                              x_val=dataset.get_x_val(), y_val=y_val[label.value.name] if y_val is not None else None)
@@ -101,7 +107,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
 
         if linear:
             if f'{label.value.name}_linear' not in results or override_linear:
-                print("linear")
+                printd("linear")
                 results[f'{label.value.name}_linear'] = classify_head_eval(embd_dataset,
                                                                            categorical=label.value.kind == CATEGORICAL,
                                                                            linear=True, svm=False, **kwargs)
@@ -109,14 +115,14 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
 
             if dataset.frames_per_sample > 1:
                 if f'{label.value.name}_alltime_linear' not in results or override_linear:
-                    print("alltime linear")
+                    printd("alltime linear")
                     results[f'{label.value.name}_alltime_linear'] = classify_head_eval(embd_alltime_dataset,
                                                                                        categorical=label.value.kind == CATEGORICAL,
                                                                                        linear=True, svm=False, **kwargs)
                     save_res()
 
             if inp and (f'{label.value.name}_input_linear' not in results or override_linear):
-                print("input linear")
+                printd("input linear")
                 results[f'{label.value.name}_input_linear'] = classify_head_eval(get_masked_ds(model, dataset=basic_dataset,
                                                                                                bins_per_frame=dataset.bins_per_frame, union=True),
                                                                                  categorical=label.value.kind == CATEGORICAL,
@@ -124,7 +130,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                 save_res()
 
                 if dataset.frames_per_sample > 1:
-                    print("alltime input linear")
+                    printd("alltime input linear")
                     results[f'{label.value.name}_alltime_input_linear'] = classify_head_eval(
                         get_masked_ds(model, dataset=basic_dataset, union=True, last_frame=False),
                         categorical=label.value.kind == CATEGORICAL,
@@ -133,7 +139,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
 
         if ensemble:
             if not any(['linear' in k and 'ensemble' in k and 'alltime' not in k and label.value.name in k for k in results]):
-                print("ensemble linear")
+                printd("ensemble linear")
                 results.update(classify_head_eval_ensemble(embd_dataset, linear=True, svm=False,
                                                            base_name=f"{label.value.name}_",
                                                            categorical=label.value.kind == CATEGORICAL,
@@ -142,7 +148,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
 
             if dataset.frames_per_sample > 1:
                 if not any(['linear' in k and 'ensemble' in k and 'alltime' in k and label.value.name in k for k in results]):
-                    print("ensemble linear alltime")
+                    printd("ensemble linear alltime")
                     results.update(classify_head_eval_ensemble(embd_alltime_dataset, linear=True, svm=False,
                                                                base_name=f"{label.value.name}_alltime",
                                                                categorical=label.value.kind == CATEGORICAL,
@@ -152,7 +158,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                     save_res()
 
             if inp and (not any([k.startswith(f"{label.value.name}_input_pathway") for k in results.keys()]) or override_linear):
-                print("ensemble input linear")
+                printd("ensemble input linear")
                 masked_ds = get_masked_ds(model, dataset=basic_dataset, bins_per_frame=dataset.bins_per_frame)
                 results.update(classify_head_eval_ensemble(masked_ds, base_name=f"{label.value.name}_input_", svm=False,
                                                            categorical=label.value.kind == CATEGORICAL,
@@ -160,7 +166,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                 save_res()
 
                 if dataset.frames_per_sample > 1:
-                    print("ensemble input alltime linear")
+                    printd("ensemble input alltime linear")
                     results.update(
                         classify_head_eval_ensemble(get_masked_ds(model, dataset=basic_dataset,
                                                                   bins_per_frame=dataset.bins_per_frame, last_frame=False),
@@ -175,7 +181,6 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
             for k in ks:
                 cur_name = f"{label.value.name}_k={k}"
                 if cur_name not in results:
-                    print(f"k={k}")
                     printd(cur_name, ":", end='\t')
                     results[cur_name] = classify_head_eval(embd_dataset,
                                                            categorical=label.value.kind == CATEGORICAL,
@@ -185,7 +190,6 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                 if dataset.frames_per_sample > 1:
                     cur_name = f"{label.value.name}_alltime_k={k}"
                     if cur_name not in results:
-                        print(f"alltime k={k}")
                         printd(cur_name, ":", end='\t')
                         results[cur_name] = classify_head_eval(embd_alltime_dataset,
                                                                categorical=label.value.kind == CATEGORICAL,
@@ -194,7 +198,6 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
 
                 cur_name = f"{label.value.name}_input_k={k}"
                 if inp and (cur_name not in results):
-                    print(f"input k={k}")
                     printd(cur_name, ":", end='\t')
                     results[cur_name] = classify_head_eval(get_masked_ds(model, dataset=basic_dataset,
                                                                          bins_per_frame=dataset.bins_per_frame, union=True),
@@ -204,7 +207,6 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                 if dataset.frames_per_sample > 1:
                     cur_name = f"{label.value.name}_alltime_input_k={k}"
                     if inp and (cur_name not in results):
-                        print(f"input alltime k={k}")
                         printd(cur_name, ":", end='\t')
                         results[cur_name] = classify_head_eval(get_masked_ds(model, dataset=basic_dataset,
                                                                              last_frame=False,
@@ -216,7 +218,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
         if ensemble and knn:
             for k in ks:
                 if not any(['k=' in key and 'ensemble' in key and 'alltime' not in key and label.value.name in key for key in results]):
-                    print(f"ensemble k={k}")
+                    printd(f"ensemble k={k}")
                     results.update(classify_head_eval_ensemble(embd_dataset, linear=False, svm=False, k=k,
                                                                base_name=f"{label.value.name}_k={k}_",
                                                                categorical=label.value.kind == CATEGORICAL,
@@ -226,7 +228,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                 if dataset.frames_per_sample > 1:
                     if not any(['k=' in key and 'ensemble' in key and 'alltime' in key and label.value.name in key
                                 for key in results]):
-                        print(f"ensemble alltime k={k}")
+                        printd(f"ensemble alltime k={k}")
                         results.update(classify_head_eval_ensemble(embd_alltime_dataset, linear=False, svm=False, k=k,
                                                                    base_name=f"{label.value.name}_alltime_k={k}_",
                                                                    categorical=label.value.kind == CATEGORICAL,
@@ -240,7 +242,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
 
                     if not any(['k=' in key and 'ensemble' in key and 'alltime' not in key and 'input' in key and label.value.name in key
                                 for key in results]):
-                        print(f"input ensemble k={k}")
+                        printd(f"input ensemble k={k}")
                         results.update(classify_head_eval_ensemble(masked_ds, base_name=f"{label.value.name}_input_k={k}_",
                                                                         svm=False, k=k, linear=False,
                                                                         categorical=label.value.kind == CATEGORICAL,
@@ -253,7 +255,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                         if not any([
                                        'k=' in key and 'ensemble' in key and 'alltime' in key and 'input' in key and label.value.name in key
                                        for key in results]):
-                            print(f"input alltime ensemble k={k}")
+                            printd(f"input alltime ensemble k={k}")
                             masked_ds = get_masked_ds(model, dataset=basic_dataset,
                                                       bins_per_frame=bins_per_frame, last_frame=False)
                             results.update(
