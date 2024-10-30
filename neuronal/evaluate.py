@@ -29,7 +29,7 @@ def get_masked_ds(model, dataset, union=False, bins_per_frame=1, last_frame=True
     return ds
 
 
-def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEURONAL, labels=[Labels.STIMULUS, Labels.FRAME],
+def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEURONAL, labels=[Labels.STIMULUS],
              knn=False, linear=True, ensemble=True, save_results=False, override=False, override_linear=False, inp=True,
              ks=[1] + list(range(5, 21, 5)), **kwargs):
 
