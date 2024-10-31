@@ -96,7 +96,7 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
         predictions = Stack(name='predictions', axis=-1)(*[predictor(tf.transpose(emb, [0,2,1])) for predictor, emb in zip(predictors, tf.unstack(embedding, axis=-1))])
 
         if predictor_concat:
-            embedding = tf.keras.layers.Identity(name='embedding')(tf.concat([embedding, predictions], name='concat_embd_pred', axis=-2))
+            embedding = tf.keras.layers.Lambda(lambda x: x, name='embedding')(tf.concat([embedding, predictions], name='concat_embd_pred', axis=-2))
             outputs = [embedding]
 
         else:
