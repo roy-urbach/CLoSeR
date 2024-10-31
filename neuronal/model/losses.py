@@ -346,7 +346,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
         elif self.l1:
             dist = tf.reduce_sum(tf.abs(arr1 - arr2), axis=axis)
         elif self.cosine:
-            norm = lambda arr: arr / tf.linalg.norm(arr, axis=axis, keepdims=True)
+            norm = lambda arr: arr / tf.linalg.norm(tf.stop_gradient(arr), axis=axis, keepdims=True)
             cosine_sim = tf.reduce_sum(norm(arr1) * norm(arr2), axis=axis)
             dist = 1-cosine_sim/2
         else:
