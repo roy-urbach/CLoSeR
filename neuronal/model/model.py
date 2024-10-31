@@ -40,6 +40,7 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
                  encoder='BasicRNN', encoder_per_path=False, random_rotation=False, random_rotations=False,
                  pathway_classification=True, pathway_classification_allpaths=False,
                  ensemble_classification=True, classifier_pathways=True,
+                 predictor_kwargs={}, predictor_concat=True, pred_in_readout=False,
                  augmentation_kwargs={}, encoder_kwargs={}, pathways_kwargs={}, labels=Labels):
     if isinstance(kernel_regularizer, str) and kernel_regularizer.startswith("tf."):
         kernel_regularizer = eval(kernel_regularizer)
@@ -86,18 +87,34 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
                                  out_regularizer=out_reg, **encoder_kwargs)
     encoders = [enc_init(i) for i in range(len(pathways))] if encoder_per_path else [enc_init(None)] * len(pathways)
 
-    embedding = Stack(name='embedding', axis=-1)(*[encoder(pathway) for encoder, pathway in zip(encoders, pathways)])
+    embedding = Stack(name='embedding' if not predictor_kwargs else 'embedding_before_pred', axis=-1)(*[encoder(pathway) for encoder, pathway in zip(encoders, pathways)])
     # (B, T or T/bins_per_frame, DIM, P), where or depends on encoder
 
-    outputs = [embedding]
+    if predictor_kwargs:
+        Predictor = get_class(predictor_kwargs.pop('encoder'), utils.model.encoders)
+        predictors = [Predictor(name=f'predictor{i}', **predictor_kwargs) for i in range(len(pathways))]
+        predictions = Stack(name='predictions', axis=-1)(*[predictor(emb) for predictor, emb in zip(predictors, tf.unstack(embedding, axis=-1))])
+
+        if predictor_concat:
+            embedding = tf.concat([embedding, predictions], name='embedding', axis=-2)
+            outputs = [embedding]
+
+        else:
+            outputs = [embedding, predictions]
+    else:
+        outputs = [embedding]
 
     # Readout part (with stopgrad if classifier=False):
 
     encoder_removed_bins = embedding.shape[1] == frames
     if encoder_removed_bins:
         last_step_embedding = embedding[:, -1]
+        if predictor_kwargs and not pred_in_readout:
+            last_step_embedding = last_step_embedding[..., :-predictions.shape[-2], :]
     else:
         last_step_embedding = embedding[:, -bins_per_frame:]
+        if predictor_kwargs and not pred_in_readout:
+            last_step_embedding = last_step_embedding[..., :-predictions.shape[-2], :]
         last_step_embedding = tf.reshape(last_step_embedding,     # (B, DIMS*bins_per_frame, P)
                                          (tf.shape(last_step_embedding)[0],
                                           embedding.shape[-2] * bins_per_frame,

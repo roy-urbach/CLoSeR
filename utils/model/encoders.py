@@ -142,4 +142,3 @@ class RecurrentAdversarial(tf.keras.layers.Layer):
                             tf.concat([adverse_embd, tf.zeros([tf.shape(inputs)[0], 1, self.outdim], dtype=adverse_embd.dtype)], axis=1)],
                            axis=-1)
         return concat
-
