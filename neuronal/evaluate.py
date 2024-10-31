@@ -43,23 +43,28 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
             printd("loading dataset...", end='\t')
             dataset = module.get_class_from_data(model_kwargs['dataset'])(**model_kwargs.get('data_kwargs', {}))
             printd("done")
+    else:
+        model_kwargs = module.load_json(model.name, config=True)
+
 
     bins_per_frame = dataset.bins_per_frame
     with_pred = "predictions" in [l.name for l in model.layers]
 
     def transform_embedding(embedding, last_frame=True):
+        normalize = lambda arr: arr/np.linalg.norm(arr, keepdims=True, axis=-2) if model_kwargs['loss_kwargs'].pop("cosine", False) else arr
+
         if last_frame:
             encoder_removed_bins = model.get_layer("pathways").output_shape[-1] != model.get_layer("embedding").output_shape[1]
             if encoder_removed_bins:
-                last_step_embedding = embedding[:, -1]
+                last_step_embedding = normalize(embedding[:, -1])
             else:
-                last_step_embedding = embedding[:, -bins_per_frame:]    # (B, bins_per_frame, DIM, P)
+                last_step_embedding = normalize(embedding[:, -bins_per_frame:])    # (B, bins_per_frame, DIM, P)
                 last_step_embedding = last_step_embedding.reshape(last_step_embedding.shape[0],
                                                                   last_step_embedding.shape[-2] * bins_per_frame,
                                                                   last_step_embedding.shape[-1])  # (B, DIMS*bins_per_frame, P)
             return last_step_embedding
         else:
-            return embedding.reshape(embedding.shape[0], embedding.shape[-2] * embedding.shape[-3], embedding.shape[-1])
+            return normalize(embedding).reshape(embedding.shape[0], embedding.shape[-2] * embedding.shape[-3], embedding.shape[-1])
 
     printd("getting predictions...", end='\t')
     x_train_pred = model.predict(dataset.get_x_train())[0]
