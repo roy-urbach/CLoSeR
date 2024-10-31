@@ -45,6 +45,8 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
             printd("done")
 
     bins_per_frame = dataset.bins_per_frame
+    with_pred = "predictions" in [l.name for l in model.layers]
+
     def transform_embedding(embedding, last_frame=True):
         if last_frame:
             encoder_removed_bins = model.get_layer("pathways").output_shape[-1] != model.get_layer("embedding").output_shape[1]
@@ -106,6 +108,19 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                                     x_val=x_val_embd_alltime, y_val=y_val[label.value.name] if y_val is not None else None,
                                     normalize=True)
 
+        if with_pred:
+            remove_pred = lambda embd: embd[:, :embd.shape[-3]//2]
+            embd_dataset_nopred = Data(remove_pred(embd_dataset.get_x_train()), embd_dataset.get_y_train(),
+                                       remove_pred(embd_dataset.get_x_test()), embd_dataset.get_y_test(),
+                                       x_val=remove_pred(embd_dataset.get_x_val()), y_val=embd_dataset.get_y_val(),
+                                       normalize=False
+                                       )
+            embd_alltime_dataset_nopred = Data(remove_pred(embd_alltime_dataset.get_x_train()), embd_alltime_dataset.get_y_train(),
+                                       remove_pred(embd_alltime_dataset.get_x_test()), embd_alltime_dataset.get_y_test(),
+                                       x_val=remove_pred(embd_alltime_dataset.get_x_val()), y_val=embd_alltime_dataset.get_y_val(),
+                                       normalize=False
+                                       )
+
         from utils.evaluation.evaluation import classify_head_eval
 
         if linear:
@@ -116,6 +131,13 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                                                                            linear=True, svm=False, **kwargs)
                 save_res()
 
+            if with_pred and f'{label.value.name}_nopred_linear' not in results or override_linear:
+                printd("nopred linear")
+                results[f'{label.value.name}_nopred_linear'] = classify_head_eval(embd_dataset_nopred,
+                                                                                  categorical=label.value.kind == CATEGORICAL,
+                                                                                  linear=True, svm=False, **kwargs)
+                save_res()
+
             if dataset.frames_per_sample > 1:
                 if f'{label.value.name}_alltime_linear' not in results or override_linear:
                     printd("alltime linear")
@@ -123,6 +145,13 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                                                                                        categorical=label.value.kind == CATEGORICAL,
                                                                                        linear=True, svm=False, **kwargs)
                     save_res()
+
+            if with_pred and f'{label.value.name}_nopred_alltime_linear' not in results or override_linear:
+                printd("nopred alltime linear")
+                results[f'{label.value.name}_nopred_alltime_linear'] = classify_head_eval(embd_alltime_dataset_nopred,
+                                                                                  categorical=label.value.kind == CATEGORICAL,
+                                                                                  linear=True, svm=False, **kwargs)
+                save_res()
 
             if inp and (f'{label.value.name}_input_linear' not in results or override_linear):
                 printd("input linear")
