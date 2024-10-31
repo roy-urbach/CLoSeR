@@ -93,7 +93,7 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
     if predictor_kwargs:
         Predictor = get_class(predictor_kwargs.pop('encoder'), utils.model.encoders)
         predictors = [Predictor(name=f'predictor{i}', **predictor_kwargs) for i in range(len(pathways))]
-        predictions = Stack(name='predictions', axis=-1)(*[predictor(emb) for predictor, emb in zip(predictors, tf.unstack(embedding, axis=-1))])
+        predictions = Stack(name='predictions', axis=-1)(*[predictor(tf.transpose(emb, [0,2,1])) for predictor, emb in zip(predictors, tf.unstack(embedding, axis=-1))])
 
         if predictor_concat:
             embedding = tf.concat([embedding, predictions], name='embedding', axis=-2)
