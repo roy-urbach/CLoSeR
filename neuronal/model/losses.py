@@ -494,9 +494,9 @@ class ContinuousLoss(tf.keras.losses.Loss):
         loss = mean_corr**2
         return loss
 
-    def koleo(self, embd):
+    def koleo(self, embd, eps=1e-5):
         b = tf.shape(embd)[0]
-        dist = self.distance(embd[None], embd[:, None], axis=-2, log=False, use_eps=False)
+        dist = tf.maximum(self.distance(embd[None], embd[:, None], axis=-2, log=False, use_eps=False), eps)
         shape_without_b = dist.get_shape().as_list()[2:]
         mask = tf.tile(tf.reshape(tf.eye(b) < 1, [b] * 2 + [1] * len(shape_without_b)), [1] * 2 + shape_without_b)
         log_dist = tf.where(mask, dist, tf.reduce_max(dist))
