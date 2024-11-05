@@ -86,10 +86,11 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
 
     from sklearn.decomposition import PCA
     pca = PCA(x_train_embd.shape[-2])
-    x_train_pca = pca.fit_transform(dataset.get_x_train())
-    x_test_pca = pca.transform(dataset.get_x_test())
+    x_train_pca = pca.fit_transform(np.concatenate([dataset.get_x_train()[..., i] for i in range(dataset.get_x_train().shape[-1])], axis=0))
+    x_test_pca = np.stack([pca.transform(dataset.get_x_test()[..., i]) for i in range(dataset.get_x_train().shape[-1])], axis=-1)
     if x_val is not None:
-        x_val_pca = pca.transform(x_val)
+        x_val_pca = np.stack(
+            [pca.transform(dataset.get_x_val()[..., i]) for i in range(dataset.get_x_val().shape[-1])], axis=-1)
     else:
         x_val_pca = None
 
