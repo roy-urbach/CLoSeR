@@ -23,6 +23,7 @@ class Label:
 
 
 class Labels(Enum):
+    NEXT = Label("next", CONTINUOUS, None)
     STIMULUS = Label("stimulus", CATEGORICAL, 1 if len(NATURAL_MOVIES) <= 2 else len(NATURAL_MOVIES), NATURAL_MOVIES)
     TRIAL = Label("trial", CATEGORICAL, max(NATURAL_MOVIES_TRIALS.values()))
     FRAME = Label("normedframe", CONTINUOUS, 1)
@@ -494,7 +495,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
 
             for stim_ind, stim_name in enumerate(self.stimuli):
                 for trial_num in range(len(self.spikes[stim_name]) if not self.areas_in_spikes() else len(self.spikes[stim_name][self.areas[0]])):
-                    for frame_num in range(self.frames_per_sample, NATURAL_MOVIES_FRAMES[stim_name]):
+                    for frame_num in range(self.frames_per_sample, NATURAL_MOVIES_FRAMES[stim_name]-1):
                         cur_spikes = self.get_activity_window(stim_name, trial_num, frame_num)
                         valid = True
                         if self.areas_in_spikes():
@@ -513,6 +514,14 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
                             y[Labels.STIMULUS.value.name].append(stim_ind)
                             y[Labels.TRIAL.value.name].append(self.possible_trials[stim_name][trial_num])
                             y[Labels.FRAME.value.name].append(frame_num / NATURAL_MOVIES_FRAMES[stim_name])
+                            next_bin_activity = self.get_activity_window(stim_name, trial_num, frame_num+1)[..., 0]
+                            if self.areas_in_spikes():
+                                if not y[Labels.NEXT.value.name]:
+                                    y[Labels.NEXT.value.name] = {area: [] for area in self.areas}
+                                for area in self.areas:
+                                    y[Labels.NEXT.value.name][area].append(next_bin_activity)
+                            else:
+                                y[Labels.NEXT.value.name].append(next_bin_activity)
 
             if self.areas_in_spikes():
                 spikes = {area: np.stack(activity, axis=0) for area, activity in spikes.items()}
@@ -530,7 +539,9 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
         actual_y = {}
         for name, label in self.name_to_label.items() if labels is None else {label.value.name: label
                                                                               for label in labels}.items():
-            actual_y[name] = np.array(self.y[label.value.name])
+            if self.areas_in_spikes() and label == Labels.NEXT:
+                actual_y[name] = {area: np.stack(self.y[label.value.name][area], axis=0) for area in self.areas}
+            actual_y[name] = np.array(self.y[label.value.name], axis=0)
         return actual_y
 
     def get_x_train(self):

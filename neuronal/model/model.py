@@ -45,7 +45,7 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
     if isinstance(kernel_regularizer, str) and kernel_regularizer.startswith("tf."):
         kernel_regularizer = eval(kernel_regularizer)
 
-    inputs = layers.Input(shape=input_shape)
+    inputs = layers.Input(shape=input_shape)        # (B, N, T)
     if isinstance(input_shape, dict):
         units = {area: units for area, (units, bins_per_sample) in input_shape.items()}
         bins_per_sample = list(input_shape.values())[0][-1]
@@ -136,13 +136,14 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
             for label in labels:
                 cur_name = 'logits' + (
                     str(path) if pathway_classification_allpaths else '') + f'_{label.value.name}'
-                pathway_logits = layers.Dense(label.value.dimension, activation=None,
+                pathway_logits = layers.Dense(label.value.dimension if label.value.dimension else input_shape[1], activation=None,
                                               kernel_regularizer=kernel_regularizer, name=cur_name)(cur_embd)
                 outputs.append(pathway_logits)
     if ensemble_classification:
         for label in labels:
             ens_inp = tf.concat(path_divide_embedding, axis=-1)
-            ens_pred = layers.Dense(label.value.dimension, activation=None,
+            ens_pred = layers.Dense(label.value.dimension if label.value.dimension else input_shape[1],
+                                    activation=None,
                                     kernel_regularizer=kernel_regularizer,
                                     name=f'ensemble_logits_{label.value.name}')(ens_inp)
             outputs.append(ens_pred)
