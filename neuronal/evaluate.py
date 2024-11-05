@@ -84,6 +84,15 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
         x_val_embd = None
         x_val_embd_alltime = None
 
+    from sklearn.decomposition import PCA
+    pca = PCA(x_train_embd.shape[-2])
+    x_train_pca = pca.fit_transform(dataset.get_x_train())
+    x_test_pca = pca.transform(dataset.get_x_test())
+    if x_val is not None:
+        x_val_pca = pca.transform(x_val)
+    else:
+        x_val_pca = None
+
     y_train = dataset.get_y_train(labels)
     y_test = dataset.get_y_test(labels)
     y_val = dataset.get_y_val(labels)
@@ -103,6 +112,11 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                              dataset.get_x_test(), y_test[label.value.name],
                              x_val=dataset.get_x_val(), y_val=y_val[label.value.name] if y_val is not None else None,
                              normalize=True)
+
+        basic_pca_dataset = Data(x_train_pca, basic_dataset.get_y_train(),
+                                 x_test_pca, basic_dataset.get_y_test(),
+                                 x_val=x_val_pca, y_val=y_val[label.value.name] if y_val is not None else None
+                                 )
 
         embd_dataset = Data(x_train_embd, y_train[label.value.name],
                             x_test_embd, y_test[label.value.name],
@@ -174,6 +188,22 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                         linear=True, svm=False, **kwargs)
                     save_res()
 
+            if inp and f'{label.value.name}_input_pca_linear' not in results or override_linear:
+                printd("input pca linear")
+                results[f'{label.value.name}_input_pca_linear'] = classify_head_eval(get_masked_ds(model, dataset=basic_pca_dataset,
+                                                                                               bins_per_frame=dataset.bins_per_frame, union=True),
+                                                                                 categorical=label.value.kind == CATEGORICAL,
+                                                                                 linear=True, svm=False, **kwargs)
+                save_res()
+
+                if dataset.frames_per_sample > 1:
+                    printd("alltime input pca linear")
+                    results[f'{label.value.name}_alltime_input_pca_linear'] = classify_head_eval(
+                        get_masked_ds(model, dataset=basic_pca_dataset, union=True, last_frame=False),
+                        categorical=label.value.kind == CATEGORICAL,
+                        linear=True, svm=False, **kwargs)
+                    save_res()
+
         if ensemble:
             if not any(['linear' in k and 'ensemble' in k and 'alltime' not in k and label.value.name in k for k in results]) or override_linear:
                 printd("ensemble linear")
@@ -214,6 +244,26 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                         **kwargs)
                     save_res()
 
+            if inp and (not any([k.startswith(f"{label.value.name}_input_pca_pathway") for k in results.keys()]) or override_linear):
+                printd("ensemble input pca linear")
+                masked_ds = get_masked_ds(model, dataset=basic_pca_dataset, bins_per_frame=dataset.bins_per_frame)
+                results.update(classify_head_eval_ensemble(masked_ds, base_name=f"{label.value.name}_input_pca_", svm=False,
+                                                           categorical=label.value.kind == CATEGORICAL,
+                                                           voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean]), **kwargs)
+                save_res()
+
+                if dataset.frames_per_sample > 1:
+                    printd("ensemble input pca alltime linear")
+                    results.update(
+                        classify_head_eval_ensemble(get_masked_ds(model, dataset=basic_pca_dataset,
+                                                                  bins_per_frame=dataset.bins_per_frame, last_frame=False),
+                                                    base_name=f"{label.value.name}_alltime_input_pca_", svm=False,
+                                                    categorical=label.value.kind == CATEGORICAL,
+                                                    voting_methods=[
+                                                        EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean]),
+                        **kwargs)
+                    save_res()
+
         if knn:
             for k in ks:
                 cur_name = f"{label.value.name}_k={k}"
@@ -246,6 +296,25 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                     if inp and (cur_name not in results):
                         printd(cur_name, ":", end='\t')
                         results[cur_name] = classify_head_eval(get_masked_ds(model, dataset=basic_dataset,
+                                                                             last_frame=False,
+                                                                             bins_per_frame=dataset.bins_per_frame, union=True),
+                                                               categorical=label.value.kind == CATEGORICAL,
+                                                               linear=False, k=k, **kwargs)
+                        save_res()
+
+                cur_name = f"{label.value.name}_input_pca_k={k}"
+                if inp and (cur_name not in results):
+                    printd(cur_name, ":", end='\t')
+                    results[cur_name] = classify_head_eval(get_masked_ds(model, dataset=basic_pca_dataset,
+                                                                         bins_per_frame=dataset.bins_per_frame, union=True),
+                                                           categorical=label.value.kind == CATEGORICAL,
+                                                           linear=False, k=k, **kwargs)
+                    save_res()
+                if dataset.frames_per_sample > 1:
+                    cur_name = f"{label.value.name}_alltime_input_pca_k={k}"
+                    if inp and (cur_name not in results):
+                        printd(cur_name, ":", end='\t')
+                        results[cur_name] = classify_head_eval(get_masked_ds(model, dataset=basic_pca_dataset,
                                                                              last_frame=False,
                                                                              bins_per_frame=dataset.bins_per_frame, union=True),
                                                                categorical=label.value.kind == CATEGORICAL,
@@ -297,6 +366,35 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                                                       bins_per_frame=bins_per_frame, last_frame=False)
                             results.update(
                                 classify_head_eval_ensemble(masked_ds, base_name=f"{label.value.name}_alltime_input_k={k}_",
+                                                            svm=False, k=k, linear=False,
+                                                            categorical=label.value.kind == CATEGORICAL,
+                                                            voting_methods=[
+                                                                EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean],
+                                                            **kwargs))
+                            save_res()
+                if inp:
+                    masked_ds = get_masked_ds(model, dataset=basic_pca_dataset, bins_per_frame=bins_per_frame)
+
+                    if not any(['k=' in key and 'ensemble' in key and 'alltime' not in key and 'input' in key and label.value.name in key and "pca" in key
+                                for key in results]):
+                        printd(f"input pca ensemble k={k}")
+                        results.update(classify_head_eval_ensemble(masked_ds, base_name=f"{label.value.name}_input_pca_k={k}_",
+                                                                        svm=False, k=k, linear=False,
+                                                                        categorical=label.value.kind == CATEGORICAL,
+                                                                        voting_methods=[
+                                                                            EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean],
+                                                                        **kwargs))
+                        save_res()
+
+                    if dataset.frames_per_sample > 1:
+                        if not any([
+                                       'k=' in key and 'ensemble' in key and 'alltime' in key and 'input' in key and label.value.name in key and "pca" in key
+                                       for key in results]):
+                            printd(f"input pca alltime ensemble k={k}")
+                            masked_ds = get_masked_ds(model, dataset=basic_pca_dataset,
+                                                      bins_per_frame=bins_per_frame, last_frame=False)
+                            results.update(
+                                classify_head_eval_ensemble(masked_ds, base_name=f"{label.value.name}_alltime_input_pca_k={k}_",
                                                             svm=False, k=k, linear=False,
                                                             categorical=label.value.kind == CATEGORICAL,
                                                             voting_methods=[
