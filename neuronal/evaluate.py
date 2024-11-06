@@ -134,9 +134,9 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                                pcs=(x_train_embd.shape[-2]*x_train_embd.shape[-3] if not last_frame else x_train_embd.shape[-2]) if pc else None,
                                last_frame=last_frame, normalize=True)
 
-        ds.y_train = dataset.get_y_train()[label]
-        ds.y_val = dataset.get_y_val()[label]
-        ds.y_test = dataset.get_y_test()[label]
+        ds.y_train = y_train[label]
+        ds.y_val = y_val[label]
+        ds.y_test = y_test[label]
 
         return ds
     printd("done")
