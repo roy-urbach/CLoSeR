@@ -62,7 +62,7 @@ def get_masked_ds(model, dataset, union=False, bins_per_frame=1, last_frame=True
 
     ds = Data(x_train, dataset.get_y_train(),
               x_test, dataset.get_y_test(),
-              x_val=x_val, y_val=dataset.get_y_val(), normalize=normalize)
+              x_val=x_val, y_val=dataset.get_y_val(), normalize=normalize, flatten_y=False)
     return ds
 
 

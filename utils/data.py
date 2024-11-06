@@ -16,8 +16,10 @@ class Data:
         if normalize:
             self.normalize_data()
         if flatten_y:
-            self.y_train = self.y_train.flatten()
-            self.y_test = self.y_test.flatten()
+            self.y_train = {k: v.flatten() for k, v in self.y_train.items()} if isinstance(self.y_train, dict) else self.y_train.flatten()
+            self.y_test = {k: v.flatten() for k, v in self.y_test.items()} if isinstance(self.y_test, dict) else self.y_test.flatten()
+            if self.y_val is not None:
+                self.y_val = {k: v.flatten() for k, v in self.y_val.items()} if isinstance(self.y_val, dict) else self.y_val.flatten()
 
     @staticmethod
     def is_generator():
