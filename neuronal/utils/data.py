@@ -541,7 +541,8 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
                                                                               for label in labels}.items():
             if self.areas_in_spikes() and label == Labels.NEXT:
                 actual_y[name] = {area: np.stack(self.y[label.value.name][area], axis=0) for area in self.areas}
-            actual_y[name] = np.array(self.y[label.value.name], axis=0)
+            else:
+                actual_y[name] = np.array(self.y[label.value.name])
         return actual_y
 
     def get_x_train(self):
