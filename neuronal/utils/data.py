@@ -514,7 +514,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
                             y[Labels.STIMULUS.value.name].append(stim_ind)
                             y[Labels.TRIAL.value.name].append(self.possible_trials[stim_name][trial_num])
                             y[Labels.FRAME.value.name].append(frame_num / NATURAL_MOVIES_FRAMES[stim_name])
-                            next_bin_activity = self.get_activity_window(stim_name, trial_num, frame_num+1)[..., 0]
+                            next_bin_activity = self.get_activity_window(stim_name, trial_num, frame_num+self.frames_per_sample)[..., 0]
                             if self.areas_in_spikes():
                                 if not y[Labels.NEXT.value.name]:
                                     y[Labels.NEXT.value.name] = {area: [] for area in self.areas}
