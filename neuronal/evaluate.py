@@ -10,7 +10,7 @@ from utils.utils import printd
 import numpy as np
 
 
-def get_masked_ds(model, dataset, union=False, bins_per_frame=1, last_frame=True):
+def get_masked_ds(model, dataset, union=False, bins_per_frame=1, last_frame=True, pcs=None, normalize=False):
     if isinstance(model, str):
         model = load_model_from_json(model, Modules.NEURONAL)
     aug_layer = model.get_layer("data_augmentation")
@@ -18,14 +18,51 @@ def get_masked_ds(model, dataset, union=False, bins_per_frame=1, last_frame=True
     pathway_indices = pathways.indices.numpy()
     if union:
         union = np.unique(pathway_indices) - model.get_layer("pathways").shift
-        setup_func = lambda x: aug_layer(x).numpy()[:, union, ..., -bins_per_frame if last_frame else 0:]
+        setup_func = lambda x: aug_layer(x).numpy()[:, union, ..., -bins_per_frame if last_frame else 0:]   # (B, N, T)
     else:
         setup_func = lambda x: np.transpose(aug_layer(x).numpy()[:, pathway_indices - pathways.shift, ..., -bins_per_frame if last_frame else 0:], [0, 1, 3, 2]).reshape(
-            x.shape[0], -1, pathway_indices.shape[-1])
+            x.shape[0], -1, bins_per_frame if last_frame else x.shape[-1], pathway_indices.shape[-1])       # (B, N, T, P)
 
-    ds = Data(setup_func(dataset.get_x_train()), dataset.get_y_train(),
-              setup_func(dataset.get_x_test()), dataset.get_y_test(),
-              x_val=setup_func(dataset.get_x_val()), y_val=dataset.get_y_val())
+    x_train = setup_func(dataset.get_x_train())
+    x_test = setup_func(dataset.get_x_test())
+    x_val = setup_func(dataset.get_x_val())
+
+    if pcs is not None:
+        from sklearn.decomposition import PCA
+        pca = PCA(pcs)
+        if union:
+            pca.fit(np.concatenate([x_train[..., t] for t in range(x_train.shape[-1])], axis=0))
+            x_train = np.stack(
+                [pca.transform(x_train[..., t]) for t in range(x_train.shape[-1])], axis=-1)
+            x_test = np.stack(
+                [pca.transform(x_test[..., t]) for t in range(x_test.shape[-1])], axis=-1)
+            x_val = np.stack(
+                [pca.transform(x_val[..., t]) for t in range(x_val.shape[-1])], axis=-1)
+        else:
+            pca.fit(np.concatenate([x_train[...,t, i] for i in range(x_train.shape[-1]) for t in range(x_val.shape[-2])], axis=0))
+            x_train = np.stack([np.stack([pca.transform(x_train[..., t, i])
+                                          for t in range(x_train.shape[-2])], axis=-1)
+                                for i in range(x_train.shape[-1])], axis=-1)
+            x_test = np.stack([np.stack([pca.transform(x_test[..., t, i])
+                                          for t in range(x_test.shape[-2])], axis=-1)
+                                for i in range(x_test.shape[-1])], axis=-1)
+
+            x_val = np.stack([np.stack([pca.transform(x_val[..., t, i])
+                                          for t in range(x_val.shape[-2])], axis=-1)
+                                for i in range(x_val.shape[-1])], axis=-1)
+
+    if union:
+        x_train = x_train.reshape(len(x_train), -1)
+        x_val = x_val.reshape(len(x_val), -1)
+        x_test = x_test.reshape(len(x_test), -1)
+    else:
+        x_train = x_train.reshape((len(x_train), -1, x_train.shape[-1]))
+        x_val = x_val.reshape((len(x_val), -1, x_val.shape[-1]))
+        x_test = x_test.reshape((len(x_test), -1, x_test.shape[-1]))
+
+    ds = Data(x_train, dataset.get_y_train(),
+              x_test, dataset.get_y_test(),
+              x_val=x_val, y_val=dataset.get_y_val(), normalize=normalize)
     return ds
 
 
@@ -84,21 +121,24 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
         x_val_embd = None
         x_val_embd_alltime = None
 
-    from sklearn.decomposition import PCA
-    pca = PCA(x_train_embd.shape[-2])
-    pca.fit(np.concatenate([dataset.get_x_train()[..., i] for i in range(dataset.get_x_train().shape[-1])], axis=0))
-    x_train_pca = np.stack([pca.transform(dataset.get_x_train()[..., i]) for i in range(dataset.get_x_train().shape[-1])], axis=-1)
-    x_test_pca = np.stack([pca.transform(dataset.get_x_test()[..., i]) for i in range(dataset.get_x_test().shape[-1])], axis=-1)
-    if x_val is not None:
-        x_val_pca = np.stack(
-            [pca.transform(dataset.get_x_val()[..., i]) for i in range(dataset.get_x_val().shape[-1])], axis=-1)
-    else:
-        x_val_pca = None
-
     y_train = dataset.get_y_train(labels)
     y_test = dataset.get_y_test(labels)
     y_val = dataset.get_y_val(labels)
 
+    def get_inp_ds(last_frame=False, pc=False, label=None, union=False, cache={}):
+        name = f"lastframe{last_frame}_pc{pc}_un{union}"
+        if name in cache:
+            ds = cache[name]
+        else:
+            ds = get_masked_ds(model, dataset=dataset, bins_per_frame=bins_per_frame,
+                               pcs=(x_train_embd.shape[-2]*x_train_embd.shape[-3] if not last_frame else x_train_embd.shape[-2]) if pc else None,
+                               last_frame=last_frame, normalize=True)
+
+        ds.y_train = dataset.get_y_train()[label]
+        ds.y_val = dataset.get_y_val()[label]
+        ds.y_test = dataset.get_y_test()[label]
+
+        return ds
     printd("done")
 
     results = module.load_evaluation_json(model.name) if not override else {}
@@ -110,16 +150,6 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
 
     for label in labels:
         printd(f"evaluating label {label.value.name}")
-        basic_dataset = Data(dataset.get_x_train(), y_train[label.value.name],
-                             dataset.get_x_test(), y_test[label.value.name],
-                             x_val=dataset.get_x_val(), y_val=y_val[label.value.name] if y_val is not None else None,
-                             normalize=True)
-
-        basic_pca_dataset = Data(x_train_pca, basic_dataset.get_y_train(),
-                                 x_test_pca, basic_dataset.get_y_test(),
-                                 x_val=x_val_pca, y_val=y_val[label.value.name] if y_val is not None else None
-                                 )
-
         embd_dataset = Data(x_train_embd, y_train[label.value.name],
                             x_test_embd, y_test[label.value.name],
                             x_val=x_val_embd, y_val=y_val[label.value.name] if y_val is not None else None,
@@ -176,8 +206,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
 
             if inp and (f'{label.value.name}_input_linear' not in results or override_linear):
                 printd("input linear")
-                results[f'{label.value.name}_input_linear'] = classify_head_eval(get_masked_ds(model, dataset=basic_dataset,
-                                                                                               bins_per_frame=dataset.bins_per_frame, union=True),
+                results[f'{label.value.name}_input_linear'] = classify_head_eval(get_inp_ds(last_frame=True, pc=False, label=label.value.name, union=True),
                                                                                  categorical=label.value.kind == CATEGORICAL,
                                                                                  linear=True, svm=False, **kwargs)
                 save_res()
@@ -185,15 +214,14 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                 if dataset.frames_per_sample > 1:
                     printd("alltime input linear")
                     results[f'{label.value.name}_alltime_input_linear'] = classify_head_eval(
-                        get_masked_ds(model, dataset=basic_dataset, union=True, last_frame=False),
+                        get_inp_ds(last_frame=False, pc=False, label=label.value.name, union=True),
                         categorical=label.value.kind == CATEGORICAL,
                         linear=True, svm=False, **kwargs)
                     save_res()
 
             if inp and f'{label.value.name}_input_pca_linear' not in results or override_linear:
                 printd("input pca linear")
-                results[f'{label.value.name}_input_pca_linear'] = classify_head_eval(get_masked_ds(model, dataset=basic_pca_dataset,
-                                                                                               bins_per_frame=dataset.bins_per_frame, union=True),
+                results[f'{label.value.name}_input_pca_linear'] = classify_head_eval(get_inp_ds(last_frame=True, pc=True, label=label.value.name, union=True),
                                                                                  categorical=label.value.kind == CATEGORICAL,
                                                                                  linear=True, svm=False, **kwargs)
                 save_res()
@@ -201,7 +229,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                 if dataset.frames_per_sample > 1:
                     printd("alltime input pca linear")
                     results[f'{label.value.name}_alltime_input_pca_linear'] = classify_head_eval(
-                        get_masked_ds(model, dataset=basic_pca_dataset, union=True, last_frame=False),
+                        get_inp_ds(last_frame=False, pc=True, label=label.value.name, union=True),
                         categorical=label.value.kind == CATEGORICAL,
                         linear=True, svm=False, **kwargs)
                     save_res()
@@ -228,8 +256,8 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
 
             if inp and (not any([k.startswith(f"{label.value.name}_input_pathway") for k in results.keys()]) or override_linear):
                 printd("ensemble input linear")
-                masked_ds = get_masked_ds(model, dataset=basic_dataset, bins_per_frame=dataset.bins_per_frame)
-                results.update(classify_head_eval_ensemble(masked_ds, base_name=f"{label.value.name}_input_", svm=False,
+                results.update(classify_head_eval_ensemble(get_inp_ds(last_frame=True, pc=False, label=label.value.name, union=False),
+                                                           base_name=f"{label.value.name}_input_", svm=False,
                                                            categorical=label.value.kind == CATEGORICAL,
                                                            voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean]), **kwargs)
                 save_res()
@@ -237,8 +265,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                 if dataset.frames_per_sample > 1:
                     printd("ensemble input alltime linear")
                     results.update(
-                        classify_head_eval_ensemble(get_masked_ds(model, dataset=basic_dataset,
-                                                                  bins_per_frame=dataset.bins_per_frame, last_frame=False),
+                        classify_head_eval_ensemble(get_inp_ds(last_frame=False, pc=False, label=label.value.name, union=False),
                                                     base_name=f"{label.value.name}_alltime_input_", svm=False,
                                                     categorical=label.value.kind == CATEGORICAL,
                                                     voting_methods=[
@@ -248,8 +275,8 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
 
             if inp and (not any([k.startswith(f"{label.value.name}_input_pca_pathway") for k in results.keys()]) or override_linear):
                 printd("ensemble input pca linear")
-                masked_ds = get_masked_ds(model, dataset=basic_pca_dataset, bins_per_frame=dataset.bins_per_frame)
-                results.update(classify_head_eval_ensemble(masked_ds, base_name=f"{label.value.name}_input_pca_", svm=False,
+                results.update(classify_head_eval_ensemble(get_inp_ds(last_frame=True, pc=True, label=label.value.name, union=False),
+                                                           base_name=f"{label.value.name}_input_pca_", svm=False,
                                                            categorical=label.value.kind == CATEGORICAL,
                                                            voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean]), **kwargs)
                 save_res()
@@ -257,8 +284,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                 if dataset.frames_per_sample > 1:
                     printd("ensemble input pca alltime linear")
                     results.update(
-                        classify_head_eval_ensemble(get_masked_ds(model, dataset=basic_pca_dataset,
-                                                                  bins_per_frame=dataset.bins_per_frame, last_frame=False),
+                        classify_head_eval_ensemble(get_inp_ds(last_frame=False, pc=True, label=label.value.name, union=False),
                                                     base_name=f"{label.value.name}_alltime_input_pca_", svm=False,
                                                     categorical=label.value.kind == CATEGORICAL,
                                                     voting_methods=[
@@ -288,8 +314,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                 cur_name = f"{label.value.name}_input_k={k}"
                 if inp and (cur_name not in results):
                     printd(cur_name, ":", end='\t')
-                    results[cur_name] = classify_head_eval(get_masked_ds(model, dataset=basic_dataset,
-                                                                         bins_per_frame=dataset.bins_per_frame, union=True),
+                    results[cur_name] = classify_head_eval(get_inp_ds(last_frame=True, pc=False, label=label.value.name, union=False),
                                                            categorical=label.value.kind == CATEGORICAL,
                                                            linear=False, k=k, **kwargs)
                     save_res()
@@ -297,9 +322,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                     cur_name = f"{label.value.name}_alltime_input_k={k}"
                     if inp and (cur_name not in results):
                         printd(cur_name, ":", end='\t')
-                        results[cur_name] = classify_head_eval(get_masked_ds(model, dataset=basic_dataset,
-                                                                             last_frame=False,
-                                                                             bins_per_frame=dataset.bins_per_frame, union=True),
+                        results[cur_name] = classify_head_eval(get_inp_ds(last_frame=False, pc=False, label=label.value.name, union=True),
                                                                categorical=label.value.kind == CATEGORICAL,
                                                                linear=False, k=k, **kwargs)
                         save_res()
@@ -307,8 +330,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                 cur_name = f"{label.value.name}_input_pca_k={k}"
                 if inp and (cur_name not in results):
                     printd(cur_name, ":", end='\t')
-                    results[cur_name] = classify_head_eval(get_masked_ds(model, dataset=basic_pca_dataset,
-                                                                         bins_per_frame=dataset.bins_per_frame, union=True),
+                    results[cur_name] = classify_head_eval(get_inp_ds(last_frame=True, pc=True, label=label.value.name, union=True),
                                                            categorical=label.value.kind == CATEGORICAL,
                                                            linear=False, k=k, **kwargs)
                     save_res()
@@ -316,14 +338,13 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                     cur_name = f"{label.value.name}_alltime_input_pca_k={k}"
                     if inp and (cur_name not in results):
                         printd(cur_name, ":", end='\t')
-                        results[cur_name] = classify_head_eval(get_masked_ds(model, dataset=basic_pca_dataset,
-                                                                             last_frame=False,
-                                                                             bins_per_frame=dataset.bins_per_frame, union=True),
+                        results[cur_name] = classify_head_eval(get_inp_ds(last_frame=False, pc=True, label=label.value.name, union=True),
                                                                categorical=label.value.kind == CATEGORICAL,
                                                                linear=False, k=k, **kwargs)
                         save_res()
 
         if ensemble and knn:
+
             for k in ks:
                 if not any(['k=' in key and 'ensemble' in key and 'alltime' not in key and label.value.name in key for key in results]):
                     printd(f"ensemble k={k}")
@@ -346,12 +367,12 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                         save_res()
 
                 if inp:
-                    masked_ds = get_masked_ds(model, dataset=basic_dataset, bins_per_frame=bins_per_frame)
 
                     if not any(['k=' in key and 'ensemble' in key and 'alltime' not in key and 'input' in key and label.value.name in key
                                 for key in results]):
                         printd(f"input ensemble k={k}")
-                        results.update(classify_head_eval_ensemble(masked_ds, base_name=f"{label.value.name}_input_k={k}_",
+                        results.update(classify_head_eval_ensemble(get_inp_ds(last_frame=True, pc=False, label=label.value.name, union=False),
+                                                                   base_name=f"{label.value.name}_input_k={k}_",
                                                                         svm=False, k=k, linear=False,
                                                                         categorical=label.value.kind == CATEGORICAL,
                                                                         voting_methods=[
@@ -364,10 +385,9 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                                        'k=' in key and 'ensemble' in key and 'alltime' in key and 'input' in key and label.value.name in key
                                        for key in results]):
                             printd(f"input alltime ensemble k={k}")
-                            masked_ds = get_masked_ds(model, dataset=basic_dataset,
-                                                      bins_per_frame=bins_per_frame, last_frame=False)
                             results.update(
-                                classify_head_eval_ensemble(masked_ds, base_name=f"{label.value.name}_alltime_input_k={k}_",
+                                classify_head_eval_ensemble(get_inp_ds(last_frame=False, pc=False, label=label.value.name, union=False),
+                                                            base_name=f"{label.value.name}_alltime_input_k={k}_",
                                                             svm=False, k=k, linear=False,
                                                             categorical=label.value.kind == CATEGORICAL,
                                                             voting_methods=[
@@ -375,12 +395,13 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                                                             **kwargs))
                             save_res()
                 if inp:
-                    masked_ds = get_masked_ds(model, dataset=basic_pca_dataset, bins_per_frame=bins_per_frame)
+
 
                     if not any(['k=' in key and 'ensemble' in key and 'alltime' not in key and 'input' in key and label.value.name in key and "pca" in key
                                 for key in results]):
                         printd(f"input pca ensemble k={k}")
-                        results.update(classify_head_eval_ensemble(masked_ds, base_name=f"{label.value.name}_input_pca_k={k}_",
+                        results.update(classify_head_eval_ensemble(get_inp_ds(last_frame=True, pc=True, label=label.value.name, union=False),
+                                                                   base_name=f"{label.value.name}_input_pca_k={k}_",
                                                                         svm=False, k=k, linear=False,
                                                                         categorical=label.value.kind == CATEGORICAL,
                                                                         voting_methods=[
@@ -393,10 +414,9 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                                        'k=' in key and 'ensemble' in key and 'alltime' in key and 'input' in key and label.value.name in key and "pca" in key
                                        for key in results]):
                             printd(f"input pca alltime ensemble k={k}")
-                            masked_ds = get_masked_ds(model, dataset=basic_pca_dataset,
-                                                      bins_per_frame=bins_per_frame, last_frame=False)
                             results.update(
-                                classify_head_eval_ensemble(masked_ds, base_name=f"{label.value.name}_alltime_input_pca_k={k}_",
+                                classify_head_eval_ensemble(get_inp_ds(last_frame=False, pc=True, label=label.value.name, union=False),
+                                                            base_name=f"{label.value.name}_alltime_input_pca_k={k}_",
                                                             svm=False, k=k, linear=False,
                                                             categorical=label.value.kind == CATEGORICAL,
                                                             voting_methods=[
