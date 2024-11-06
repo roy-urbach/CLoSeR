@@ -131,7 +131,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
             ds = cache[name]
         else:
             ds = get_masked_ds(model, dataset=dataset, bins_per_frame=bins_per_frame,
-                               pcs=(x_train_embd.shape[-2]*x_train_embd.shape[-3] if not last_frame else x_train_embd.shape[-2]) if pc else None,
+                               pcs=(x_train_pred.shape[-2]*x_train_pred.shape[-3] if not last_frame else x_train_pred.shape[-2]) if pc else None,
                                last_frame=last_frame, normalize=True)
 
         ds.y_train = y_train[label]
