@@ -68,6 +68,7 @@ def get_masked_ds(model, dataset, union=False, bins_per_frame=1, last_frame=True
 
 
 def evaluate_predict(dct, masked_ds, masked_ds_union, embd_alltime_noflat_ds, encoder_removed_bins, bins_per_frame=1):
+    print("evaluating predict...")
     pred_ind_start = embd_alltime_noflat_ds.shape[-2]//2
     func_y = lambda inp: inp[..., -bins_per_frame, :].reshape(len(inp), -1, inp.shape[-1])
 
@@ -94,9 +95,11 @@ def evaluate_predict(dct, masked_ds, masked_ds_union, embd_alltime_noflat_ds, en
     for inp in (False, True):
         for alltime in (False, True):
             if alltime and not inp and encoder_removed_bins: continue
+            print(f"evaluating {inp=}, {alltime=}")
             dct.update(classify_head_eval_ensemble(get_ds(inp=inp, alltime=alltime, union=False),
                                                    base_name=f"predict{'_alltime'*alltime}{'_input'*inp}",
                                                    linear=True, categorical=False, voting_methods=[], svm=False))
+            print(f"evaluating {inp=}, {alltime=}, linear")
             dct[f"predict{'_alltime'*alltime}{'_input'*inp}_linear"] = classify_head_eval(get_ds(inp=inp, alltime=alltime, union=True),
                                                                                        categorical=False,
                                                                                        linear=True, svm=False)
