@@ -70,23 +70,23 @@ def get_masked_ds(model, dataset, union=False, bins_per_frame=1, last_frame=True
 def evaluate_predict(dct, masked_ds, masked_ds_union, embd_alltime_noflat_ds, encoder_removed_bins, bins_per_frame=1):
     print("evaluating predict...")
     pred_ind_start = embd_alltime_noflat_ds.shape[-2]//2
-    func_y = lambda inp: inp[..., -bins_per_frame, :].reshape(len(inp), -1, inp.shape[-1])
+    func_y = lambda inp, union: inp[..., -bins_per_frame, :].reshape([len(inp), -1] + [inp.shape[-1]]*(not union))
 
     def get_ds(inp=False, union=False, alltime=False):
 
         y_ds = masked_ds_union if union else masked_ds
         x_ds = (masked_ds_union if union else masked_ds) if inp else embd_alltime_noflat_ds
 
-        def trasform_data(data):
+        def transform_data(data):
             if inp:
                 return inp[..., 0 if alltime else -2*bins_per_frame:-bins_per_frame, :].reshape([len(data), -1] + [data.shape[-1]]*(not union))
             else:
                 return data[..., 1 if alltime else -bins_per_frame:, pred_ind_start:, :].reshape([len(data), -1] + [data.shape[-1]]*(not union))
 
         dataset = Data(
-            trasform_data(x_ds.get_x_train()), func_y(y_ds.get_x_train()),
-            trasform_data(x_ds.get_x_test()), func_y(y_ds.get_x_test()),
-            x_val=trasform_data(x_ds.get_x_val()), y_val=func_y(y_ds.get_x_val()),
+            transform_data(x_ds.get_x_train()), func_y(y_ds.get_x_train(), union=union),
+            transform_data(x_ds.get_x_test()), func_y(y_ds.get_x_test(), union=union),
+            x_val=transform_data(x_ds.get_x_val()), y_val=func_y(y_ds.get_x_val(), union=union),
             normalize=False
                        )
 
