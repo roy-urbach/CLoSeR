@@ -98,7 +98,7 @@ def evaluate_predict(dct, masked_ds, masked_ds_union, embd_alltime_noflat_ds, en
             print(f"evaluating {inp=}, {alltime=}")
             dct.update(classify_head_eval_ensemble(get_ds(inp=inp, alltime=alltime, union=False),
                                                    base_name=f"predict{'_alltime'*alltime}{'_input'*inp}",
-                                                   linear=True, categorical=False, voting_methods=[], svm=False))
+                                                   linear=True, categorical=False, voting_methods=[None], svm=False))
             print(f"evaluating {inp=}, {alltime=}, linear")
             dct[f"predict{'_alltime'*alltime}{'_input'*inp}_linear"] = classify_head_eval(get_ds(inp=inp, alltime=alltime, union=True),
                                                                                        categorical=False,

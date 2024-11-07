@@ -102,8 +102,9 @@ def classify_head_eval_ensemble(dataset, linear=True, k=10, base_name='',
                 for p, pathway in enumerate(ensemble.models):
                     res[base_name + f'pathway{p}_{name}'] = (ind_train[p], ind_val[p], ind_test[p])
                 res[base_name + f'pathways_mean_{name}'] = np.mean(list(res.values()), axis=0).tolist()
-            res[base_name + f"ensemble_{name}_" + voting_method.name] = (ens_train, ens_val, ens_test)
-            printd(f"{base_name + voting_method.name} Train acc: {ens_train:.5f}; Val acc: {ens_val:.5f}; Test acc: {ens_test:.5f}")
+            if voting_method is not None:
+                res[base_name + f"ensemble_{name}_" + voting_method.name] = (ens_train, ens_val, ens_test)
+                printd(f"{base_name + voting_method.name} Train acc: {ens_train:.5f}; Val acc: {ens_val:.5f}; Test acc: {ens_test:.5f}")
     else:
         ensemble.fit(x_train, y_train.flatten() if y_train.shape[-1] == 1 else y_train)
 
