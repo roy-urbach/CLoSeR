@@ -200,9 +200,9 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
 
             cache[name] = ds
 
-        ds.y_train = y_train[label]
-        ds.y_val = y_val[label]
-        ds.y_test = y_test[label]
+        ds.y_train = y_train[label] if label is not None else None
+        ds.y_val = y_val[label] if label is not None else None
+        ds.y_test = y_test[label] if label is not None else None
 
         return ds
     printd("done")
