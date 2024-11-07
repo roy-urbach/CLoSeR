@@ -26,7 +26,7 @@ def classify_head_eval(dataset, m=lambda x: x.reshape(x.shape[0], -1), categoric
     (x_train, y_train), (x_test, y_test) = dataset.get_all()
     print(f"classify shape: {x_train.shape=}, {y_train.shape=}")
     if dataset.get_x_val() is not None and linear:
-        val_dataset = Data(x_train, y_train, dataset.get_x_val(), dataset.get_y_val())
+        val_dataset = Data(x_train, y_train, dataset.get_x_val(), dataset.get_y_val(), normalize=False, flatten_y=False)
         best_score = None
         winner_C = None
         prev_train, prev_val = None, None
@@ -77,6 +77,7 @@ def classify_head_eval_ensemble(dataset, linear=True, k=10, base_name='',
                                 categorical=False,
                                 voting_methods=EnsembleVotingMethods, C=1, **kwargs):
     (x_train, y_train), (x_test, y_test) = dataset.get_all()
+    print(f"classify shape: {x_train.shape=}, {y_train.shape=}")
     if linear:
         model = linear_head_eval(C=C, categorical=categorical, **kwargs)
         name = 'linear'
