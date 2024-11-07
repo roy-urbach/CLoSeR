@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class Data:
     def __init__(self, x_train, y_train, x_test, y_test, x_val=None, y_val=None, val_split=None, normalize=False,
                  img_normalize=False, flatten_y=False):

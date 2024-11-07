@@ -43,6 +43,7 @@ def main():
 
     if os.path.exists(os.path.join(module.get_models_path(), args.json, StopIfNaN.FILENAME)):
         print(f"NaN issue, not evaluating")
+        return
 
     if os.path.exists(evaluating_fn):
         print("already evaluating!")
