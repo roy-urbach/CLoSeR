@@ -2,7 +2,7 @@ from utils.model.callbacks import StopIfNaN
 from utils.modules import Modules
 import os
 
-from utils.utils import streval
+from utils.utils import streval, unknown_args_to_dict
 
 
 def check_evaluation_time(model, module: Modules):
@@ -33,9 +33,10 @@ def main():
         parser.add_argument('--fill', action=argparse.BooleanOptionalAction, default=False)
         parser.add_argument('--override_linear', action=argparse.BooleanOptionalAction, default=False)
         parser.add_argument('--ks', type=str, default=[1] + list(range(5, 21, 5)), help='what ks to use')
-        return parser.parse_args()
+        return parser.parse_known_args()
 
-    args = parse()
+    args, unknown_args = parse()
+    kwargs = unknown_args_to_dict(unknown_args)
     args.json = ".".join(args.json.split(".")[:-1]) if args.json.endswith(".json") else args.json
     module = Modules.get_module(args.module)
     evaluating_fn = os.path.join(module.get_models_path(), args.json, 'is_evaluating')
@@ -57,7 +58,7 @@ def main():
     try:
         res = module.evaluate(args.json, knn=args.knn, linear=args.linear, ensemble=args.ensemble,
                               save_results=True, dataset=None, override=args.override, override_linear=args.override_linear,
-                              inp=not args.no_inp, ks=streval(args.ks))
+                              inp=not args.no_inp, ks=streval(args.ks), **kwargs)
     finally:
         os.remove(evaluating_fn)
 

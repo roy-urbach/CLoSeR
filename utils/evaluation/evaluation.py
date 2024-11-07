@@ -103,7 +103,7 @@ def classify_head_eval_ensemble(dataset, linear=True, k=10, base_name='',
             res[base_name + f"ensemble_{name}_" + voting_method.name] = (ens_train, ens_val, ens_test)
             printd(f"{base_name + voting_method.name} Train acc: {ens_train:.5f}; Val acc: {ens_val:.5f}; Test acc: {ens_test:.5f}")
     else:
-        ensemble.fit(x_train, y_train.flatten())
+        ensemble.fit(x_train, y_train.flatten() if y_train.shape[-1] == 1 else y_train)
 
         for i, pathway in enumerate(ensemble.models):
             from utils.data import Data

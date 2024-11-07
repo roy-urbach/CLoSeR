@@ -3,14 +3,14 @@ from typing import Optional
 from neuronal.utils.data import Labels, CATEGORICAL
 from utils.data import Data
 from utils.evaluation.ensemble import EnsembleVotingMethods
-from utils.evaluation.evaluation import classify_head_eval_ensemble
+from utils.evaluation.evaluation import classify_head_eval_ensemble, classify_head_eval
 from utils.model.model import load_model_from_json
 from utils.modules import Modules
 from utils.utils import printd
 import numpy as np
 
 
-def get_masked_ds(model, dataset, union=False, bins_per_frame=1, last_frame=True, pcs=None, normalize=False):
+def get_masked_ds(model, dataset, union=False, bins_per_frame=1, last_frame=True, pcs=None, normalize=False, flatten=True):
     if isinstance(model, str):
         model = load_model_from_json(model, Modules.NEURONAL)
     aug_layer = model.get_layer("data_augmentation")
@@ -51,14 +51,15 @@ def get_masked_ds(model, dataset, union=False, bins_per_frame=1, last_frame=True
                                           for t in range(x_val.shape[-2])], axis=-1)
                                 for i in range(x_val.shape[-1])], axis=-1)
 
-    if union:
-        x_train = x_train.reshape(len(x_train), -1)
-        x_val = x_val.reshape(len(x_val), -1)
-        x_test = x_test.reshape(len(x_test), -1)
-    else:
-        x_train = x_train.reshape((len(x_train), -1, x_train.shape[-1]))
-        x_val = x_val.reshape((len(x_val), -1, x_val.shape[-1]))
-        x_test = x_test.reshape((len(x_test), -1, x_test.shape[-1]))
+    if flatten:
+        if union:
+            x_train = x_train.reshape(len(x_train), -1)
+            x_val = x_val.reshape(len(x_val), -1)
+            x_test = x_test.reshape(len(x_test), -1)
+        else:
+            x_train = x_train.reshape((len(x_train), -1, x_train.shape[-1]))
+            x_val = x_val.reshape((len(x_val), -1, x_val.shape[-1]))
+            x_test = x_test.reshape((len(x_test), -1, x_test.shape[-1]))
 
     ds = Data(x_train, dataset.get_y_train(),
               x_test, dataset.get_y_test(),
@@ -66,9 +67,46 @@ def get_masked_ds(model, dataset, union=False, bins_per_frame=1, last_frame=True
     return ds
 
 
+def evaluate_predict(dct, masked_ds, masked_ds_union, embd_alltime_noflat_ds, encoder_removed_bins, bins_per_frame=1):
+    pred_ind_start = embd_alltime_noflat_ds.shape[-2]//2
+    func_y = lambda inp: inp[..., -bins_per_frame, :].reshape(len(inp), -1, inp.shape[-1])
+
+    def get_ds(inp=False, union=False, alltime=False):
+
+        y_ds = masked_ds_union if union else masked_ds
+        x_ds = (masked_ds_union if union else masked_ds) if inp else embd_alltime_noflat_ds
+
+        def trasform_data(data):
+            if inp:
+                return inp[..., 0 if alltime else -2*bins_per_frame:-bins_per_frame, :].reshape([len(data), -1] + [data.shape[-1]]*union)
+            else:
+                return data[..., 1 if alltime else -bins_per_frame:, pred_ind_start:, :].reshape([len(data), -1] + [data.shape[-1]]*union)
+
+        dataset = Data(
+            trasform_data(x_ds.get_x_train()), func_y(y_ds.get_x_train()),
+            trasform_data(x_ds.get_x_test()), func_y(y_ds.get_x_test()),
+            x_val=trasform_data(x_ds.get_x_val()), y_val=func_y(y_ds.get_x_val()),
+            normalize=False
+                       )
+
+        return dataset
+
+    for inp in (False, True):
+        for alltime in (False, True):
+            if alltime and not inp and encoder_removed_bins: continue
+            dct.update(classify_head_eval_ensemble(get_ds(inp=inp, alltime=alltime, union=False),
+                                                   base_name=f"predict{'_alltime'*alltime}{'_input'*inp}",
+                                                   linear=True, categorical=False, voting_methods=[], svm=False))
+            dct[f"predict{'_alltime'*alltime}{'_input'*inp}_linear"] = classify_head_eval(get_ds(inp=inp, alltime=alltime, union=True),
+                                                                                       categorical=False,
+                                                                                       linear=True, svm=False)
+
+    return dct
+
+
 def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEURONAL, labels=[Labels.STIMULUS],
              knn=False, linear=True, ensemble=True, save_results=False, override=False, override_linear=False, inp=True,
-             ks=[1] + list(range(5, 21, 5)), **kwargs):
+             ks=[1] + list(range(5, 21, 5)), predict=False, **kwargs):
 
     if isinstance(model, str):
         model_kwargs = module.load_json(model, config=True)
@@ -86,12 +124,13 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
 
     bins_per_frame = dataset.bins_per_frame
     with_pred = "predictions" in [l.name for l in model.layers]
+    encoder_removed_bins = model.get_layer("pathways").output_shape[-1] not in (model.get_layer("embedding").output_shape[1],
+                                                                                model.get_layer("embedding").output_shape[1]//2)
 
     def transform_embedding(embedding, last_frame=True):
         normalize = lambda arr: arr/np.linalg.norm(arr, keepdims=True, axis=-2) if model_kwargs['loss_kwargs'].pop("cosine", False) else arr
 
         if last_frame:
-            encoder_removed_bins = model.get_layer("pathways").output_shape[-1] != model.get_layer("embedding").output_shape[1]
             if encoder_removed_bins:
                 last_step_embedding = normalize(embedding[:, -1])
             else:
@@ -104,35 +143,59 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
             return normalize(embedding).reshape(embedding.shape[0], embedding.shape[-2] * embedding.shape[-3], embedding.shape[-1])
 
     printd("getting predictions...", end='\t')
-    x_train_pred = model.predict(dataset.get_x_train())[0]
-    x_test_pred = model.predict(dataset.get_x_test())[0]
-    x_train_embd = transform_embedding(x_train_pred)
-    x_train_embd_alltime = transform_embedding(x_train_pred, last_frame=False)
+    x_train_embd = model.predict(dataset.get_x_train())[0]
+    x_test_embd = model.predict(dataset.get_x_test())[0]
+    x_train_embd_flattened = transform_embedding(x_train_embd)
+    x_train_embd_flattened_alltime = transform_embedding(x_train_embd, last_frame=False)
 
-    x_test_embd = transform_embedding(x_test_pred)
-    x_test_embd_alltime = transform_embedding(x_test_pred, last_frame=False)
+    x_test_embd_flattened = transform_embedding(x_test_embd)
+    x_test_embd_flattened_alltime = transform_embedding(x_test_embd, last_frame=False)
 
     x_val = dataset.get_x_val()
     if x_val is not None:
-        x_val_pred = model.predict(x_val)[0]
-        x_val_embd = transform_embedding(x_val_pred)
-        x_val_embd_alltime = transform_embedding(x_val_pred, last_frame=False)
+        x_val_embd = model.predict(x_val)[0]
+        x_val_embd_flattened = transform_embedding(x_val_embd)
+        x_val_embd_flattened_alltime = transform_embedding(x_val_embd, last_frame=False)
     else:
         x_val_embd = None
-        x_val_embd_alltime = None
+        x_val_embd_flattened = None
+        x_val_embd_flattened_alltime = None
 
     y_train = dataset.get_y_train(labels)
     y_test = dataset.get_y_test(labels)
     y_val = dataset.get_y_val(labels)
 
-    def get_inp_ds(last_frame=False, pc=False, label=None, union=False, cache={}):
-        name = f"lastframe{last_frame}_pc{pc}_un{union}"
+    def get_inp_ds(last_frame=False, pc=False, label=None, union=False, flatten=True, cache={}):
+        nonflattened_name = f"lastframe{last_frame}_pc{pc}_un{union}"
+        flattened_name = nonflattened_name + f"_flatten{flatten}"
+        name = flattened_name if flatten else nonflattened_name
         if name in cache:
             ds = cache[name]
         else:
-            ds = get_masked_ds(model, dataset=dataset, bins_per_frame=bins_per_frame,
-                               pcs=x_train_pred.shape[-2] if pc else None,
-                               last_frame=last_frame, normalize=True)
+            if flatten and nonflattened_name in cache:
+                ds = cache[nonflattened_name]
+            else:
+                ds = get_masked_ds(model, dataset=dataset, bins_per_frame=bins_per_frame,
+                                   pcs=x_train_embd.shape[-2] if pc else None,
+                                   last_frame=last_frame, normalize=True, flatten=False)
+                cache[nonflattened_name] = ds
+            cur_x_train, cur_x_test, cur_x_val = ds.get_x_train(), ds.get_x_test(), ds.get_x_val()
+
+            if flatten:
+                if union:
+                    cur_x_train = cur_x_train.reshape(len(cur_x_train), -1)
+                    cur_x_val = cur_x_val.reshape(len(cur_x_val), -1)
+                    cur_x_test = cur_x_test.reshape(len(cur_x_test), -1)
+                else:
+                    cur_x_train = cur_x_train.reshape((len(cur_x_train), -1, cur_x_train.shape[-1]))
+                    cur_x_val = cur_x_val.reshape((len(cur_x_val), -1, cur_x_val.shape[-1]))
+                    cur_x_test = cur_x_test.reshape((len(cur_x_test), -1, cur_x_test.shape[-1]))
+
+            ds = Data(cur_x_train, dataset.get_y_train(),
+                      cur_x_test, dataset.get_y_test(),
+                      x_val=cur_x_val, y_val=dataset.get_y_val(), normalize=False, flatten_y=False)
+
+            cache[name] = ds
 
         ds.y_train = y_train[label]
         ds.y_val = y_val[label]
@@ -150,13 +213,13 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
 
     for label in labels:
         printd(f"evaluating label {label.value.name}")
-        embd_dataset = Data(x_train_embd, y_train[label.value.name],
-                            x_test_embd, y_test[label.value.name],
-                            x_val=x_val_embd, y_val=y_val[label.value.name] if y_val is not None else None,
+        embd_dataset = Data(x_train_embd_flattened, y_train[label.value.name],
+                            x_test_embd_flattened, y_test[label.value.name],
+                            x_val=x_val_embd_flattened, y_val=y_val[label.value.name] if y_val is not None else None,
                             normalize=True)
-        embd_alltime_dataset = Data(x_train_embd_alltime, y_train[label.value.name],
-                                    x_test_embd_alltime, y_test[label.value.name],
-                                    x_val=x_val_embd_alltime, y_val=y_val[label.value.name] if y_val is not None else None,
+        embd_alltime_dataset = Data(x_train_embd_flattened_alltime, y_train[label.value.name],
+                                    x_test_embd_flattened_alltime, y_test[label.value.name],
+                                    x_val=x_val_embd_flattened_alltime, y_val=y_val[label.value.name] if y_val is not None else None,
                                     normalize=True)
 
         if with_pred:
@@ -423,4 +486,12 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                                                                 EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean],
                                                             **kwargs))
                             save_res()
+
+    if predict and not any(['predict' in k for k in results]):
+        evaluate_predict(results,
+                         get_inp_ds(last_frame=False, pc=False, label=None, union=False, flatten=False),
+                         get_inp_ds(last_frame=False, pc=False, label=None, union=True, flatten=False),
+                         Data(x_train_embd, None, x_test_embd, None, x_val=x_val_embd, y_val=None, flatten_y=False, normalize=True),
+                         encoder_removed_bins, bins_per_frame=1)
+        save_res()
     return results

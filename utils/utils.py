@@ -157,3 +157,7 @@ def streval(w):
         return eval(w)
     else:
         return w
+
+
+def unknown_args_to_dict(args):
+    return {args[2*i].split("--")[-1]: streval(args[2*i+1]) for i in range(len(args)//2)}
