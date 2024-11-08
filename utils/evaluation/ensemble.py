@@ -51,7 +51,7 @@ class EnsembleModel:
                 else:
                     self.base_model.penalty = 'l2'
                     self.base_model.C = C
-                self.fit(X_train, y_train, CS=[C]*len(self.scores_val))
+                self.fit(X_train, y_train, CS=[C]*len(self.scores_val), individual_ys=individual_ys)
                 self.CS_models.append(self.models)
                 for i, model in enumerate(self.models):
                     model_val_score = model.score(np.take(X_val, i, axis=self.ensemble_axis), y_val[..., i] if individual_ys else y_val)
