@@ -75,7 +75,7 @@ def classify_head_eval(dataset, m=lambda x: x.reshape(x.shape[0], -1), categoric
 
 def classify_head_eval_ensemble(dataset, linear=True, k=10, base_name='',
                                 categorical=False,
-                                voting_methods=EnsembleVotingMethods, C=1, **kwargs):
+                                voting_methods=EnsembleVotingMethods, C=1, individual_ys=False, **kwargs):
     (x_train, y_train), (x_test, y_test) = dataset.get_all()
     print(f"classify shape: {x_train.shape=}, {y_train.shape=}")
     if linear:
@@ -97,7 +97,8 @@ def classify_head_eval_ensemble(dataset, linear=True, k=10, base_name='',
             (ind_train, ind_val, ind_test), (ens_train, ens_val, ens_test) = ensemble.fit_with_validation(x_train, y_train,
                                                                                                           dataset.get_x_val(), dataset.get_y_val(),
                                                                                                           x_test, y_test,
-                                                                                                          voting_method=voting_method)
+                                                                                                          voting_method=voting_method,
+                                                                                                          individual_ys=individual_ys)
             if not i:
                 for p, pathway in enumerate(ensemble.models):
                     res[base_name + f'pathway{p}_{name}'] = (ind_train[p], ind_val[p], ind_test[p])
@@ -106,11 +107,11 @@ def classify_head_eval_ensemble(dataset, linear=True, k=10, base_name='',
                 res[base_name + f"ensemble_{name}_" + voting_method.name] = (ens_train, ens_val, ens_test)
                 printd(f"{base_name + voting_method.name} Train acc: {ens_train:.5f}; Val acc: {ens_val:.5f}; Test acc: {ens_test:.5f}")
     else:
-        ensemble.fit(x_train, y_train.flatten() if y_train.shape[-1] == 1 else y_train)
+        ensemble.fit(x_train, y_train.flatten() if y_train.shape[-1] == 1 else y_train, individual_ys=individual_ys)
 
         for i, pathway in enumerate(ensemble.models):
             from utils.data import Data
-            cur_ds = Data(x_train[..., i], y_train, x_test[..., i], y_test)
+            cur_ds = Data(x_train[..., i], y_train[..., i] if individual_ys else y_train, x_test[..., i], y_test[..., i] if individual_ys else y_test)
             path_score_train = pathway.score(*cur_ds.get_train())
             path_score_test = pathway.score(*cur_ds.get_test())
             path_scores = [path_score_train, path_score_test]
@@ -122,6 +123,8 @@ def classify_head_eval_ensemble(dataset, linear=True, k=10, base_name='',
         res[base_name + f'pathways_mean_{name}'] = np.mean(list(res.values()), axis=0).tolist()
 
         for voting_method in voting_methods:
+            if voting_method is None:
+                continue
             ens_train_score = ensemble.score(x_train, y_train, voting_method=voting_method)
             ens_test_score = ensemble.score(x_test, y_test, voting_method=voting_method)
             ens_scores = (ens_train_score, ens_test_score)

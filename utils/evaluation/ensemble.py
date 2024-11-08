@@ -37,7 +37,7 @@ class EnsembleModel:
         return [X_single.squeeze(axis=self.ensemble_axis)
                 for X_single in np.split(X, X.shape[self.ensemble_axis], axis=self.ensemble_axis)]
 
-    def fit_with_validation(self, X_train, y_train, X_val, y_val, X_test, y_test, voting_method=EnsembleVotingMethods.ArgmaxMeanProb):
+    def fit_with_validation(self, X_train, y_train, X_val, y_val, X_test, y_test, voting_method=EnsembleVotingMethods.ArgmaxMeanProb, individual_ys=False):
         if not self.CS_models:
             self.scores_val = [None] * X_train.shape[self.ensemble_axis]
             self.scores_train = [None] * len(self.scores_val)
@@ -54,12 +54,12 @@ class EnsembleModel:
                 self.fit(X_train, y_train, CS=[C]*len(self.scores_val))
                 self.CS_models.append(self.models)
                 for i, model in enumerate(self.models):
-                    model_val_score = model.score(np.take(X_val, i, axis=self.ensemble_axis), y_val)
+                    model_val_score = model.score(np.take(X_val, i, axis=self.ensemble_axis), y_val[..., i] if individual_ys else y_val)
                     if self.scores_val[i] is None or model_val_score > self.scores_val[i]:
                         self.scores_val[i] = model_val_score
                         self.best_CS[i] = C
-                        self.scores_test[i] = model.score(np.take(X_test, i, axis=self.ensemble_axis), y_test)
-                        self.scores_train[i] = model.score(np.take(X_train, i, axis=self.ensemble_axis), y_train)
+                        self.scores_test[i] = model.score(np.take(X_test, i, axis=self.ensemble_axis), y_test[..., i] if individual_ys else y_test)
+                        self.scores_train[i] = model.score(np.take(X_train, i, axis=self.ensemble_axis), y_train[..., i] if individual_ys else y_train)
             self.models = [self.CS_models[np.where(self.CS == C)[0][0]][i] for i, C in enumerate(self.best_CS)]
 
         ensemble_score_train = None
@@ -85,7 +85,7 @@ class EnsembleModel:
 
         return (self.scores_train, self.scores_val, self.scores_test), (ensemble_score_train, ensemble_score_val, ensemble_score_test)
 
-    def fit(self, X_train, y_train, CS=None):
+    def fit(self, X_train, y_train, CS=None, individual_ys=False):
         self.models = []
         from sklearn.base import clone as sklearn_clone
         for i, X_train_single in counter(enumerate(self.split(X_train))):
@@ -98,7 +98,7 @@ class EnsembleModel:
                 else:
                     self.base_model.penalty = 'l2'
                     self.base_model.C = C
-            self.models.append(model.fit(X_train_single, y_train))
+            self.models.append(model.fit(X_train_single, y_train[..., i] if individual_ys else y_train))
 
     def predict(self, X, voting_method=EnsembleVotingMethods.ArgmaxMeanProb, CS=None):
         models = self.models if CS is None else [self.CS_models[np.where(self.CS == C)[0][0]][i] for i, C in enumerate(CS)]
