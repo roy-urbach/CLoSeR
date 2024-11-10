@@ -366,11 +366,11 @@ class ContinuousLoss(tf.keras.losses.Loss):
             return dist
 
     def _predictor_loss(self, embd, pred, axis=-2, return_mat=False):
-        pred_dist = self.dist2logdist(tf.maximum(tf.linalg.norm(tf.stop_gradient(embd) - pred, axis=axis), self.eps))
+        pred_dist = self.distance(tf.stop_gradient(embd), pred, axis=axis)
         predictivity_loss = tf.reduce_mean(pred_dist)
         if self.monitor is not None:
             self.monitor.update_monitor("pred_distance", predictivity_loss)
-        return (predictivity_loss, pred_dist) if return_mat else pred_dist
+        return (predictivity_loss, pred_dist) if return_mat else predictivity_loss
 
     def adversarial_loss(self, embd, pred_embd, temperature=10., stop_grad_j=False, **kwargs):
         # (B, T, DIM, P)
