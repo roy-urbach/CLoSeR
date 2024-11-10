@@ -79,7 +79,7 @@ def evaluate_predict(dct, masked_ds, masked_ds_union, embd_alltime_noflat_ds, en
 
         def transform_data(data):
             if inp:
-                return inp[..., (0 if alltime else -2*bins_per_frame):-bins_per_frame, :].reshape([len(data), -1] + [data.shape[-1]]*(not union))
+                return data[..., (0 if alltime else -2*bins_per_frame):-bins_per_frame, :].reshape([len(data), -1] + [data.shape[-1]]*(not union))
             else:
                 return data[..., (1 if alltime else -bins_per_frame):, pred_ind_start:, :].reshape([len(data), -1] + [data.shape[-1]]*(not union))
 
