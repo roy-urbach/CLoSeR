@@ -93,7 +93,8 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
     if predictor_kwargs:
         Predictor = get_class(predictor_kwargs.pop('encoder'), utils.model.encoders)
         predictors = [Predictor(name=f'predictor{i}', **predictor_kwargs) for i in range(len(pathways))]
-        predictions = Stack(name='predictions', axis=-1)(*[predictor(tf.transpose(emb, [0,2,1])) for predictor, emb in zip(predictors, tf.unstack(embedding, axis=-1))])
+        predictions = Stack(name='predictions', axis=-1)(*[predictor(tf.transpose(emb[:, :-1], [0,2,1])) for predictor, emb in zip(predictors, tf.unstack(embedding, axis=-1))])
+        predictions = tf.concat([tf.zeros([tf.shape(predictions)[0], 1, predictions.shape[-1]], dtype=predictions.dtype), predictions], axis=1)
 
         if predictor_concat:
             embedding = tf.keras.layers.Lambda(lambda x: x, name='embedding')(tf.concat([embedding, predictions], name='concat_embd_pred', axis=-2))
