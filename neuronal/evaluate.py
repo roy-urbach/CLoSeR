@@ -97,10 +97,10 @@ def evaluate_predict(dct, masked_ds, masked_ds_union, embd_alltime_noflat_ds, en
             if alltime and not inp and encoder_removed_bins: continue
             print(f"evaluating {inp=}, {alltime=}")
             dct.update(classify_head_eval_ensemble(get_ds(inp=inp, alltime=alltime, union=False),
-                                                   base_name=f"predict{'_alltime'*alltime}{'_input'*inp}",
+                                                   base_name=f"predict_{'alltime_'*alltime}{'input_'*inp}",
                                                    linear=True, categorical=False, voting_methods=[None], svm=False, individual_ys=True))
             print(f"evaluating {inp=}, {alltime=}, linear")
-            dct[f"predict{'_alltime'*alltime}{'_input'*inp}_linear"] = classify_head_eval(get_ds(inp=inp, alltime=alltime, union=True),
+            dct[f"predict_{'alltime_'*alltime}{'input_'*inp}linear_"] = classify_head_eval(get_ds(inp=inp, alltime=alltime, union=True),
                                                                                        categorical=False,
                                                                                        linear=True, svm=False)
 
