@@ -343,6 +343,31 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
                                                                **kwargs))
                     save_res()
 
+            if with_pred:
+                if not only_input and (
+                        not any(['linear' in k and 'ensemble' in k and 'nopred' in k and and 'alltime' not in k and label.value.name in k for
+                                 k in results]) or override_linear):
+                    printd("ensemble nopred linear")
+                    results.update(classify_head_eval_ensemble(embd_dataset_nopred, linear=True, svm=False,
+                                                               base_name=f"{label.value.name}_nopred",
+                                                               categorical=label.value.kind == CATEGORICAL,
+                                                               voting_methods=[
+                                                                   EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean],
+                                                               **kwargs))
+                    save_res()
+
+                if not only_input and (dataset.frames_per_sample > 1):
+                    if not any(['linear' in k and 'ensemble' in k and 'nopred' in k and 'alltime' in k and label.value.name in k for k in
+                                results]) or override_linear:
+                        printd("ensemble linear alltime")
+                        results.update(classify_head_eval_ensemble(embd_alltime_dataset_nopred, linear=True, svm=False,
+                                                                   base_name=f"{label.value.name}_nopred_alltime",
+                                                                   categorical=label.value.kind == CATEGORICAL,
+                                                                   voting_methods=[
+                                                                       EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean],
+                                                                   **kwargs))
+                        save_res()
+
             if inp and (not any([k.startswith(f"{label.value.name}_input_pathway") for k in results.keys()]) or override_linear):
                 printd("ensemble input linear")
                 results.update(classify_head_eval_ensemble(get_inp_ds(last_frame=True, pc=None, label=label.value.name, union=False),
