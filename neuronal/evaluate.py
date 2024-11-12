@@ -228,7 +228,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
                                         normalize=True)
 
             if with_pred:
-                remove_pred = lambda embd: embd[:, :embd.shape[-3]//2]
+                remove_pred = lambda embd: embd[..., embd.shape[-3]//2, :]
                 embd_dataset_nopred = Data(remove_pred(embd_dataset.get_x_train()), embd_dataset.get_y_train(),
                                            remove_pred(embd_dataset.get_x_test()), embd_dataset.get_y_test(),
                                            x_val=remove_pred(embd_dataset.get_x_val()), y_val=embd_dataset.get_y_val(),
