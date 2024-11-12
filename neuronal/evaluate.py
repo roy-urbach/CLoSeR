@@ -94,6 +94,7 @@ def evaluate_predict(dct, masked_ds, masked_ds_union, embd_alltime_noflat_ds, en
 
     for inp in (False, True):
         for alltime in (False, True):
+            if not inp and embd_alltime_noflat_ds is None: continue
             if alltime and not inp and encoder_removed_bins: continue
             print(f"evaluating {inp=}, {alltime=}")
             dct.update(classify_head_eval_ensemble(get_ds(inp=inp, alltime=alltime, union=False),
@@ -109,13 +110,13 @@ def evaluate_predict(dct, masked_ds, masked_ds_union, embd_alltime_noflat_ds, en
 
 def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEURONAL, labels=[Labels.STIMULUS],
              knn=False, linear=True, ensemble=True, save_results=False, override=False, override_linear=False, inp=True,
-             ks=[1] + list(range(5, 21, 5)), predict=False, **kwargs):
+             ks=[1] + list(range(5, 21, 5)), predict=False, only_input=False, pcs=[32], **kwargs):
 
     if isinstance(model, str):
         model_kwargs = module.load_json(model, config=True)
         assert model_kwargs is not None
         printd("loading model...", end='\t')
-        model = load_model_from_json(model, module)
+        model = load_model_from_json(model, module, load=not only_input)
         printd("done")
         if dataset is None:
             printd("loading dataset...", end='\t')
@@ -124,45 +125,45 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
     else:
         model_kwargs = module.load_json(model.name, config=True)
 
-
     bins_per_frame = dataset.bins_per_frame
-    with_pred = "predictions" in [l.name for l in model.layers]
     encoder_removed_bins = model.get_layer("pathways").output_shape[-1] not in (model.get_layer("embedding").output_shape[1],
-                                                                                model.get_layer("embedding").output_shape[1]//2)
+                                                                                model.get_layer("embedding").output_shape[1] // 2)
+    if not only_input:
+        with_pred = "predictions" in [l.name for l in model.layers]
 
-    def transform_embedding(embedding, last_frame=True):
-        normalize = lambda arr: arr/np.linalg.norm(arr, keepdims=True, axis=-2) if model_kwargs['loss_kwargs'].pop("cosine", False) else arr
+        def transform_embedding(embedding, last_frame=True):
+            normalize = lambda arr: arr/np.linalg.norm(arr, keepdims=True, axis=-2) if model_kwargs['loss_kwargs'].pop("cosine", False) else arr
 
-        if last_frame:
-            if encoder_removed_bins:
-                last_step_embedding = normalize(embedding[:, -1])
+            if last_frame:
+                if encoder_removed_bins:
+                    last_step_embedding = normalize(embedding[:, -1])
+                else:
+                    last_step_embedding = normalize(embedding[:, -bins_per_frame:])    # (B, bins_per_frame, DIM, P)
+                    last_step_embedding = last_step_embedding.reshape(last_step_embedding.shape[0],
+                                                                      last_step_embedding.shape[-2] * bins_per_frame,
+                                                                      last_step_embedding.shape[-1])  # (B, DIMS*bins_per_frame, P)
+                return last_step_embedding
             else:
-                last_step_embedding = normalize(embedding[:, -bins_per_frame:])    # (B, bins_per_frame, DIM, P)
-                last_step_embedding = last_step_embedding.reshape(last_step_embedding.shape[0],
-                                                                  last_step_embedding.shape[-2] * bins_per_frame,
-                                                                  last_step_embedding.shape[-1])  # (B, DIMS*bins_per_frame, P)
-            return last_step_embedding
+                return normalize(embedding).reshape(embedding.shape[0], embedding.shape[-2] * embedding.shape[-3], embedding.shape[-1])
+
+        printd("getting predictions...", end='\t')
+        x_train_embd = model.predict(dataset.get_x_train())[0]
+        x_test_embd = model.predict(dataset.get_x_test())[0]
+        x_train_embd_flattened = transform_embedding(x_train_embd)
+        x_train_embd_flattened_alltime = transform_embedding(x_train_embd, last_frame=False)
+
+        x_test_embd_flattened = transform_embedding(x_test_embd)
+        x_test_embd_flattened_alltime = transform_embedding(x_test_embd, last_frame=False)
+
+        x_val = dataset.get_x_val()
+        if x_val is not None:
+            x_val_embd = model.predict(x_val)[0]
+            x_val_embd_flattened = transform_embedding(x_val_embd)
+            x_val_embd_flattened_alltime = transform_embedding(x_val_embd, last_frame=False)
         else:
-            return normalize(embedding).reshape(embedding.shape[0], embedding.shape[-2] * embedding.shape[-3], embedding.shape[-1])
-
-    printd("getting predictions...", end='\t')
-    x_train_embd = model.predict(dataset.get_x_train())[0]
-    x_test_embd = model.predict(dataset.get_x_test())[0]
-    x_train_embd_flattened = transform_embedding(x_train_embd)
-    x_train_embd_flattened_alltime = transform_embedding(x_train_embd, last_frame=False)
-
-    x_test_embd_flattened = transform_embedding(x_test_embd)
-    x_test_embd_flattened_alltime = transform_embedding(x_test_embd, last_frame=False)
-
-    x_val = dataset.get_x_val()
-    if x_val is not None:
-        x_val_embd = model.predict(x_val)[0]
-        x_val_embd_flattened = transform_embedding(x_val_embd)
-        x_val_embd_flattened_alltime = transform_embedding(x_val_embd, last_frame=False)
-    else:
-        x_val_embd = None
-        x_val_embd_flattened = None
-        x_val_embd_flattened_alltime = None
+            x_val_embd = None
+            x_val_embd_flattened = None
+            x_val_embd_flattened_alltime = None
 
     y_train = dataset.get_y_train(labels)
     y_test = dataset.get_y_test(labels)
@@ -179,7 +180,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                 ds = cache[nonflattened_name]
             else:
                 ds = get_masked_ds(model, dataset=dataset, bins_per_frame=bins_per_frame,
-                                   pcs=x_train_embd.shape[-2] if pc else None,
+                                   pcs=x_train_embd.shape[-2] if pc is True else (pc if isinstance(pc, int) else None),
                                    last_frame=last_frame, normalize=True, flatten=False)
                 cache[nonflattened_name] = ds
             cur_x_train, cur_x_test, cur_x_val = ds.get_x_train(), ds.get_x_test(), ds.get_x_val()
@@ -216,46 +217,47 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
 
     for label in labels:
         printd(f"evaluating label {label.value.name}")
-        embd_dataset = Data(x_train_embd_flattened, y_train[label.value.name],
-                            x_test_embd_flattened, y_test[label.value.name],
-                            x_val=x_val_embd_flattened, y_val=y_val[label.value.name] if y_val is not None else None,
-                            normalize=True)
-        embd_alltime_dataset = Data(x_train_embd_flattened_alltime, y_train[label.value.name],
-                                    x_test_embd_flattened_alltime, y_test[label.value.name],
-                                    x_val=x_val_embd_flattened_alltime, y_val=y_val[label.value.name] if y_val is not None else None,
-                                    normalize=True)
+        if not only_input:
+            embd_dataset = Data(x_train_embd_flattened, y_train[label.value.name],
+                                x_test_embd_flattened, y_test[label.value.name],
+                                x_val=x_val_embd_flattened, y_val=y_val[label.value.name] if y_val is not None else None,
+                                normalize=True)
+            embd_alltime_dataset = Data(x_train_embd_flattened_alltime, y_train[label.value.name],
+                                        x_test_embd_flattened_alltime, y_test[label.value.name],
+                                        x_val=x_val_embd_flattened_alltime, y_val=y_val[label.value.name] if y_val is not None else None,
+                                        normalize=True)
 
-        if with_pred:
-            remove_pred = lambda embd: embd[:, :embd.shape[-3]//2]
-            embd_dataset_nopred = Data(remove_pred(embd_dataset.get_x_train()), embd_dataset.get_y_train(),
-                                       remove_pred(embd_dataset.get_x_test()), embd_dataset.get_y_test(),
-                                       x_val=remove_pred(embd_dataset.get_x_val()), y_val=embd_dataset.get_y_val(),
-                                       normalize=False
-                                       )
-            embd_alltime_dataset_nopred = Data(remove_pred(embd_alltime_dataset.get_x_train()), embd_alltime_dataset.get_y_train(),
-                                       remove_pred(embd_alltime_dataset.get_x_test()), embd_alltime_dataset.get_y_test(),
-                                       x_val=remove_pred(embd_alltime_dataset.get_x_val()), y_val=embd_alltime_dataset.get_y_val(),
-                                       normalize=False
-                                       )
+            if with_pred:
+                remove_pred = lambda embd: embd[:, :embd.shape[-3]//2]
+                embd_dataset_nopred = Data(remove_pred(embd_dataset.get_x_train()), embd_dataset.get_y_train(),
+                                           remove_pred(embd_dataset.get_x_test()), embd_dataset.get_y_test(),
+                                           x_val=remove_pred(embd_dataset.get_x_val()), y_val=embd_dataset.get_y_val(),
+                                           normalize=False
+                                           )
+                embd_alltime_dataset_nopred = Data(remove_pred(embd_alltime_dataset.get_x_train()), embd_alltime_dataset.get_y_train(),
+                                           remove_pred(embd_alltime_dataset.get_x_test()), embd_alltime_dataset.get_y_test(),
+                                           x_val=remove_pred(embd_alltime_dataset.get_x_val()), y_val=embd_alltime_dataset.get_y_val(),
+                                           normalize=False
+                                           )
 
         from utils.evaluation.evaluation import classify_head_eval
 
         if linear:
-            if f'{label.value.name}_linear' not in results or override_linear:
+            if not only_input and (f'{label.value.name}_linear' not in results or override_linear):
                 printd("linear")
                 results[f'{label.value.name}_linear'] = classify_head_eval(embd_dataset,
                                                                            categorical=label.value.kind == CATEGORICAL,
                                                                            linear=True, svm=False, **kwargs)
                 save_res()
 
-            if with_pred and f'{label.value.name}_nopred_linear' not in results or override_linear:
+            if not only_input and (with_pred and f'{label.value.name}_nopred_linear' not in results or override_linear):
                 printd("nopred linear")
                 results[f'{label.value.name}_nopred_linear'] = classify_head_eval(embd_dataset_nopred,
                                                                                   categorical=label.value.kind == CATEGORICAL,
                                                                                   linear=True, svm=False, **kwargs)
                 save_res()
 
-            if dataset.frames_per_sample > 1:
+            if not only_input and dataset.frames_per_sample > 1:
                 if f'{label.value.name}_alltime_linear' not in results or override_linear:
                     printd("alltime linear")
                     results[f'{label.value.name}_alltime_linear'] = classify_head_eval(embd_alltime_dataset,
@@ -263,7 +265,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                                                                                        linear=True, svm=False, **kwargs)
                     save_res()
 
-            if with_pred and f'{label.value.name}_nopred_alltime_linear' not in results or override_linear:
+            if not only_input and (with_pred and f'{label.value.name}_nopred_alltime_linear' not in results or override_linear):
                 printd("nopred alltime linear")
                 results[f'{label.value.name}_nopred_alltime_linear'] = classify_head_eval(embd_alltime_dataset_nopred,
                                                                                   categorical=label.value.kind == CATEGORICAL,
@@ -301,7 +303,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                     save_res()
 
         if ensemble:
-            if not any(['linear' in k and 'ensemble' in k and 'alltime' not in k and label.value.name in k for k in results]) or override_linear:
+            if not only_input and (not any(['linear' in k and 'ensemble' in k and 'alltime' not in k and label.value.name in k for k in results]) or override_linear):
                 printd("ensemble linear")
                 results.update(classify_head_eval_ensemble(embd_dataset, linear=True, svm=False,
                                                            base_name=f"{label.value.name}_",
@@ -309,7 +311,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                                                            voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean], **kwargs))
                 save_res()
 
-            if dataset.frames_per_sample > 1:
+            if not only_input and (dataset.frames_per_sample > 1):
                 if not any(['linear' in k and 'ensemble' in k and 'alltime' in k and label.value.name in k for k in results]) or override_linear:
                     printd("ensemble linear alltime")
                     results.update(classify_head_eval_ensemble(embd_alltime_dataset, linear=True, svm=False,
@@ -361,14 +363,14 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
         if knn:
             for k in ks:
                 cur_name = f"{label.value.name}_k={k}"
-                if cur_name not in results:
+                if not only_input and (cur_name not in results):
                     printd(cur_name, ":", end='\t')
                     results[cur_name] = classify_head_eval(embd_dataset,
                                                            categorical=label.value.kind == CATEGORICAL,
                                                            linear=False, k=k, **kwargs)
                     save_res()
 
-                if dataset.frames_per_sample > 1:
+                if not only_input and dataset.frames_per_sample > 1:
                     cur_name = f"{label.value.name}_alltime_k={k}"
                     if cur_name not in results:
                         printd(cur_name, ":", end='\t')
@@ -412,7 +414,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
         if ensemble and knn:
 
             for k in ks:
-                if not any(['k=' in key and 'ensemble' in key and 'alltime' not in key and label.value.name in key for key in results]):
+                if not only_input and (not any(['k=' in key and 'ensemble' in key and 'alltime' not in key and label.value.name in key for key in results])):
                     printd(f"ensemble k={k}")
                     results.update(classify_head_eval_ensemble(embd_dataset, linear=False, svm=False, k=k,
                                                                base_name=f"{label.value.name}_k={k}_",
@@ -421,8 +423,8 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                     save_res()
 
                 if dataset.frames_per_sample > 1:
-                    if not any(['k=' in key and 'ensemble' in key and 'alltime' in key and label.value.name in key
-                                for key in results]):
+                    if not only_input and (not any(['k=' in key and 'ensemble' in key and 'alltime' in key and label.value.name in key
+                                                    for key in results])):
                         printd(f"ensemble alltime k={k}")
                         results.update(classify_head_eval_ensemble(embd_alltime_dataset, linear=False, svm=False, k=k,
                                                                    base_name=f"{label.value.name}_alltime_k={k}_",
@@ -433,7 +435,6 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                         save_res()
 
                 if inp:
-
                     if not any(['k=' in key and 'ensemble' in key and 'alltime' not in key and 'input' in key and label.value.name in key
                                 for key in results]):
                         printd(f"input ensemble k={k}")
@@ -461,8 +462,6 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                                                             **kwargs))
                             save_res()
                 if inp:
-
-
                     if not any(['k=' in key and 'ensemble' in key and 'alltime' not in key and 'input' in key and label.value.name in key and "pca" in key
                                 for key in results]):
                         printd(f"input pca ensemble k={k}")
@@ -494,7 +493,7 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
         evaluate_predict(results,
                          get_inp_ds(last_frame=False, pc=False, label=None, union=False, flatten=False),
                          get_inp_ds(last_frame=False, pc=False, label=None, union=True, flatten=False),
-                         Data(x_train_embd, None, x_test_embd, None, x_val=x_val_embd, y_val=None, flatten_y=False, normalize=True),
+                         None if only_input else Data(x_train_embd, None, x_test_embd, None, x_val=x_val_embd, y_val=None, flatten_y=False, normalize=True),
                          encoder_removed_bins, bins_per_frame=1)
         save_res()
     return results
