@@ -110,7 +110,7 @@ def evaluate_predict(dct, masked_ds, masked_ds_union, embd_alltime_noflat_ds, en
 
 def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEURONAL, labels=[Labels.STIMULUS],
              knn=False, linear=True, ensemble=True, save_results=False, override=False, override_linear=False, inp=True,
-             ks=[1] + list(range(5, 21, 5)), predict=False, only_input=False, pcs=[32], **kwargs):
+             ks=[1] + list(range(5, 21, 5)), predict=False, only_input=False, pcs=[32, 64], **kwargs):
 
     if isinstance(model, str):
         model_kwargs = module.load_json(model, config=True)
@@ -289,18 +289,37 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
 
             if inp and f'{label.value.name}_input_pca_linear' not in results or override_linear:
                 printd("input pca linear")
-                results[f'{label.value.name}_input_pca_linear'] = classify_head_eval(get_inp_ds(last_frame=True, pc=True, label=label.value.name, union=True),
-                                                                                 categorical=label.value.kind == CATEGORICAL,
-                                                                                 linear=True, svm=False, **kwargs)
-                save_res()
+                if only_input:
+                    if pcs:
+                        for pc in pcs:
+                            results[f'{label.value.name}_input_pca{pc}_linear'] = classify_head_eval(
+                                get_inp_ds(last_frame=True, pc=pc, label=label.value.name, union=True),
+                                categorical=label.value.kind == CATEGORICAL,
+                                linear=True, svm=False, **kwargs)
+                            save_res()
+
+                else:
+                    results[f'{label.value.name}_input_pca_linear'] = classify_head_eval(get_inp_ds(last_frame=True, pc=True, label=label.value.name, union=True),
+                                                                                     categorical=label.value.kind == CATEGORICAL,
+                                                                                     linear=True, svm=False, **kwargs)
+                    save_res()
 
                 if dataset.frames_per_sample > 1:
                     printd("alltime input pca linear")
-                    results[f'{label.value.name}_alltime_input_pca_linear'] = classify_head_eval(
-                        get_inp_ds(last_frame=False, pc=True, label=label.value.name, union=True),
-                        categorical=label.value.kind == CATEGORICAL,
-                        linear=True, svm=False, **kwargs)
-                    save_res()
+                    if only_input:
+                        if pcs:
+                            for pc in pcs:
+                                results[f'{label.value.name}_alltime_input_pca{pc}_linear'] = classify_head_eval(
+                                    get_inp_ds(last_frame=False, pc=pc, label=label.value.name, union=True),
+                                    categorical=label.value.kind == CATEGORICAL,
+                                    linear=True, svm=False, **kwargs)
+                                save_res()
+                    else:
+                        results[f'{label.value.name}_alltime_input_pca_linear'] = classify_head_eval(
+                            get_inp_ds(last_frame=False, pc=True, label=label.value.name, union=True),
+                            categorical=label.value.kind == CATEGORICAL,
+                            linear=True, svm=False, **kwargs)
+                        save_res()
 
         if ensemble:
             if not only_input and (not any(['linear' in k and 'ensemble' in k and 'alltime' not in k and label.value.name in k for k in results]) or override_linear):
@@ -343,22 +362,47 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
 
             if inp and (not any([k.startswith(f"{label.value.name}_input_pca_pathway") for k in results.keys()]) or override_linear):
                 printd("ensemble input pca linear")
-                results.update(classify_head_eval_ensemble(get_inp_ds(last_frame=True, pc=True, label=label.value.name, union=False),
-                                                           base_name=f"{label.value.name}_input_pca_", svm=False,
-                                                           categorical=label.value.kind == CATEGORICAL,
-                                                           voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean]), **kwargs)
-                save_res()
+                if only_input:
+                    if pcs:
+                        for pc in pcs:
+                            results.update(classify_head_eval_ensemble(
+                                get_inp_ds(last_frame=True, pc=pc, label=label.value.name, union=False),
+                                base_name=f"{label.value.name}_input_pca{pc}_", svm=False,
+                                categorical=label.value.kind == CATEGORICAL,
+                                voting_methods=[
+                                    EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean]),
+                                           **kwargs)
+                            save_res()
+                else:
+                    results.update(classify_head_eval_ensemble(get_inp_ds(last_frame=True, pc=True, label=label.value.name, union=False),
+                                                               base_name=f"{label.value.name}_input_pca_", svm=False,
+                                                               categorical=label.value.kind == CATEGORICAL,
+                                                               voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean]), **kwargs)
+                    save_res()
 
                 if dataset.frames_per_sample > 1:
                     printd("ensemble input pca alltime linear")
-                    results.update(
-                        classify_head_eval_ensemble(get_inp_ds(last_frame=False, pc=True, label=label.value.name, union=False),
-                                                    base_name=f"{label.value.name}_alltime_input_pca_", svm=False,
-                                                    categorical=label.value.kind == CATEGORICAL,
-                                                    voting_methods=[
-                                                        EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean]),
-                        **kwargs)
-                    save_res()
+                    if only_input:
+                        if pcs:
+                            for pc in pcs:
+                                results.update(
+                                    classify_head_eval_ensemble(
+                                        get_inp_ds(last_frame=False, pc=pc, label=label.value.name, union=False),
+                                        base_name=f"{label.value.name}_alltime_input_pca{pc}_", svm=False,
+                                        categorical=label.value.kind == CATEGORICAL,
+                                        voting_methods=[
+                                            EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean]),
+                                    **kwargs)
+                                save_res()
+                    else:
+                        results.update(
+                            classify_head_eval_ensemble(get_inp_ds(last_frame=False, pc=True, label=label.value.name, union=False),
+                                                        base_name=f"{label.value.name}_alltime_input_pca_", svm=False,
+                                                        categorical=label.value.kind == CATEGORICAL,
+                                                        voting_methods=[
+                                                            EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean]),
+                            **kwargs)
+                        save_res()
 
         if knn:
             for k in ks:
@@ -394,22 +438,46 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                                                                categorical=label.value.kind == CATEGORICAL,
                                                                linear=False, k=k, **kwargs)
                         save_res()
-
-                cur_name = f"{label.value.name}_input_pca_k={k}"
-                if inp and (cur_name not in results):
-                    printd(cur_name, ":", end='\t')
-                    results[cur_name] = classify_head_eval(get_inp_ds(last_frame=True, pc=True, label=label.value.name, union=True),
-                                                           categorical=label.value.kind == CATEGORICAL,
-                                                           linear=False, k=k, **kwargs)
-                    save_res()
-                if dataset.frames_per_sample > 1:
-                    cur_name = f"{label.value.name}_alltime_input_pca_k={k}"
+                if only_input:
+                    if pcs:
+                        for pc in pcs:
+                            cur_name = f"{label.value.name}_input_pca{pc}_k={k}"
+                            if inp and (cur_name not in results):
+                                printd(cur_name, ":", end='\t')
+                                results[cur_name] = classify_head_eval(
+                                    get_inp_ds(last_frame=True, pc=pc, label=label.value.name, union=True),
+                                    categorical=label.value.kind == CATEGORICAL,
+                                    linear=False, k=k, **kwargs)
+                                save_res()
+                else:
+                    cur_name = f"{label.value.name}_input_pca_k={k}"
                     if inp and (cur_name not in results):
                         printd(cur_name, ":", end='\t')
-                        results[cur_name] = classify_head_eval(get_inp_ds(last_frame=False, pc=True, label=label.value.name, union=True),
+                        results[cur_name] = classify_head_eval(get_inp_ds(last_frame=True, pc=True, label=label.value.name, union=True),
                                                                categorical=label.value.kind == CATEGORICAL,
                                                                linear=False, k=k, **kwargs)
                         save_res()
+
+                if dataset.frames_per_sample > 1:
+                    if only_input:
+                        if pcs:
+                            for pc in pcs:
+                                cur_name = f"{label.value.name}_alltime_input_pca{pc}_k={k}"
+                                if inp and (cur_name not in results):
+                                    printd(cur_name, ":", end='\t')
+                                    results[cur_name] = classify_head_eval(
+                                        get_inp_ds(last_frame=False, pc=pc, label=label.value.name, union=True),
+                                        categorical=label.value.kind == CATEGORICAL,
+                                        linear=False, k=k, **kwargs)
+                                    save_res()
+                    else:
+                        cur_name = f"{label.value.name}_alltime_input_pca_k={k}"
+                        if inp and (cur_name not in results):
+                            printd(cur_name, ":", end='\t')
+                            results[cur_name] = classify_head_eval(get_inp_ds(last_frame=False, pc=True, label=label.value.name, union=True),
+                                                                   categorical=label.value.kind == CATEGORICAL,
+                                                                   linear=False, k=k, **kwargs)
+                            save_res()
 
         if ensemble and knn:
 
@@ -465,29 +533,58 @@ def evaluate(model, dataset="SessionDataGenerator", module: Modules=Modules.NEUR
                     if not any(['k=' in key and 'ensemble' in key and 'alltime' not in key and 'input' in key and label.value.name in key and "pca" in key
                                 for key in results]):
                         printd(f"input pca ensemble k={k}")
-                        results.update(classify_head_eval_ensemble(get_inp_ds(last_frame=True, pc=True, label=label.value.name, union=False),
-                                                                   base_name=f"{label.value.name}_input_pca_k={k}_",
-                                                                        svm=False, k=k, linear=False,
-                                                                        categorical=label.value.kind == CATEGORICAL,
-                                                                        voting_methods=[
-                                                                            EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean],
-                                                                        **kwargs))
-                        save_res()
+                        if only_input:
+                            if pcs:
+                                for pc in pcs:
+                                    results.update(classify_head_eval_ensemble(
+                                        get_inp_ds(last_frame=True, pc=pc, label=label.value.name, union=False),
+                                        base_name=f"{label.value.name}_input_pca{pc}_k={k}_",
+                                        svm=False, k=k, linear=False,
+                                        categorical=label.value.kind == CATEGORICAL,
+                                        voting_methods=[
+                                            EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean],
+                                        **kwargs))
+                                    save_res()
+
+                        else:
+                            results.update(classify_head_eval_ensemble(get_inp_ds(last_frame=True, pc=True, label=label.value.name, union=False),
+                                                                       base_name=f"{label.value.name}_input_pca_k={k}_",
+                                                                            svm=False, k=k, linear=False,
+                                                                            categorical=label.value.kind == CATEGORICAL,
+                                                                            voting_methods=[
+                                                                                EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean],
+                                                                            **kwargs))
+                            save_res()
 
                     if dataset.frames_per_sample > 1:
                         if not any([
                                        'k=' in key and 'ensemble' in key and 'alltime' in key and 'input' in key and label.value.name in key and "pca" in key
                                        for key in results]):
                             printd(f"input pca alltime ensemble k={k}")
-                            results.update(
-                                classify_head_eval_ensemble(get_inp_ds(last_frame=False, pc=True, label=label.value.name, union=False),
-                                                            base_name=f"{label.value.name}_alltime_input_pca_k={k}_",
-                                                            svm=False, k=k, linear=False,
-                                                            categorical=label.value.kind == CATEGORICAL,
-                                                            voting_methods=[
-                                                                EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean],
-                                                            **kwargs))
-                            save_res()
+                            if only_input:
+                                if pcs:
+                                    for pc in pcs:
+                                        results.update(
+                                            classify_head_eval_ensemble(
+                                                get_inp_ds(last_frame=False, pc=pc, label=label.value.name,
+                                                           union=False),
+                                                base_name=f"{label.value.name}_alltime_input_pca{pc}_k={k}_",
+                                                svm=False, k=k, linear=False,
+                                                categorical=label.value.kind == CATEGORICAL,
+                                                voting_methods=[
+                                                    EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean],
+                                                **kwargs))
+                                        save_res()
+                            else:
+                                results.update(
+                                    classify_head_eval_ensemble(get_inp_ds(last_frame=False, pc=True, label=label.value.name, union=False),
+                                                                base_name=f"{label.value.name}_alltime_input_pca_k={k}_",
+                                                                svm=False, k=k, linear=False,
+                                                                categorical=label.value.kind == CATEGORICAL,
+                                                                voting_methods=[
+                                                                    EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean],
+                                                                **kwargs))
+                                save_res()
 
     if predict and not any(['predict' in k for k in results]):
         evaluate_predict(results,
