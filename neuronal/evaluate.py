@@ -345,7 +345,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
 
             if with_pred:
                 if not only_input and (
-                        not any(['linear' in k and 'ensemble' in k and 'nopred' in k and and 'alltime' not in k and label.value.name in k for
+                        not any(['linear' in k and 'ensemble' in k and 'nopred' in k and 'alltime' not in k and label.value.name in k for
                                  k in results]) or override_linear):
                     printd("ensemble nopred linear")
                     results.update(classify_head_eval_ensemble(embd_dataset_nopred, linear=True, svm=False,
