@@ -55,7 +55,7 @@ def load_classfications_by_regex(model_regex, module, name_to_d_naive=False, con
     return archive
 
 
-def plot_history(model_regex, module, window=10, name_to_name=lambda m: m, log=True, keys=None,
+def plot_history(model_regex, module, window=10, name_to_name=lambda m: m, log=True, keys=None, keys_f=None,
                  log_keys={'embedding'}, plot_train=True, plot_val=True, name_to_c=None, save=None, legend=True):
     models = regex_models(model_regex, module)
     models_names = []
@@ -69,6 +69,8 @@ def plot_history(model_regex, module, window=10, name_to_name=lambda m: m, log=T
             for k, v in history.items():
                 k = k.replace(model+'_', "")
                 histories.setdefault(k, {})[name_to_name(model)] = v
+    if keys is None and keys_f is not None:
+        keys = {key for key in histories.keys() if keys_f(key)}
     for k, v in histories.items():
         if k.startswith("val") or k == "loss": continue
         if keys is not None and k not in keys: continue
