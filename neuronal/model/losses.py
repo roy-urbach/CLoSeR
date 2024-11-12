@@ -181,16 +181,18 @@ class VectorTrajectoryDisagreement(tf.keras.losses.Loss):
 class ContinuousLoss(tf.keras.losses.Loss):
     def __init__(self, softmax=False, l1=False, cosine=False, continuous_w=1., entropy_w=None, crosspath_w=None, nonlocal_w=None, nonlocal_kwargs={}, eps=None,
                  contrast_in_time_w=None, contrast_in_time_kwargs={}, push_corr_w=None, predictive_w=None,
-                 adversarial_w=None, adversarial_pred_w=None, pe_w=None, pe_push_w=None, adversarial_kwargs={},
+                 adversarial_w=None, adversarial_pred_w=None, pe_w=None, pe_push_w=None, neg_log_std_w=None, adversarial_kwargs={},
                  log_dist=False, monitor=False, centering=False, name='continuous_loss'):
         super().__init__(name=name)
         self.l1 = l1
         self.cosine = cosine
         self.softmax = softmax
+        self.update_running_mean = centering or neg_log_std_w is not None
         self.centering = centering
         self.running_mean = None
         self.continuous_w = continuous_w
         self.entropy_w = entropy_w
+        self.neg_log_std_w = neg_log_std_w
         self.crosspath_w = crosspath_w
         self.nonlocal_w = nonlocal_w
         self.nonlocal_kwargs = nonlocal_kwargs
@@ -226,6 +228,8 @@ class ContinuousLoss(tf.keras.losses.Loss):
                 losses.append('continuous')
             if entropy_w:
                 losses.append("koleo")
+            if neg_log_std_w:
+                losses.append("std")
             if crosspath_w:
                 losses.append("distlocal_inter")
             if nonlocal_w:
@@ -419,6 +423,12 @@ class ContinuousLoss(tf.keras.losses.Loss):
 
         return self.adversarial_pred_w * predictivity_loss + self.predictive_w * pe_loss
 
+    def update_center(self, embd):
+        if self.running_mean is None:
+            self.running_mean = tf.Variable(tf.reduce_mean(tf.stop_gradient(embd), axis=0), trainable=False)
+        else:
+            self.running_mean.assign(self.running_mean * 0.9 + tf.reduce_mean(tf.stop_gradient(embd), axis=0) * 0.1)
+
     def prediction_error_loss(self, embd, pred_embd, _max=1, push_pe_diff_min=None):
         b = tf.shape(embd)[0]
 
@@ -435,10 +445,6 @@ class ContinuousLoss(tf.keras.losses.Loss):
 
             other_embd = tf.stop_gradient(last_embd)
             if self.centering:
-                if self.running_mean is None:
-                    self.running_mean = tf.Variable(tf.reduce_mean(other_embd, axis=0), trainable=False)
-                else:
-                    self.running_mean.assign(self.running_mean * 0.9 + tf.reduce_mean(other_embd, axis=0) * 0.1)
                 other_embd = other_embd - self.running_mean[None]
 
             dist = self.distance(last_embd[..., None], other_embd[..., None, :],
@@ -514,6 +520,14 @@ class ContinuousLoss(tf.keras.losses.Loss):
 
         return out
 
+    def neg_log_std(self, embd):
+        last_embd = embd[:,-1]  # (B, DIM, P)
+        std = tf.reduce_mean((last_embd - self.running_mean[None])**2, axis=(0, 1, 2))
+        if self.monitor is not None:
+            self.monitor.update_monitor("std", std)
+        out = -tf.math.log(std)
+        return out
+
     def call(self, y_true, y_pred):
         # y_pred shape (B, T, DIM, P)
 
@@ -530,6 +544,9 @@ class ContinuousLoss(tf.keras.losses.Loss):
         self.DIM = tf.shape(embd)[2]
         self.P = tf.shape(embd)[3]
 
+        if self.update_running_mean:
+            self.update_center(embd[:, -1])
+
         loss = 0.
         if self.continuous_w is not None:
             loss = loss + self.continuous_w * self.continuous_disagreement(embd)
@@ -537,6 +554,8 @@ class ContinuousLoss(tf.keras.losses.Loss):
             loss = loss + self.crosspath_w * self.crosspath_disagreement(embd)
         if self.entropy_w is not None:
             loss = loss + self.entropy_w * self.koleo(embd)
+        if self.neg_log_std_w is not None:
+            loss = loss + self.neg_log_std_w * self.neg_log_std(embd)
         if self.nonlocal_w is not None:
             use_buggy_version = self.nonlocal_kwargs.pop("bug", True)
             if use_buggy_version:
