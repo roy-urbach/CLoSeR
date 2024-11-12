@@ -180,7 +180,7 @@ class VectorTrajectoryDisagreement(tf.keras.losses.Loss):
 
 class ContinuousLoss(tf.keras.losses.Loss):
     def __init__(self, softmax=False, l1=False, cosine=False, continuous_w=1., entropy_w=None, crosspath_w=None, nonlocal_w=None, nonlocal_kwargs={}, eps=None,
-                 contrast_in_time_w=None, contrast_in_time_kwargs={}, push_corr_w=None, predictive_w=None,
+                 contrast_in_time_w=None, contrast_in_time_kwargs={}, continuous_kwargs={}, push_corr_w=None, predictive_w=None,
                  adversarial_w=None, adversarial_pred_w=None, pe_w=None, pe_push_w=None, neg_log_std_w=None, adversarial_kwargs={},
                  log_dist=False, monitor=False, centering=False, name='continuous_loss'):
         super().__init__(name=name)
@@ -191,6 +191,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
         self.centering = centering
         self.running_mean = None
         self.continuous_w = continuous_w
+        self.continuous_kwargs = continuous_kwargs
         self.entropy_w = entropy_w
         self.neg_log_std_w = neg_log_std_w
         self.crosspath_w = crosspath_w
@@ -251,9 +252,9 @@ class ContinuousLoss(tf.keras.losses.Loss):
         else:
             self.monitor = None
 
-    def continuous_disagreement(self, embd):
+    def continuous_disagreement(self, embd, stopgrad=False):
         # embd shape (B, T, DIM, P)
-        dist = tf.maximum(self.dist2logdist(tf.linalg.norm(embd[:, 1:] - embd[:, :-1], axis=-2)), self.eps)  # (B, T-1, P)
+        dist = tf.maximum(self.dist2logdist(tf.linalg.norm(embd[:, 1:] - tf.stop_gradient(embd[:, :-1]) if stopgrad else embd[:, :-1], axis=-2)), self.eps)  # (B, T-1, P)
         disagreement = tf.reduce_mean(dist)
         if self.monitor is not None:
             self.monitor.update_monitor("continuous", disagreement)
@@ -549,7 +550,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
 
         loss = 0.
         if self.continuous_w is not None:
-            loss = loss + self.continuous_w * self.continuous_disagreement(embd)
+            loss = loss + self.continuous_w * self.continuous_disagreement(embd, **self.continuous_kwargs)
         if self.crosspath_w is not None:
             loss = loss + self.crosspath_w * self.crosspath_disagreement(embd)
         if self.entropy_w is not None:
