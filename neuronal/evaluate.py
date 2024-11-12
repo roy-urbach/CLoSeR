@@ -67,9 +67,9 @@ def get_masked_ds(model, dataset, union=False, bins_per_frame=1, last_frame=True
     return ds
 
 
-def evaluate_predict(dct, masked_ds, masked_ds_union, embd_alltime_noflat_ds, encoder_removed_bins, bins_per_frame=1):
+def evaluate_predict(dct, masked_ds, masked_ds_union, embd_alltime_noflat_ds, encoder_removed_bins, bins_per_frame=1,
+                     run_inp=True, base=''):
     print("evaluating predict...")
-    pred_ind_start = embd_alltime_noflat_ds.shape[-2]//2
     func_y = lambda inp, union: inp[..., -bins_per_frame, :].reshape([len(inp), -1] + [inp.shape[-1]]*(not union))
 
     def get_ds(inp=False, union=False, alltime=False):
@@ -77,11 +77,14 @@ def evaluate_predict(dct, masked_ds, masked_ds_union, embd_alltime_noflat_ds, en
         y_ds = masked_ds_union if union else masked_ds
         x_ds = (masked_ds_union if union else masked_ds) if inp else embd_alltime_noflat_ds
 
+        if x_ds is None:
+            return None
+
         def transform_data(data):
             if inp:
                 return data[..., (0 if alltime else -2*bins_per_frame):-bins_per_frame, :].reshape([len(data), -1] + [data.shape[-1]]*(not union))
             else:
-                return data[..., (1 if alltime else -bins_per_frame):, pred_ind_start:, :].reshape([len(data), -1] + [data.shape[-1]]*(not union))
+                return data[..., (1 if alltime else -bins_per_frame):, :, :].reshape([len(data), -1] + [data.shape[-1]]*(not union))
 
         dataset = Data(
             transform_data(x_ds.get_x_train()), func_y(y_ds.get_x_train(), union=union),
@@ -96,14 +99,17 @@ def evaluate_predict(dct, masked_ds, masked_ds_union, embd_alltime_noflat_ds, en
         for alltime in (False, True):
             if not inp and embd_alltime_noflat_ds is None: continue
             if alltime and not inp and encoder_removed_bins: continue
-            print(f"evaluating {inp=}, {alltime=}")
-            dct.update(classify_head_eval_ensemble(get_ds(inp=inp, alltime=alltime, union=False),
-                                                   base_name=f"predict_{'alltime_'*alltime}{'input_'*inp}",
-                                                   linear=True, categorical=False, voting_methods=[None], svm=False, individual_ys=True))
-            print(f"evaluating {inp=}, {alltime=}, linear")
-            dct[f"predict_{'alltime_'*alltime}{'input_'*inp}linear_"] = classify_head_eval(get_ds(inp=inp, alltime=alltime, union=True),
-                                                                                       categorical=False,
-                                                                                       linear=True, svm=False)
+            if inp and not run_inp:
+                print(f"evaluating {inp=}, {alltime=}")
+                ds = get_ds(inp=inp, alltime=alltime, union=False)
+                if ds is None: continue
+                dct.update(classify_head_eval_ensemble(ds,
+                                                       base_name=f"predict_{'alltime_'*alltime}{'input_'*inp}",
+                                                       linear=True, categorical=False, voting_methods=[None], svm=False, individual_ys=True))
+                print(f"evaluating {inp=}, {alltime=}, linear")
+                dct[f"predict_{(base + '_') if base else ''}{'alltime_'*alltime}{'input_'*inp}linear_"] = classify_head_eval(get_ds(inp=inp, alltime=alltime, union=True),
+                                                                                           categorical=False,
+                                                                                           linear=True, svm=False)
 
     return dct
 
@@ -228,7 +234,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
                                         normalize=True)
 
             if with_pred:
-                remove_pred = lambda embd: embd[..., embd.shape[-3]//2, :]
+                remove_pred = lambda embd: embd[..., embd.shape[-2]//2, :]
                 embd_dataset_nopred = Data(remove_pred(embd_dataset.get_x_train()), embd_dataset.get_y_train(),
                                            remove_pred(embd_dataset.get_x_test()), embd_dataset.get_y_test(),
                                            x_val=remove_pred(embd_dataset.get_x_val()), y_val=embd_dataset.get_y_val(),
@@ -614,10 +620,41 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
                                 save_res()
 
     if predict and not any(['predict' in k for k in results]):
+        print("predict with output")
         evaluate_predict(results,
-                         get_inp_ds(last_frame=False, pc=None, label=None, union=False, flatten=False),
-                         get_inp_ds(last_frame=False, pc=None, label=None, union=True, flatten=False),
+                         get_inp_ds(last_frame=False, pc=None, label=None, union=False, flatten=False) if inp else None,
+                         get_inp_ds(last_frame=False, pc=None, label=None, union=True, flatten=False) if inp else None,
                          None if only_input else Data(x_train_embd, None, x_test_embd, None, x_val=x_val_embd, y_val=None, flatten_y=False, normalize=True),
-                         encoder_removed_bins, bins_per_frame=1)
+                         encoder_removed_bins, bins_per_frame=1, run_inp=inp)
+        save_res()
+
+        if with_pred:
+            print("predict with embedding")
+            evaluate_predict(results,
+                             None,
+                             None,
+                             None if only_input else Data(x_train_embd[..., :x_train_embd.shape[-2]//2, :], None,
+                                                          x_test_embd[..., :x_test_embd.shape[-2]//2, :], None,
+                                                          x_val=x_val_embd[..., :x_val_embd.shape[-2]//2, :], y_val=None,
+                                                          flatten_y=False, normalize=True),
+                             encoder_removed_bins, bins_per_frame=1, run_inp=inp, base='embd')
+            save_res()
+
+            print("predict with predictor")
+            evaluate_predict(results,
+                             None,
+                             None,
+                             None if only_input else Data(x_train_embd[..., x_train_embd.shape[-2]//2:, :], None,
+                                                          x_test_embd[..., x_test_embd.shape[-2]//2:, :], None,
+                                                          x_val=x_val_embd[..., x_val_embd.shape[-2]//2:, :], y_val=None,
+                                                          flatten_y=False, normalize=True),
+                             encoder_removed_bins, bins_per_frame=1, run_inp=inp, base='predictor')
+            save_res()
+
+        evaluate_predict(results,
+                         get_inp_ds(last_frame=False, pc=None, label=None, union=False, flatten=False) if inp else None,
+                         get_inp_ds(last_frame=False, pc=None, label=None, union=True, flatten=False) if inp else None,
+                         None if only_input else Data(x_train_embd, None, x_test_embd, None, x_val=x_val_embd, y_val=None, flatten_y=False, normalize=True),
+                         encoder_removed_bins, bins_per_frame=1, run_inp=inp)
         save_res()
     return results
