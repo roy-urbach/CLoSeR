@@ -656,7 +656,7 @@ class AgreementAndSTD(tf.keras.losses.Loss):
         return mean_dist
 
     def neg_log_std(self, embd):
-        std = tf.reduce_sum((embd - self.running_mean[None])**2, axis=-2) / tf.cast((tf.shape(embd)[1] - 1), embd.dtype) # (P, )
+        std = tf.reduce_sum((embd - self.running_mean[None])**2, axis=0) / tf.cast((tf.shape(embd)[0] - 1), embd.dtype) # (DIM, P, )
         if self.monitor is not None:
             self.monitor.update_monitor("std", tf.reduce_mean(std))
         out = tf.reduce_mean(-tf.math.log(std))
