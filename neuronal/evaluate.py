@@ -635,7 +635,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
                              get_inp_ds(last_frame=False, pc=None, label=None, union=True, flatten=False),
                              None if only_input else Data(x_train_embd[..., :-bins_per_frame, :x_train_embd.shape[-2]//2, :], None,
                                                           x_test_embd[..., :-bins_per_frame, :x_test_embd.shape[-2]//2, :], None,
-                                                          x_val=x_val_embd[..., :-bins_per_frame, x_val_embd.shape[-2]//2, :], y_val=None,
+                                                          x_val=x_val_embd[..., :-bins_per_frame, :x_val_embd.shape[-2]//2, :], y_val=None,
                                                           flatten_y=False, normalize=True),
                              encoder_removed_bins, bins_per_frame=1, run_inp=inp, base='embd')
             save_res()
