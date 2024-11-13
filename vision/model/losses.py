@@ -627,19 +627,27 @@ class DinoLoss(tf.keras.losses.Loss):
 
 
 class AgreementAndSTD(tf.keras.losses.Loss):
-    def __init__(self, std_w=1, alpha=0.1, l1=False, name='agreement_and_std'):
+    def __init__(self, std_w=1, alpha=0.1, l1=False, local=True, name='agreement_and_std'):
         super().__init__(name=name)
         self.std_w = std_w
         self.monitor = LossMonitors("distance", "std", name="")
-        self.running_mean = None
+        self.first_moment = None
+        self.second_moment = None
         self.alpha = alpha
         self.l1 = l1
+        self.local = local
 
-    def update_running_mean(self, embedding):
-        if self.running_mean is None:
-            self.running_mean = tf.Variable(tf.reduce_mean(tf.stop_gradient(embedding), axis=0), trainable=False)
+    def update_estimation(self, x):
+        x = tf.stop_gradient(x)
+        if self.first_moment is None:
+            self.first_moment = tf.Variable(tf.reduce_mean(x, axis=0), trainable=False)
         else:
-            self.running_mean.assign(self.running_mean * (1-self.alpha) + tf.reduce_mean(tf.stop_gradient(embedding), axis=0) * self.alpha)
+            self.first_moment = self.running_mean.assign(self.first_moment * (1-self.alpha) + tf.reduce_mean(x, axis=0) * self.alpha)
+
+        if self.second_moment is None:
+            self.second_moment = tf.Variable(tf.reduce_mean(x**2, axis=0), trainable=False)
+        else:
+            self.second_moment = self.running_mean.assign(self.second_moment * (1-self.alpha) + tf.reduce_mean(x**2, axis=0) * self.alpha)
 
     def distance(self, embedding):
         # (B, DIM, P)
@@ -662,8 +670,13 @@ class AgreementAndSTD(tf.keras.losses.Loss):
         out = tf.reduce_mean(-tf.math.log(tf.maximum(std, 1e-4)))
         return out
 
+    def local_neg_log_std(self, embd, eps=1e-6):
+        # a different calculation, but the same derivative with a stale std
+        var = self.second_moment - self.first_moment**2 + eps
+        return -((embd - self.first_moment)**2) / (var * 2)
+
     def call(self, y_true, y_pred):
-        self.update_running_mean(y_pred)
+        self.update_estimation(y_pred)
         mean_dist = self.distance(embedding=y_pred)
-        std = self.neg_log_std(y_pred)
+        std = (self.local_neg_log_std if self.local else self.neg_log_std)(y_pred)
         return mean_dist+ self.std_w * std
