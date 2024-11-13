@@ -630,7 +630,7 @@ class AgreementAndSTD(tf.keras.losses.Loss):
     def __init__(self, std_w=1, alpha=0.1, l1=False, local=True, name='agreement_and_std'):
         super().__init__(name=name)
         self.std_w = std_w
-        self.monitor = LossMonitors("distance", "var", name="")
+        self.monitor = LossMonitors("distance", "var", "cov", name="")
         self.first_moment = None
         self.second_moment = None
         self.alpha = alpha
@@ -677,8 +677,18 @@ class AgreementAndSTD(tf.keras.losses.Loss):
             self.monitor.update_monitor("var", tf.reduce_mean(var))
         return -tf.reduce_mean(tf.reduce_mean((embd - self.first_moment)**2, axis=0) / (var * 2))
 
+    def decorrelate(self, embd):
+        deviation = (embd - self.first_moment[None]) ** 2
+        cov = deviation[..., :, None, :] * deviation[..., None, :, :]
+
+        mean_cov = tf.reduce_mean(cov, axis=(0, -1)) # (DIM, DIM)
+        mean_feat_cov = tf.reduce_mean(mean_cov[~tf.eye(embd.shape[1])])
+        self.monitor.update_monitor("cov", mean_feat_cov)
+        return mean_feat_cov
+
     def call(self, y_true, y_pred):
         self.update_estimation(y_pred)
         mean_dist = self.distance(embedding=y_pred)
         std = (self.local_neg_log_std if self.local else self.neg_log_std)(y_pred)
-        return mean_dist+ self.std_w * std
+        corr = self.decorrelate(y_pred)
+        return mean_dist+ self.std_w * std + corr
