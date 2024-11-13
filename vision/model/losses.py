@@ -682,7 +682,7 @@ class AgreementAndSTD(tf.keras.losses.Loss):
         cov = deviation[..., :, None, :] * deviation[..., None, :, :]
 
         mean_cov = tf.reduce_mean(cov, axis=(0, -1)) # (DIM, DIM)
-        mean_feat_cov = tf.reduce_mean(mean_cov[~tf.eye(embd.shape[1])])
+        mean_feat_cov = tf.reduce_mean(mean_cov[~tf.eye(embd.shape[1], dtype=tf.bool)])
         self.monitor.update_monitor("cov", mean_feat_cov)
         return mean_feat_cov
 
