@@ -642,12 +642,12 @@ class AgreementAndSTD(tf.keras.losses.Loss):
         if self.first_moment is None:
             self.first_moment = tf.Variable(tf.reduce_mean(x, axis=0), trainable=False)
         else:
-            self.first_moment = self.running_mean.assign(self.first_moment * (1-self.alpha) + tf.reduce_mean(x, axis=0) * self.alpha)
+            self.first_moment = self.first_moment.assign(self.first_moment * (1-self.alpha) + tf.reduce_mean(x, axis=0) * self.alpha)
 
         if self.second_moment is None:
             self.second_moment = tf.Variable(tf.reduce_mean(x**2, axis=0), trainable=False)
         else:
-            self.second_moment = self.running_mean.assign(self.second_moment * (1-self.alpha) + tf.reduce_mean(x**2, axis=0) * self.alpha)
+            self.second_moment = self.second_moment.assign(self.second_moment * (1-self.alpha) + tf.reduce_mean(x**2, axis=0) * self.alpha)
 
     def distance(self, embedding):
         # (B, DIM, P)
@@ -664,7 +664,7 @@ class AgreementAndSTD(tf.keras.losses.Loss):
         return mean_dist
 
     def neg_log_std(self, embd):
-        std = tf.reduce_sum((embd - self.running_mean[None])**2, axis=0) / tf.cast((tf.shape(embd)[0] - 1), embd.dtype) # (DIM, P, )
+        std = tf.reduce_sum((embd - self.first_moment[None])**2, axis=0) / tf.cast((tf.shape(embd)[0] - 1), embd.dtype) # (DIM, P, )
         if self.monitor is not None:
             self.monitor.update_monitor("std", tf.reduce_mean(std))
         out = tf.reduce_mean(-tf.math.log(tf.maximum(std, 1e-4)))
