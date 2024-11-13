@@ -659,7 +659,7 @@ class AgreementAndSTD(tf.keras.losses.Loss):
         std = tf.reduce_sum((embd - self.running_mean[None])**2, axis=0) / tf.cast((tf.shape(embd)[0] - 1), embd.dtype) # (DIM, P, )
         if self.monitor is not None:
             self.monitor.update_monitor("std", tf.reduce_mean(std))
-        out = tf.reduce_mean(-tf.math.log(std))
+        out = tf.reduce_mean(-tf.math.log(tf.maximum(std, 1e-4))
         return out
 
     def call(self, y_true, y_pred):
