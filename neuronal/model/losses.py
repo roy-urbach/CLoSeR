@@ -526,7 +526,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
         deviation = (last_embd - self.running_mean[None])**2
         if self.monitor is not None:
             self.monitor.update_monitor("std", tf.reduce_mean(deviation))
-        out = tf.reduce_mean(-tf.math.log(deviation))
+        out = tf.reduce_mean(-tf.math.log(tf.maximum(deviation, 1e-4)))
         return out
 
     def call(self, y_true, y_pred):
