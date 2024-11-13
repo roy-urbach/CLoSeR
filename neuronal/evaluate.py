@@ -115,7 +115,7 @@ def evaluate_predict(dct, masked_ds, masked_ds_union, embd_alltime_noflat_ds, en
 
 
 def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labels.STIMULUS],
-             knn=False, linear=True, ensemble=True, save_results=False, override=False, override_linear=False, inp=True,
+             knn=False, linear=True, ensemble=True, save_results=False, override=False, override_linear=False, override_predict=False, inp=True,
              ks=[1] + list(range(5, 21, 5)), predict=False, only_input=False, pcs=[32, 64], **kwargs):
 
     if isinstance(model, str):
@@ -619,7 +619,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
                                                                 **kwargs))
                                 save_res()
 
-    if predict and not any(['predict' in k for k in results]):
+    if (predict and not any(['predict' in k for k in results])) or override_predict:
         print("predict with output")
         evaluate_predict(results,
                          get_inp_ds(last_frame=False, pc=None, label=None, union=False, flatten=False) if inp else None,
