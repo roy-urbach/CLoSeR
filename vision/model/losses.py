@@ -3,6 +3,8 @@ from tensorflow.keras.losses import Loss
 import numpy as np
 import scipy
 from utils.model.losses import *
+from utils.model.metrics import LossMonitors
+
 
 @serialize
 class ContrastiveLoss(Loss):
@@ -622,3 +624,44 @@ class DinoLoss(tf.keras.losses.Loss):
             self.koleo = koleo(y_pred, axis=-2)
             loss = loss + self.koleo * self.entropy_w
         return loss
+
+
+class AgreementAndSTD(tf.keras.losses.Loss):
+    def __init__(self, std_w=1, alpha=0.1, l1=False):
+        self.std_w = std_w
+        self.monitor = LossMonitors("distance", "std", name="")
+        self.running_mean = None
+        self.alpha = alpha
+        self.l1 = l1
+
+    def update_running_mean(self, embedding):
+        if self.running_mean is None:
+            self.running_mean = tf.Variable(tf.reduce_mean(tf.stop_gradient(embedding), axis=0), trainable=False)
+        else:
+            self.running_mean.assign(self.running_mean * (1-self.alpha) + tf.reduce_mean(tf.stop_gradient(embedding), axis=0) * self.alpha)
+
+    def distance(self, embedding):
+        # (B, DIM, P)
+        diff = embedding[..., None] - tf.stop_gradient(embedding[..., None, :])
+        if self.l1:
+            dist = tf.math.abs(tf.math.reduce_sum(diff, axis=1))
+        else:
+            dist = tf.linalg.norm(diff, axis=1)
+        batch_mean_dist = tf.reduce_mean(dist, axis=0)        # (P, P)
+        P = embedding.shape[-1]
+        mean_dist = tf.tensordot(batch_mean_dist, (1-tf.eye(P, dtype=dist.dtype))/tf.cast(P * (P - 1), dist.dtype),  axes=[[0, 1], [0, 1]])
+        if self.monitor is not None:
+            self.monitor.update_monitor("distance", mean_dist)
+        return mean_dist
+
+    def neg_log_std(self, embd):
+        std = tf.reduce_sum((embd - self.running_mean[None])**2) / tf.cast((tf.shape(embd)[0] - 1), embd.dtype)
+        if self.monitor is not None:
+            self.monitor.update_monitor("std", std)
+        out = -tf.math.log(std)
+        return out
+
+    def call(self, y_true, y_pred):
+        mean_dist = self.distance(embedding=y_pred)
+        std = self.neg_log_std(y_pred)
+        return mean_dist+ self.std_w * std
