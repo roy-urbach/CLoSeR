@@ -85,7 +85,7 @@ def load_or_create_model(model_name, module: Modules, *args, load=True, optimize
                         l.set_weights([w.numpy() for w in layer.weights])
                         print(f"loaded layer {l.name}")
                     except Exception as err:
-                        print(f"could load layer {l.name}, got exception {err}")
+                        print(f"couldn't load layer {l.name}, got exception {err}")
                     loaded_w = True
                     break
             if not loaded_w:
