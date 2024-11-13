@@ -469,11 +469,12 @@ class ContinuousLoss(tf.keras.losses.Loss):
                 push_exps = 1/exps
                 push_z = tf.reduce_sum(push_exps, axis=-1, keepdims=True)
                 push_w = push_exps / push_z
-                dist_no_diag_clipped = tf.minimum(dist_no_diag, _max)
+                if _max is not None:
+                    dist_no_diag = tf.minimum(dist_no_diag, _max)
                 if push_pe_diff_min is not None:
                     push_w = tf.where(tf.math.abs(pe_diff_no_diag) < push_pe_diff_min, 0., push_w)
-                push_pe_weighted_cross = tf.tensordot(push_w, dist_no_diag_clipped, [[0, 1, 2],
-                                                                                     [0, 1, 2]]) / tf.cast(self.P * b, dtype=exps.dtype)
+                push_pe_weighted_cross = tf.tensordot(push_w, dist_no_diag, [[0, 1, 2],
+                                                                             [0, 1, 2]]) / tf.cast(self.P * b, dtype=exps.dtype)
                 if self.monitor is not None:
                     self.monitor.update_monitor("pe_weighted_push_cross_distance", push_pe_weighted_cross)
                 loss = loss + self.pe_push_w * push_pe_weighted_cross

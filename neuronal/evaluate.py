@@ -99,17 +99,17 @@ def evaluate_predict(dct, masked_ds, masked_ds_union, embd_alltime_noflat_ds, en
         for alltime in (False, True):
             if not inp and embd_alltime_noflat_ds is None: continue
             if alltime and not inp and encoder_removed_bins: continue
-            if inp and not run_inp:
-                print(f"evaluating {inp=}, {alltime=}")
-                ds = get_ds(inp=inp, alltime=alltime, union=False)
-                if ds is None: continue
-                dct.update(classify_head_eval_ensemble(ds,
-                                                       base_name=f"predict_{'alltime_'*alltime}{'input_'*inp}",
-                                                       linear=True, categorical=False, voting_methods=[None], svm=False, individual_ys=True))
-                print(f"evaluating {inp=}, {alltime=}, linear")
-                dct[f"predict_{(base + '_') if base else ''}{'alltime_'*alltime}{'input_'*inp}linear_"] = classify_head_eval(get_ds(inp=inp, alltime=alltime, union=True),
-                                                                                           categorical=False,
-                                                                                           linear=True, svm=False)
+            if inp and not run_inp: continue
+            print(f"evaluating {inp=}, {alltime=}")
+            ds = get_ds(inp=inp, alltime=alltime, union=False)
+            if ds is None: continue
+            dct.update(classify_head_eval_ensemble(ds,
+                                                   base_name=f"predict_{'alltime_'*alltime}{'input_'*inp}",
+                                                   linear=True, categorical=False, voting_methods=[None], svm=False, individual_ys=True))
+            print(f"evaluating {inp=}, {alltime=}, linear")
+            dct[f"predict_{(base + '_') if base else ''}{'alltime_'*alltime}{'input_'*inp}linear_"] = classify_head_eval(get_ds(inp=inp, alltime=alltime, union=True),
+                                                                                       categorical=False,
+                                                                                       linear=True, svm=False)
 
     return dct
 
