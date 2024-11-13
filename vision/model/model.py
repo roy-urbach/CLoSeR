@@ -139,13 +139,12 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
 
     for loss in losses.values():
         if hasattr(loss, "monitor") and loss.monitor is not None:
-            if 'embedding' not in metrics:
-                metrics['embedding'] = []
-            elif not isinstance(metrics['embedding'], list):
-                metrics['embedding'] = [metrics['embedding']]
+            if model.name + '_embedding' not in metrics:
+                metrics[model.name + '_embedding'] = []
+            elif not isinstance(metrics[model.name + '_embedding'], list):
+                metrics[model.name + '_embedding'] = [metrics['embedding']]
             for k, m in loss.monitor.monitors.items():
-                m._name = model.name + "_" + m.name
-                metrics['embedding'].append(m)
+                metrics[model.name + '_embedding'].append(m)
 
     optimizer = get_optimizer(optimizer_cls=optimizer_cls, **optimizer_kwargs)
     model.compile(optimizer=optimizer, loss=losses, metrics=metrics)
