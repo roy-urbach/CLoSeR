@@ -630,7 +630,7 @@ class AgreementAndSTD(tf.keras.losses.Loss):
     def __init__(self, std_w=1, alpha=0.1, l1=False, local=True, name='agreement_and_std'):
         super().__init__(name=name)
         self.std_w = std_w
-        self.monitor = LossMonitors("distance", "std", name="")
+        self.monitor = LossMonitors("distance", "var", name="")
         self.first_moment = None
         self.second_moment = None
         self.alpha = alpha
@@ -673,7 +673,9 @@ class AgreementAndSTD(tf.keras.losses.Loss):
     def local_neg_log_std(self, embd, eps=1e-6):
         # a different calculation, but the same derivative with a stale std
         var = self.second_moment - self.first_moment**2 + eps
-        return -((embd - self.first_moment)**2) / (var * 2)
+        if self.monitor is not None:
+            self.monitor.update_monitor("var", tf.reduce_mean(var))
+        return -tf.reduce_mean(tf.reduce_mean((embd - self.first_moment)**2, axis=0) / (var * 2))
 
     def call(self, y_true, y_pred):
         self.update_estimation(y_pred)
