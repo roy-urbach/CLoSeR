@@ -680,7 +680,6 @@ class AgreementAndSTD(tf.keras.losses.Loss):
     def decorrelate(self, embd):
         deviation = (embd - self.first_moment[None]) ** 2
         cov = deviation[..., :, None, :] * deviation[..., None, :, :]
-
         mean_cov = tf.reduce_mean(cov, axis=(0, -1)) # (DIM, DIM)
         mean_feat_cov = tf.reduce_mean(mean_cov[~tf.eye(embd.shape[1], dtype=tf.bool)])
         self.monitor.update_monitor("cov", mean_feat_cov)
@@ -691,4 +690,4 @@ class AgreementAndSTD(tf.keras.losses.Loss):
         mean_dist = self.distance(embedding=y_pred)
         std = (self.local_neg_log_std if self.local else self.neg_log_std)(y_pred)
         corr = self.decorrelate(y_pred)
-        return mean_dist+ self.std_w * std + corr
+        return mean_dist+ self.std_w * std + 10 * corr
