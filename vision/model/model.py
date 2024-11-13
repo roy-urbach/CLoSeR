@@ -137,5 +137,14 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
         losses[model.name + '_ensemble_logits'] = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         metrics[model.name + '_ensemble_logits'] = keras.metrics.SparseCategoricalAccuracy(name="accuracy")
 
+    for loss in losses.values():
+        if hasattr(loss, "monitor") and loss.monitor is not None:
+            if 'embedding' not in metrics:
+                metrics['embedding'] = []
+            elif not isinstance(metrics['embedding'], list):
+                metrics['embedding'] = [metrics['embedding']]
+            for k, m in loss.monitor.monitors.items():
+                metrics['embedding'].append(m)
+
     optimizer = get_optimizer(optimizer_cls=optimizer_cls, **optimizer_kwargs)
     model.compile(optimizer=optimizer, loss=losses, metrics=metrics)
