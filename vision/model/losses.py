@@ -627,7 +627,8 @@ class DinoLoss(tf.keras.losses.Loss):
 
 
 class AgreementAndSTD(tf.keras.losses.Loss):
-    def __init__(self, std_w=1, alpha=0.1, l1=False):
+    def __init__(self, std_w=1, alpha=0.1, l1=False, name='agreement_and_std'):
+        super().__init__(name=name)
         self.std_w = std_w
         self.monitor = LossMonitors("distance", "std", name="")
         self.running_mean = None
