@@ -523,10 +523,10 @@ class ContinuousLoss(tf.keras.losses.Loss):
 
     def neg_log_std(self, embd):
         last_embd = embd[:,-1]  # (B, DIM, P)
-        std = tf.reduce_mean((last_embd - self.running_mean[None])**2, axis=(0, 1, 2))
+        deviation = (last_embd - self.running_mean[None])**2
         if self.monitor is not None:
-            self.monitor.update_monitor("std", std)
-        out = -tf.math.log(std)
+            self.monitor.update_monitor("std", tf.reduce_mean(deviation))
+        out = tf.reduce_mean(-tf.math.log(deviation))
         return out
 
     def call(self, y_true, y_pred):
