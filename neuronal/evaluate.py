@@ -631,10 +631,10 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
         if with_pred:
             print("predict with embedding")
             evaluate_predict(results,
-                             None,
-                             None,
-                             None if only_input else Data(x_train_embd[..., :x_train_embd.shape[-2]//2, :], None,
-                                                          x_test_embd[..., :x_test_embd.shape[-2]//2, :], None,
+                             get_inp_ds(last_frame=False, pc=None, label=None, union=False, flatten=False) if inp else None,
+                             get_inp_ds(last_frame=False, pc=None, label=None, union=True, flatten=False) if inp else None,
+                             None if only_input else Data(x_train_embd[..., :-bins_per_frame, :x_train_embd.shape[-2]//2, :], None,
+                                                          x_test_embd[..., :-bins_per_frame, :x_test_embd.shape[-2]//2, :], None,
                                                           x_val=x_val_embd[..., :x_val_embd.shape[-2]//2, :], y_val=None,
                                                           flatten_y=False, normalize=True),
                              encoder_removed_bins, bins_per_frame=1, run_inp=inp, base='embd')
@@ -642,8 +642,8 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
 
             print("predict with predictor")
             evaluate_predict(results,
-                             None,
-                             None,
+                             get_inp_ds(last_frame=False, pc=None, label=None, union=False,flatten=False) if inp else None,
+                             get_inp_ds(last_frame=False, pc=None, label=None, union=True,flatten=False) if inp else None,
                              None if only_input else Data(x_train_embd[..., x_train_embd.shape[-2]//2:, :], None,
                                                           x_test_embd[..., x_test_embd.shape[-2]//2:, :], None,
                                                           x_val=x_val_embd[..., x_val_embd.shape[-2]//2:, :], y_val=None,
@@ -654,7 +654,10 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
         evaluate_predict(results,
                          get_inp_ds(last_frame=False, pc=None, label=None, union=False, flatten=False) if inp else None,
                          get_inp_ds(last_frame=False, pc=None, label=None, union=True, flatten=False) if inp else None,
-                         None if only_input else Data(x_train_embd, None, x_test_embd, None, x_val=x_val_embd, y_val=None, flatten_y=False, normalize=True),
+                         None if only_input else Data(x_train_embd[:, :-bins_per_frame], None,
+                                                      x_test_embd[:, :-bins_per_frame], None,
+                                                      x_val=x_val_embd[:, :-bins_per_frame], y_val=None,
+                                                      flatten_y=False, normalize=True),
                          encoder_removed_bins, bins_per_frame=1, run_inp=inp)
         save_res()
     return results
