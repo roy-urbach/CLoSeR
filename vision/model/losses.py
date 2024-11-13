@@ -663,6 +663,7 @@ class AgreementAndSTD(tf.keras.losses.Loss):
         return out
 
     def call(self, y_true, y_pred):
+        self.update_running_mean(y_pred)
         mean_dist = self.distance(embedding=y_pred)
         std = self.neg_log_std(y_pred)
         return mean_dist+ self.std_w * std
