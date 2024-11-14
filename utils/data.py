@@ -22,7 +22,7 @@ class Data:
             self.y_val = {k: v[val_idx] for k, v in self.y_train.items()} if isinstance(self.y_train, dict) else self.y_train[val_idx]
 
             self.x_train = self.x_train[train_idx]
-            self.y_val = {k: v[train_idx] for k, v in self.y_train.items()} if isinstance(self.y_train, dict) else self.y_train[train_idx]
+            self.y_train = {k: v[train_idx] for k, v in self.y_train.items()} if isinstance(self.y_train, dict) else self.y_train[train_idx]
 
         self.shape = x_train[0].shape
         if img_normalize:
