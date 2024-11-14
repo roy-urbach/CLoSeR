@@ -143,7 +143,7 @@ def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_
         history = model.fit(x=dataset.get_x_train(),
                             y=dataset.get_y_train(),
                             validation_split=dataset.get_val_split() if hasattr(dataset, 'get_val_split') else None,
-                            validation_data= None if hasattr(dataset, 'get_val_split') else (dataset.get_x_val(), dataset.get_y_val()),
+                            validation_data=None if hasattr(dataset, 'get_val_split') else (dataset.get_x_val(), dataset.get_y_val()),
                             batch_size=batch_size,
                             **fit_kwargs)
         printd("Done!")

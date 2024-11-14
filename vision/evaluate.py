@@ -19,7 +19,8 @@ def get_masked_ds(model, dataset=Cifar10()):
     setup_func = lambda x: np.transpose(patch_layer(aug_layer(x)).numpy()[:, pathway_indices - model.get_layer(model.name + '_pathways').shift], [0, 1, 3, 2]).reshape(
         x.shape[0], -1, pathway_indices.shape[-1])
     ds = Data(setup_func(dataset.get_x_train()), dataset.get_y_train(),
-              setup_func(dataset.get_x_test()), dataset.get_y_test())
+              setup_func(dataset.get_x_test()), dataset.get_y_test(),
+              x_val=setup_func(dataset.get_x_val()), y_val=dataset.get_y_val(), normalize=True)
     return ds
 
 
@@ -32,11 +33,13 @@ def evaluate(model, module: Modules=Modules.VISION, knn=False, linear=True, ense
         assert model_kwargs is not None
         model = load_model_from_json(model, module)
         if dataset is None:
-            dataset = module.get_class_from_data(model_kwargs.get('dataset', 'Cifar10'))(**model_kwargs.get('data_kwargs', {}))
+            dataset = module.get_class_from_data(model_kwargs.get('dataset', 'Cifar10'))(**model_kwargs.get('data_kwargs', {}), split=True)
 
     x_train_embd = model.predict(dataset.get_x_train())[0]
     x_test_embd = model.predict(dataset.get_x_test())[0]
-    embd_dataset = Data(x_train_embd, dataset.get_y_train(), x_test_embd, dataset.get_y_test())
+    x_val_embd = model.predict(dataset.get_x_val())[0]
+    embd_dataset = Data(x_train_embd, dataset.get_y_train(), x_test_embd, dataset.get_y_test(),
+                        x_val=x_val_embd, y_val=dataset.get_y_val(), normalize=True)
 
     from utils.evaluation.evaluation import classify_head_eval
 
