@@ -107,7 +107,7 @@ def evaluate_predict(dct, masked_ds, masked_ds_union, embd_alltime_noflat_ds, en
                                                    base_name=f"predict_{'alltime_'*alltime}{'input_'*inp}",
                                                    linear=True, categorical=False, voting_methods=[None], svm=False, individual_ys=True))
             print(f"evaluating {inp=}, {alltime=}, linear")
-            dct[f"predict_{(base + '_') if base else ''}{'alltime_'*alltime}{'input_'*inp}linear_"] = classify_head_eval(get_ds(inp=inp, alltime=alltime, union=True),
+            dct[f"predict_{(base + '_') if base else ''}{'alltime_'*alltime}{'input_'*inp}linear"] = classify_head_eval(get_ds(inp=inp, alltime=alltime, union=True),
                                                                                        categorical=False,
                                                                                        linear=True, svm=False)
 
@@ -342,7 +342,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
                 if not any(['linear' in k and 'ensemble' in k and 'alltime' in k and label.value.name in k for k in results]) or override_linear:
                     printd("ensemble linear alltime")
                     results.update(classify_head_eval_ensemble(embd_alltime_dataset, linear=True, svm=False,
-                                                               base_name=f"{label.value.name}_alltime",
+                                                               base_name=f"{label.value.name}_alltime_",
                                                                categorical=label.value.kind == CATEGORICAL,
                                                                voting_methods=[
                                                                    EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean],
@@ -355,7 +355,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
                                  k in results]) or override_linear):
                     printd("ensemble nopred linear")
                     results.update(classify_head_eval_ensemble(embd_dataset_nopred, linear=True, svm=False,
-                                                               base_name=f"{label.value.name}_nopred",
+                                                               base_name=f"{label.value.name}_nopred_",
                                                                categorical=label.value.kind == CATEGORICAL,
                                                                voting_methods=[
                                                                    EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean],
@@ -367,7 +367,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
                                 results]) or override_linear:
                         printd("ensemble linear alltime")
                         results.update(classify_head_eval_ensemble(embd_alltime_dataset_nopred, linear=True, svm=False,
-                                                                   base_name=f"{label.value.name}_nopred_alltime",
+                                                                   base_name=f"{label.value.name}_nopred_alltime_",
                                                                    categorical=label.value.kind == CATEGORICAL,
                                                                    voting_methods=[
                                                                        EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean],
