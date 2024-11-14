@@ -776,7 +776,7 @@ class LPL(tf.keras.losses.Loss):
 
         dist = tf.reduce_mean((embd[..., None] - tf.stop_gradient(embd[..., None, :]))**2, axis=1)  # (B, P, P)
         pe_weighted_dist = tf.tensordot(pe_weights, dist, axis=[[0, 1, 2],
-                                                                [0, 1, 2]]) / tf.cast(tf.shape(embd)[0], dtype=embd.dtype)
+                                                                [0, 1, 2]]) / tf.cast(tf.shape(embd)[0] * embd.shape[-1], dtype=embd.dtype)
         self.monitor.update_monitor("pe_cross", pe_weighted_dist)
         return pe_weighted_dist
 
