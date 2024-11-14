@@ -179,13 +179,14 @@ class VectorTrajectoryDisagreement(tf.keras.losses.Loss):
 
 
 class ContinuousLoss(tf.keras.losses.Loss):
-    def __init__(self, softmax=False, l1=False, cosine=False, continuous_w=1., entropy_w=None, crosspath_w=None, nonlocal_w=None, nonlocal_kwargs={}, eps=None,
+    def __init__(self, softmax=False, l1=False, cosine=False, mse=False, continuous_w=1., entropy_w=None, crosspath_w=None, nonlocal_w=None, nonlocal_kwargs={}, eps=None,
                  contrast_in_time_w=None, contrast_in_time_kwargs={}, continuous_kwargs={}, push_corr_w=None, predictive_w=None,
                  adversarial_w=None, adversarial_pred_w=None, pe_w=None, pe_push_w=None, neg_log_std_w=None, adversarial_kwargs={},
                  log_dist=False, monitor=False, centering=False, name='continuous_loss'):
         super().__init__(name=name)
         self.l1 = l1
         self.cosine = cosine
+        self.mse = mse
         self.softmax = softmax
         self.update_running_mean = centering or neg_log_std_w is not None
         self.centering = centering
@@ -354,6 +355,8 @@ class ContinuousLoss(tf.keras.losses.Loss):
             norm = lambda arr: arr / tf.linalg.norm(tf.stop_gradient(arr), axis=axis, keepdims=True)
             cosine_sim = tf.reduce_sum(norm(arr1) * norm(arr2), axis=axis)
             dist = 1-cosine_sim/2
+        elif self.mse:
+            dist = tf.reduce_mean((arr1 - arr2)**2, axis=axis)
         else:
             dist = tf.linalg.norm(arr1 - arr2, axis=axis)
         if self.eps is not None and use_eps:
