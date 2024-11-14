@@ -24,7 +24,8 @@ def get_masked_ds(model, dataset=Cifar10()):
 
 
 def evaluate(model, module: Modules=Modules.VISION, knn=False, linear=True, ensemble=True, ensemble_knn=False,
-             save_results=False, override=False, inp=True, dataset:Optional[Data]=Cifar10(), ks=[1] + list(range(5, 50, 5)), **kwargs):
+             override_linear=False, save_results=False, override=False, inp=True,
+             dataset:Optional[Data]=Cifar10(), ks=[1] + list(range(5, 50, 5)), **kwargs):
 
     if isinstance(model, str):
         model_kwargs = module.load_json(model, config=True)
@@ -39,7 +40,7 @@ def evaluate(model, module: Modules=Modules.VISION, knn=False, linear=True, ense
 
     from utils.evaluation.evaluation import classify_head_eval
 
-    results = module.load_evaluation_json(model.name) if not override else {}
+    results = {} if override and not override_linear else module.load_evaluation_json(model.name)
 
     if results is None:
         results = {}
@@ -54,7 +55,7 @@ def evaluate(model, module: Modules=Modules.VISION, knn=False, linear=True, ense
                 save_res()
 
     if linear:
-        if 'logistic' not in results:
+        if 'logistic' not in results or override_linear:
             results['logistic'] = classify_head_eval(embd_dataset, linear=True, svm=False, **kwargs)
             save_res()
 
