@@ -675,7 +675,7 @@ class NonLocalContrastive(tf.keras.losses.Loss):
         return {"cross_path_agreement": self.cross_path_agreement}
 
 
-class LPL(tf.keras.layers.Loss):
+class LPL(tf.keras.losses.Loss):
     def __init__(self, std_w=1, corr_w=10, alpha=0.1, l1=False, local=True, eps=1e-4, name='agreement_and_std'):
         super().__init__(name=name)
         self.eps = eps
