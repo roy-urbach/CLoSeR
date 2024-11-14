@@ -620,13 +620,6 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
                                 save_res()
 
     if (predict and not any(['predict' in k for k in results])) or override_predict:
-        print("predict with output")
-        evaluate_predict(results,
-                         get_inp_ds(last_frame=False, pc=None, label=None, union=False, flatten=False),
-                         get_inp_ds(last_frame=False, pc=None, label=None, union=True, flatten=False),
-                         None if only_input else Data(x_train_embd, None, x_test_embd, None, x_val=x_val_embd, y_val=None, flatten_y=False, normalize=True),
-                         encoder_removed_bins, bins_per_frame=1, run_inp=inp)
-        save_res()
 
         if with_pred:
             print("predict with embedding")
@@ -651,6 +644,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
                              encoder_removed_bins, bins_per_frame=1, run_inp=inp, base='predictor')
             save_res()
 
+        print("predict with output")
         evaluate_predict(results,
                          get_inp_ds(last_frame=False, pc=None, label=None, union=False, flatten=False),
                          get_inp_ds(last_frame=False, pc=None, label=None, union=True, flatten=False),
