@@ -64,31 +64,32 @@ def evaluate(model, module: Modules=Modules.VISION, knn=False, linear=True, ense
         for k in ks:
             if f'k={k}' not in results:
                 printd(f"k={k}:", end='\t')
-                results[f"k={k}"] = classify_head_eval(embd_dataset, linear=False, k=k, **kwargs)
+                results[f"k={k}"] = classify_head_eval(embd_dataset, linear=False, k=k, categorical=True, **kwargs)
                 save_res()
 
     if linear:
         if 'logistic' not in results or override_linear:
             printd("running logistic")
-            results['logistic'] = classify_head_eval(embd_dataset, linear=True, svm=False, **kwargs)
+            results['logistic'] = classify_head_eval(embd_dataset, linear=True, svm=False, categorical=True, **kwargs)
             save_res()
 
     if ensemble:
         printd("running ensemble")
-        results.update(classify_head_eval_ensemble(embd_dataset, linear=True, svm=False,
+        results.update(classify_head_eval_ensemble(embd_dataset, linear=True, svm=False, categorical=True,
                                                    voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb], **kwargs))
         save_res()
         if inp:
             printd("running inp")
             if not any([k.startswith("image_pathway") for k in results.keys()]):
                 masked_ds = get_masked_ds(model, dataset=dataset)
-                results.update(classify_head_eval_ensemble(masked_ds, base_name='image_', svm=False,
+                results.update(classify_head_eval_ensemble(masked_ds, base_name='image_', svm=False, categorical=True,
                                                            voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb]), **kwargs)
                 save_res()
 
     if ensemble_knn:
         printd("running ensemble knn")
         results.update(classify_head_eval_ensemble(embd_dataset, linear=False, svm=False, k=15,
+                                                   categorical=True,
                                                    voting_methods=EnsembleVotingMethods), **kwargs)
         save_res()
     return results
