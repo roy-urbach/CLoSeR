@@ -35,9 +35,19 @@ def evaluate(model, module: Modules=Modules.VISION, knn=False, linear=True, ense
         if dataset is None:
             dataset = module.get_class_from_data(model_kwargs.get('dataset', 'Cifar10'))(**model_kwargs.get('data_kwargs', {}), split=True)
 
+    printd("getting embedding...")
+    printd("train...", end='\t')
     x_train_embd = model.predict(dataset.get_x_train())[0]
+    printd("done!")
+
+    printd("test...", end='\t')
     x_test_embd = model.predict(dataset.get_x_test())[0]
+    printd("done!")
+
+    printd("validation...", end='\t')
     x_val_embd = model.predict(dataset.get_x_val())[0]
+    printd("done!")
+
     embd_dataset = Data(x_train_embd, dataset.get_y_train(), x_test_embd, dataset.get_y_test(),
                         x_val=x_val_embd, y_val=dataset.get_y_val(), normalize=True)
 
@@ -59,17 +69,17 @@ def evaluate(model, module: Modules=Modules.VISION, knn=False, linear=True, ense
 
     if linear:
         if 'logistic' not in results or override_linear:
-            print("running logistic")
+            printd("running logistic")
             results['logistic'] = classify_head_eval(embd_dataset, linear=True, svm=False, **kwargs)
             save_res()
 
     if ensemble:
-        print("running ensemble")
+        printd("running ensemble")
         results.update(classify_head_eval_ensemble(embd_dataset, linear=True, svm=False,
                                                    voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb], **kwargs))
         save_res()
         if inp:
-            print("running inp")
+            printd("running inp")
             if not any([k.startswith("image_pathway") for k in results.keys()]):
                 masked_ds = get_masked_ds(model, dataset=dataset)
                 results.update(classify_head_eval_ensemble(masked_ds, base_name='image_', svm=False,
@@ -77,7 +87,7 @@ def evaluate(model, module: Modules=Modules.VISION, knn=False, linear=True, ense
                 save_res()
 
     if ensemble_knn:
-        print("running ensemble knn")
+        printd("running ensemble knn")
         results.update(classify_head_eval_ensemble(embd_dataset, linear=False, svm=False, k=15,
                                                    voting_methods=EnsembleVotingMethods), **kwargs)
         save_res()
