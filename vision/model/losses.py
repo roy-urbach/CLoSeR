@@ -664,32 +664,36 @@ class AgreementAndSTD(tf.keras.losses.Loss):
         return mean_dist
 
     def neg_log_std(self, embd):
-        std = tf.reduce_sum((embd - tf.reduce_mean(embd, axis=0, keepdims=True))**2, axis=0) / tf.cast((tf.shape(embd)[0] - 1), embd.dtype) # (DIM, P, )
+        variance = tf.reduce_sum((embd - tf.reduce_mean(embd, axis=0, keepdims=True))**2, axis=0) / tf.cast((tf.shape(embd)[0] - 1), embd.dtype) # (DIM, P, )
         if self.monitor is not None:
-            self.monitor.update_monitor("var", tf.reduce_mean(std))
-        out = tf.reduce_mean(-tf.math.log(tf.maximum(std, 1e-6)))
+            self.monitor.update_monitor("var", tf.reduce_mean(variance))
+        out = tf.reduce_mean(-tf.math.log(variance + 1e-4))
         return out
 
-    def local_neg_log_std(self, embd, eps=1e-6):
+    def local_neg_log_std(self, embd, eps=1e-4):
         # a different calculation, but the same derivative with a stale std
         var = self.second_moment - self.first_moment**2 + eps
         if self.monitor is not None:
             self.monitor.update_monitor("var", tf.reduce_mean(var))
-        return -tf.reduce_mean(tf.reduce_mean((embd - self.first_moment)**2, axis=0) / (var * 2))
+        return -tf.reduce_mean(tf.reduce_sum((embd - self.first_moment)**2, axis=0) / var) / tf.shape(embd)[0]
 
     def decorrelate_nonlocal(self, embd):
-        deviation = (embd - tf.reduce_mean(embd, axis=0, keepdims=True)) ** 2
-        cov = deviation[..., :, None, :] * deviation[..., None, :, :]
-        mean_cov = tf.reduce_mean(cov, axis=(0, -1)) # (DIM, DIM)
-        mean_feat_cov = tf.reduce_mean(mean_cov[~tf.eye(embd.shape[1], dtype=tf.bool)])
+        centered = (embd - tf.reduce_mean(embd, axis=0, keepdims=True))
+        co = centered[..., :, None, :] * centered[..., None, :, :]
+        cov = tf.reduce_sum(co, axis=(0, )) / (tf.shape(embd)[0] - 1) # (DIM, DIM, P)
+        cov_sqr = cov ** 2
+        mean_cov_sqr = tf.reduce_mean(cov_sqr, axis=-1)
+        mean_feat_cov = tf.reduce_mean(mean_cov_sqr[~tf.eye(embd.shape[1], dtype=tf.bool)])
         self.monitor.update_monitor("cov", mean_feat_cov)
         return mean_feat_cov
 
     def decorrelate(self, embd):
-        deviation = (embd - self.first_moment[None]) ** 2
+        raise NotImplementedError()
+        deviation = (embd - self.first_moment[None])
         cov = deviation[..., :, None, :] * deviation[..., None, :, :]
-        mean_cov = tf.reduce_mean(cov, axis=(0, -1)) # (DIM, DIM)
-        mean_feat_cov = tf.reduce_mean(mean_cov[~tf.eye(embd.shape[1], dtype=tf.bool)])
+        cov = tf.reduce_sum(cov, axis=(0,)) / (tf.shape(embd)[0] - 1) # (DIM, DIM, P)
+        mean_cov_sqr = tf.reduce_mean(cov_sqr, axis=-1)  # (P, P)
+        mean_feat_cov = tf.reduce_mean(mean_cov_sqr[~tf.eye(embd.shape[1], dtype=tf.bool)])
         self.monitor.update_monitor("cov", mean_feat_cov)
         return mean_feat_cov
 

@@ -74,7 +74,7 @@ class LossMonitor(tf.keras.metrics.MeanMetricWrapper):
 
 class LossMonitors:
     def __init__(self, *names, name='loss_monitors'):
-        self.monitors = {n: LossMonitor(name=name + "_" + n) for n in names}
+        self.monitors = {n: LossMonitor(name=(name + "_" if name else '') + n) for n in names}
 
     def update_monitor(self, name, value):
         self.monitors[name].update_monitor(value)
