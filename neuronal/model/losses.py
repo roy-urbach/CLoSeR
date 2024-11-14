@@ -255,7 +255,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
 
     def continuous_disagreement(self, embd, stopgrad=False):
         # embd shape (B, T, DIM, P)
-        dist = tf.maximum(self.dist2logdist(tf.linalg.norm(embd[:, 1:] - tf.stop_gradient(embd[:, :-1]) if stopgrad else embd[:, :-1], axis=-2)), self.eps)  # (B, T-1, P)
+        dist = tf.maximum(self.dist2logdist(tf.linalg.norm(embd[:, 1:] - (tf.stop_gradient(embd[:, :-1]) if stopgrad else embd[:, :-1]), axis=-2)), self.eps)  # (B, T-1, P)
         disagreement = tf.reduce_mean(dist)
         if self.monitor is not None:
             self.monitor.update_monitor("continuous", disagreement)
@@ -731,14 +731,14 @@ class LPL(tf.keras.losses.Loss):
             var = tf.reduce_sum((embd - tf.reduce_mean(embd, axis=0, keepdims=True))**2, axis=0) / tf.cast((tf.shape(embd)[0] - 1), embd.dtype) # (DIM, P, )
             if self.monitor is not None:
                 self.monitor.update_monitor("var", tf.reduce_mean(var))
-            out = tf.reduce_mean(-tf.math.log(var + self.eps))
+            out = -tf.reduce_mean(tf.math.log(var + self.eps))
         return out
 
     def decorrelate(self, embd):
         if self.local:
             raise NotImplementedError()
             # centered = (embd - self.first_moment[None])
-            # co = deviation[..., :, None, :] * deviation[..., None, :, :]
+            # co = centered[..., :, None, :] * centered[..., None, :, :]    # (B, DIM, DIM, P)
             # cov = tf.reduce_sum(cov, axis=(0,)) / (tf.shape(embd)[0] - 1) # (DIM, DIM, P)
             # mean_cov_sqr = tf.reduce_mean(cov_sqr, axis=-1)  # (DIM, DIM)
             # mean_feat_cov = tf.reduce_mean(mean_cov_sqr[~tf.eye(embd.shape[1], dtype=tf.bool)])
