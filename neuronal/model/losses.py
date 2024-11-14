@@ -679,12 +679,13 @@ class NonLocalContrastive(tf.keras.losses.Loss):
 
 
 class LPL(tf.keras.losses.Loss):
-    def __init__(self, std_w=1, corr_w=10, cross_w=None, cov_sqr=True, alpha=0.1, l1=False, local=True, eps=1e-4, name='agreement_and_std'):
+    def __init__(self, std_w=1, corr_w=10, cross_w=None, cov_sqr=True, alpha=0.1, l1=False, pe_w=None, local=True, eps=1e-4, name='agreement_and_std'):
         super().__init__(name=name)
         self.eps = eps
         self.std_w = std_w
         self.corr_w = corr_w
         self.cov_sqr = cov_sqr
+        self.pe_w =pe_w
         losses = ['cont_mse', 'var', 'cov']
         self.first_moment = None
         self.second_moment = None
@@ -694,6 +695,8 @@ class LPL(tf.keras.losses.Loss):
         self.cross_w = cross_w
         if cross_w:
             losses.append("cross")
+        if self.pe_w:
+            losses.append("pe_cross")
         self.monitor = LossMonitors(*losses, name="")
 
     def update_estimation(self, x):
@@ -738,7 +741,7 @@ class LPL(tf.keras.losses.Loss):
     def decorrelate(self, embd):
         if self.local:
             raise NotImplementedError()
-            # centered = (embd - self.first_moment[None])
+            # centered = (embd - self.first_moment[None])**2
             # co = centered[..., :, None, :] * centered[..., None, :, :]    # (B, DIM, DIM, P)
             # cov = tf.reduce_sum(cov, axis=(0,)) / (tf.shape(embd)[0] - 1) # (DIM, DIM, P)
             # mean_cov_sqr = tf.reduce_mean(cov_sqr, axis=-1)  # (DIM, DIM)
@@ -764,10 +767,29 @@ class LPL(tf.keras.losses.Loss):
         self.monitor.update_monitor("cross", mean_mse)
         return mean_mse
 
+    def pe_weighted_crossdist(self, embd, pe):
+        pe_diff = (pe[..., None] - pe[..., None, :])**2
+        # pe_diff = pe_diff - tf.reduce_min(pe_diff, axis=-1, keepdims=True)    # diagonal is min
+        exp_pe = tf.linalg.set_diagonal(tf.exp(-pe_diff), 0.)
+        z_pe = tf.reduce_sum(exp_pe, axis=-1, keepdims=True)
+        pe_weights = exp_pe / z_pe  # (B, P, P)
+
+        dist = tf.reduce_mean((embd[..., None] - tf.stop_gradient(embd[..., None, :]))**2, axis=1)  # (B, P, P)
+        pe_weighted_dist = tf.tensordot(pe_weights, dist, axis=[[0, 1, 2],
+                                                                [0, 1, 2]])
+        return pe_weighted_dist
+
     def call(self, y_true, y_pred):
         # (B, T, DIM, P)
         embd = y_pred[:, -1]
         prev_embd = tf.stop_gradient(y_pred[:, -2])
+        if self.pe_w:
+            pred_start = embd.shape[-2]//2
+            pred = embd[..., pred_start:, :]
+            embd = embd[..., :pred_start, :]
+            pe = tf.reduce_mean((tf.stop_gradient(embd) - pred)**2, axis=-2)  # (B, P)
+            prev_embd = prev_embd[..., :pred_start, :]
+
         if not self.local:
             self.update_estimation(embd)
         loss = self.continuous_loss(prev_embd, embd)
@@ -777,5 +799,10 @@ class LPL(tf.keras.losses.Loss):
             loss = loss + self.corr_w * self.decorrelate(embd)
         if self.cross_w:
             loss = loss + self.cross_w * self.crossdist(embd)
+        if self.pe_w:
+            loss = loss + self.pe_w * self.pe_weighted_crossdist(embd, tf.stop_gradient(pe))
+
+            loss = loss + tf.reduce_mean(pe)
+
         return loss
 
