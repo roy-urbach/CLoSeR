@@ -627,9 +627,10 @@ class DinoLoss(tf.keras.losses.Loss):
 
 
 class AgreementAndSTD(tf.keras.losses.Loss):
-    def __init__(self, std_w=1, alpha=0.1, l1=False, local=True, name='agreement_and_std'):
+    def __init__(self, std_w=1, corr_w=10, alpha=0.1, l1=False, local=True, name='agreement_and_std'):
         super().__init__(name=name)
         self.std_w = std_w
+        self.corr_w = corr_w
         self.monitor = LossMonitors("distance", "var", "cov", name="")
         self.first_moment = None
         self.second_moment = None
@@ -675,12 +676,12 @@ class AgreementAndSTD(tf.keras.losses.Loss):
         var = self.second_moment - self.first_moment**2 + eps
         if self.monitor is not None:
             self.monitor.update_monitor("var", tf.reduce_mean(var))
-        return -tf.reduce_mean(tf.reduce_sum((embd - self.first_moment)**2, axis=0) / var) / tf.shape(embd)[0]
+        return -tf.reduce_mean(tf.reduce_sum((embd - self.first_moment)**2, axis=0) / var) / tf.cast(tf.shape(embd)[0] - 1, dtype=var.dtype)
 
     def decorrelate_nonlocal(self, embd):
         centered = (embd - tf.reduce_mean(embd, axis=0, keepdims=True))
         co = centered[..., :, None, :] * centered[..., None, :, :]
-        cov = tf.reduce_sum(co, axis=(0, )) / (tf.shape(embd)[0] - 1) # (DIM, DIM, P)
+        cov = tf.reduce_sum(co, axis=(0, )) / tf.cast(tf.shape(embd)[0] - 1, co.dtype) # (DIM, DIM, P)
         cov_sqr = cov ** 2
         mean_cov_sqr = tf.reduce_mean(cov_sqr, axis=-1)
         mean_feat_cov = tf.reduce_mean(mean_cov_sqr[~tf.eye(embd.shape[1], dtype=tf.bool)])
@@ -702,4 +703,4 @@ class AgreementAndSTD(tf.keras.losses.Loss):
         mean_dist = self.distance(embedding=y_pred)
         std = (self.local_neg_log_std if self.local else self.neg_log_std)(y_pred)
         corr = (self.decorrelate if self.local else self.decorrelate_nonlocal)(y_pred)
-        return mean_dist+ self.std_w * std + 10 * corr
+        return mean_dist+ self.std_w * std + self.corr_w * corr
