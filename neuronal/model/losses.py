@@ -679,17 +679,21 @@ class NonLocalContrastive(tf.keras.losses.Loss):
 
 
 class LPL(tf.keras.losses.Loss):
-    def __init__(self, std_w=1, corr_w=10, alpha=0.1, l1=False, local=True, eps=1e-4, name='agreement_and_std'):
+    def __init__(self, std_w=1, corr_w=10, cross_w=None, alpha=0.1, l1=False, local=True, eps=1e-4, name='agreement_and_std'):
         super().__init__(name=name)
         self.eps = eps
         self.std_w = std_w
         self.corr_w = corr_w
-        self.monitor = LossMonitors("cont_mse", "var", "cov", name="")
+        losses = ['cont_mse', 'var', 'cov']
         self.first_moment = None
         self.second_moment = None
         self.alpha = alpha
         self.l1 = l1
         self.local = local
+        self.cross_w = cross_w
+        if cross_w:
+            losses.append("cross")
+        self.monitor = LossMonitors(*losses, name="")
 
     def update_estimation(self, x):
         x = tf.stop_gradient(x)
@@ -748,6 +752,14 @@ class LPL(tf.keras.losses.Loss):
         self.monitor.update_monitor("cov", mean_feat_cov)
         return mean_feat_cov
 
+    def crossdist(self, embd):
+        # (B, DIM, P)
+        mse = tf.reduce_mean((embd[..., None] - tf.stop_gradient(embd[..., None, :]))**2, axis=(0,1))  # (P, P)
+        mse_nondiag = mse[~tf.eye(embd.shape[-1], dtype=tf.bool)]
+        mean_mse = tf.reduce_mean(mse_nondiag)
+        self.monitor.update_monitor("cross", mean_mse)
+        return mean_mse
+
     def call(self, y_true, y_pred):
         # (B, T, DIM, P)
         embd = y_pred[:, -1]
@@ -759,5 +771,7 @@ class LPL(tf.keras.losses.Loss):
             loss = loss + self.std_w * self.neg_log_std(embd)
         if self.corr_w:
             loss = loss + self.corr_w * self.decorrelate(embd)
+        if self.cross_w:
+            loss = loss + self.cross_w * self.crossdist(embd)
         return loss
 
