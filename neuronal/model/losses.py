@@ -673,3 +673,88 @@ class NonLocalContrastive(tf.keras.losses.Loss):
 
     def get_metrics(self):
         return {"cross_path_agreement": self.cross_path_agreement}
+
+
+class LPL(tf.keras.layers.Loss):
+    def __init__(self, std_w=1, corr_w=10, alpha=0.1, l1=False, local=True, eps=1e-4, name='agreement_and_std'):
+        super().__init__(name=name)
+        self.eps = eps
+        self.std_w = std_w
+        self.corr_w = corr_w
+        self.monitor = LossMonitors("cont_mse", "var", "cov", name="")
+        self.first_moment = None
+        self.second_moment = None
+        self.alpha = alpha
+        self.l1 = l1
+        self.local = local
+
+    def update_estimation(self, x):
+        x = tf.stop_gradient(x)
+        if self.first_moment is None:
+            self.first_moment = tf.Variable(tf.reduce_mean(x, axis=0), trainable=False)
+        else:
+            self.first_moment = self.first_moment.assign(self.first_moment * (1-self.alpha) + tf.reduce_mean(x, axis=0) * self.alpha)
+
+        if self.second_moment is None:
+            self.second_moment = tf.Variable(tf.reduce_mean(x**2, axis=0), trainable=False)
+        else:
+            self.second_moment = self.second_moment.assign(self.second_moment * (1-self.alpha) + tf.reduce_mean(x**2, axis=0) * self.alpha)
+
+    def continuous_loss(self, prev_embd, embd):
+        # (B, DIM, P)
+        diff = embd - tf.stop_gradient(prev_embd)
+        if self.l1:
+            dist = tf.math.abs(tf.math.reduce_sum(diff, axis=1))
+        else:
+            dist = tf.reduce_mean(diff**2, axis=1)
+        mean_dist = tf.reduce_mean(dist)
+        if self.monitor is not None:
+            self.monitor.update_monitor("cont_mse", mean_dist)
+        return mean_dist
+
+    def neg_log_std(self, embd):
+        if self.local:
+            # a different calculation, but the same derivative with a stale std
+            var = self.second_moment - self.first_moment ** 2 + self.eps
+            if self.monitor is not None:
+                self.monitor.update_monitor("var", tf.reduce_mean(var))
+            return -tf.reduce_mean(tf.reduce_sum((embd - self.first_moment) ** 2, axis=0) / var) / tf.cast(
+                tf.shape(embd)[0] - 1, dtype=var.dtype)
+        else:
+            var = tf.reduce_sum((embd - tf.reduce_mean(embd, axis=0, keepdims=True))**2, axis=0) / tf.cast((tf.shape(embd)[0] - 1), embd.dtype) # (DIM, P, )
+            if self.monitor is not None:
+                self.monitor.update_monitor("var", tf.reduce_mean(var))
+            out = tf.reduce_mean(-tf.math.log(var + self.eps))
+        return out
+
+    def decorrelate(self, embd):
+        if self.local:
+            raise NotImplementedError()
+            # centered = (embd - self.first_moment[None])
+            # co = deviation[..., :, None, :] * deviation[..., None, :, :]
+            # cov = tf.reduce_sum(cov, axis=(0,)) / (tf.shape(embd)[0] - 1) # (DIM, DIM, P)
+            # mean_cov_sqr = tf.reduce_mean(cov_sqr, axis=-1)  # (DIM, DIM)
+            # mean_feat_cov = tf.reduce_mean(mean_cov_sqr[~tf.eye(embd.shape[1], dtype=tf.bool)])
+        else:
+            centered = (embd - tf.reduce_mean(embd, axis=0, keepdims=True))
+            co = centered[..., :, None, :] * centered[..., None, :, :]
+            cov = tf.reduce_sum(co, axis=(0,)) / tf.cast(tf.shape(embd)[0] - 1, co.dtype)  # (DIM, DIM, P)
+            cov_sqr = cov ** 2
+            mean_cov_sqr = tf.reduce_mean(cov_sqr, axis=-1)
+            mean_feat_cov = tf.reduce_mean(mean_cov_sqr[~tf.eye(embd.shape[1], dtype=tf.bool)])
+        self.monitor.update_monitor("cov", mean_feat_cov)
+        return mean_feat_cov
+
+    def call(self, y_true, y_pred):
+        # (B, T, DIM, P)
+        embd = y_pred[:, -1]
+        prev_embd = tf.stop_gradient(y_pred[:, -2])
+        if not self.local:
+            self.update_estimation(embd)
+        loss = self.continuous_loss(prev_embd, embd)
+        if self.std_w:
+            loss = loss + self.std_w * self.neg_log_std(embd)
+        if self.corr_w:
+            loss = loss + self.corr_w * self.decorrelate(embd)
+        return loss
+
