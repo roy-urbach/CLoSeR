@@ -679,11 +679,12 @@ class NonLocalContrastive(tf.keras.losses.Loss):
 
 
 class LPL(tf.keras.losses.Loss):
-    def __init__(self, std_w=1, corr_w=10, cross_w=None, alpha=0.1, l1=False, local=True, eps=1e-4, name='agreement_and_std'):
+    def __init__(self, std_w=1, corr_w=10, cross_w=None, cov_sqr=True, alpha=0.1, l1=False, local=True, eps=1e-4, name='agreement_and_std'):
         super().__init__(name=name)
         self.eps = eps
         self.std_w = std_w
         self.corr_w = corr_w
+        self.cov_sqr = cov_sqr
         losses = ['cont_mse', 'var', 'cov']
         self.first_moment = None
         self.second_moment = None
@@ -746,8 +747,11 @@ class LPL(tf.keras.losses.Loss):
             centered = (embd - tf.reduce_mean(embd, axis=0, keepdims=True))
             co = centered[..., :, None, :] * centered[..., None, :, :]
             cov = tf.reduce_sum(co, axis=(0,)) / tf.cast(tf.shape(embd)[0] - 1, co.dtype)  # (DIM, DIM, P)
-            cov_sqr = cov ** 2
-            mean_cov_sqr = tf.reduce_mean(cov_sqr, axis=-1)
+            if self.cov_sqr:
+                cov = cov ** 2
+            else:
+                cov = tf.math.abs(cov)
+            mean_cov_sqr = tf.reduce_mean(cov, axis=-1)
             mean_feat_cov = tf.reduce_mean(mean_cov_sqr[~tf.eye(embd.shape[1], dtype=tf.bool)])
         self.monitor.update_monitor("cov", mean_feat_cov)
         return mean_feat_cov
