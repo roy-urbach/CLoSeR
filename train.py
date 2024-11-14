@@ -32,6 +32,7 @@ def run():
 
     if os.path.exists(os.path.join(module.get_models_path(), model_name, StopIfNaN.FILENAME)):
         print(f"NaN issue, not training")
+        return
 
     training_fn = os.path.join(module.get_models_path(), model_name, "is_training")
     if os.path.exists(training_fn):
