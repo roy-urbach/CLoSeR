@@ -59,14 +59,17 @@ def evaluate(model, module: Modules=Modules.VISION, knn=False, linear=True, ense
 
     if linear:
         if 'logistic' not in results or override_linear:
+            print("running logistic")
             results['logistic'] = classify_head_eval(embd_dataset, linear=True, svm=False, **kwargs)
             save_res()
 
     if ensemble:
+        print("running ensemble")
         results.update(classify_head_eval_ensemble(embd_dataset, linear=True, svm=False,
                                                    voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb], **kwargs))
         save_res()
         if inp:
+            print("running inp")
             if not any([k.startswith("image_pathway") for k in results.keys()]):
                 masked_ds = get_masked_ds(model, dataset=dataset)
                 results.update(classify_head_eval_ensemble(masked_ds, base_name='image_', svm=False,
@@ -74,6 +77,7 @@ def evaluate(model, module: Modules=Modules.VISION, knn=False, linear=True, ense
                 save_res()
 
     if ensemble_knn:
+        print("running ensemble knn")
         results.update(classify_head_eval_ensemble(embd_dataset, linear=False, svm=False, k=15,
                                                    voting_methods=EnsembleVotingMethods), **kwargs)
         save_res()
