@@ -701,6 +701,12 @@ class AgreementAndSTD(tf.keras.losses.Loss):
     def call(self, y_true, y_pred):
         self.update_estimation(y_pred)
         mean_dist = self.distance(embedding=y_pred)
-        std = (self.local_neg_log_std if self.local else self.neg_log_std)(y_pred)
-        corr = (self.decorrelate if self.local else self.decorrelate_nonlocal)(y_pred)
-        return mean_dist+ self.std_w * std + self.corr_w * corr
+
+        loss = mean_dist
+        if self.std_w:
+            std = (self.local_neg_log_std if self.local else self.neg_log_std)(y_pred)
+            loss = loss + self.std_w * std
+        if self.corr_w:
+            corr = (self.decorrelate if self.local else self.decorrelate_nonlocal)(y_pred)
+            loss = loss + self.corr_w * corr
+        return loss
