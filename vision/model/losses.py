@@ -656,7 +656,7 @@ class AgreementAndSTD(tf.keras.losses.Loss):
         if self.l1:
             dist = tf.math.abs(tf.math.reduce_sum(diff, axis=1))
         else:
-            dist = tf.linalg.norm(diff, axis=1)
+            dist = tf.reduce_mean(diff**2, axis=1)
         batch_mean_dist = tf.reduce_mean(dist, axis=0)        # (P, P)
         P = embedding.shape[-1]
         mean_dist = tf.tensordot(batch_mean_dist, (1-tf.eye(P, dtype=dist.dtype))/tf.cast(P * (P - 1), dist.dtype),  axes=[[0, 1], [0, 1]])
