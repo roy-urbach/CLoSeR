@@ -664,10 +664,10 @@ class AgreementAndSTD(tf.keras.losses.Loss):
         return mean_dist
 
     def neg_log_std(self, embd):
-        std = tf.reduce_sum((embd - self.first_moment[None])**2, axis=0) / tf.cast((tf.shape(embd)[0] - 1), embd.dtype) # (DIM, P, )
+        std = tf.reduce_sum((embd - tf.reduce_mean(embd, axis=0, keepdims=True))**2, axis=0) / tf.cast((tf.shape(embd)[0] - 1), embd.dtype) # (DIM, P, )
         if self.monitor is not None:
-            self.monitor.update_monitor("std", tf.reduce_mean(std))
-        out = tf.reduce_mean(-tf.math.log(tf.maximum(std, 1e-4)))
+            self.monitor.update_monitor("var", tf.reduce_mean(std))
+        out = tf.reduce_mean(-tf.math.log(tf.maximum(std, 1e-6)))
         return out
 
     def local_neg_log_std(self, embd, eps=1e-6):
@@ -676,6 +676,14 @@ class AgreementAndSTD(tf.keras.losses.Loss):
         if self.monitor is not None:
             self.monitor.update_monitor("var", tf.reduce_mean(var))
         return -tf.reduce_mean(tf.reduce_mean((embd - self.first_moment)**2, axis=0) / (var * 2))
+
+    def decorrelate_nonlocal(self, embd):
+        deviation = (embd - tf.reduce_mean(embd, axis=0, keepdims=True)) ** 2
+        cov = deviation[..., :, None, :] * deviation[..., None, :, :]
+        mean_cov = tf.reduce_mean(cov, axis=(0, -1)) # (DIM, DIM)
+        mean_feat_cov = tf.reduce_mean(mean_cov[~tf.eye(embd.shape[1], dtype=tf.bool)])
+        self.monitor.update_monitor("cov", mean_feat_cov)
+        return mean_feat_cov
 
     def decorrelate(self, embd):
         deviation = (embd - self.first_moment[None]) ** 2
@@ -689,5 +697,5 @@ class AgreementAndSTD(tf.keras.losses.Loss):
         self.update_estimation(y_pred)
         mean_dist = self.distance(embedding=y_pred)
         std = (self.local_neg_log_std if self.local else self.neg_log_std)(y_pred)
-        corr = self.decorrelate(y_pred)
+        corr = (self.decorrelate if self.local else self.decorrelate_nonlocal)(y_pred)
         return mean_dist+ self.std_w * std + 10 * corr
