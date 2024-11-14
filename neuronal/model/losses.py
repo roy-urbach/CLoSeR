@@ -770,7 +770,7 @@ class LPL(tf.keras.losses.Loss):
     def pe_weighted_crossdist(self, embd, pe):
         pe_diff = (pe[..., None] - pe[..., None, :])**2
         # pe_diff = pe_diff - tf.reduce_min(pe_diff, axis=-1, keepdims=True)    # diagonal is min
-        exp_pe = tf.linalg.set_diag(tf.exp(-pe_diff), 0.)
+        exp_pe = tf.linalg.set_diag(tf.exp(-pe_diff), tf.zeros(embd.shape[-1], dtype=embd.dtype))
         z_pe = tf.reduce_sum(exp_pe, axis=-1, keepdims=True)
         pe_weights = exp_pe / z_pe  # (B, P, P)
 
