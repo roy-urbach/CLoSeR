@@ -740,12 +740,13 @@ class LPL(tf.keras.losses.Loss):
 
     def decorrelate(self, embd):
         if self.local:
-            raise NotImplementedError()
-            # centered = (embd - self.first_moment[None])**2
-            # co = centered[..., :, None, :] * centered[..., None, :, :]    # (B, DIM, DIM, P)
-            # cov = tf.reduce_sum(cov, axis=(0,)) / (tf.shape(embd)[0] - 1) # (DIM, DIM, P)
-            # mean_cov_sqr = tf.reduce_mean(cov_sqr, axis=-1)  # (DIM, DIM)
-            # mean_feat_cov = tf.reduce_mean(mean_cov_sqr[~tf.eye(embd.shape[1], dtype=tf.bool)])
+            if not self.cov_sqr:
+                raise NotImplementedError()
+            centered = (embd - self.first_moment[None])**2
+            co = centered[..., :, None, :] * centered[..., None, :, :]    # (B, DIM, DIM, P)
+            cov = tf.reduce_sum(co, axis=(0,)) / (tf.shape(embd)[0] - 1) # (DIM, DIM, P)
+            mean_cov_sqr = tf.reduce_mean(cov, axis=-1)  # (DIM, DIM)
+            mean_feat_cov = tf.reduce_mean(mean_cov_sqr[~tf.eye(embd.shape[1], dtype=tf.bool)])
         else:
             centered = (embd - tf.reduce_mean(embd, axis=0, keepdims=True))
             co = centered[..., :, None, :] * centered[..., None, :, :]
@@ -768,7 +769,7 @@ class LPL(tf.keras.losses.Loss):
         return mean_mse
 
     def pe_weighted_crossdist(self, embd, pe):
-        pe_diff = (pe[..., None] - pe[..., None, :])**2
+        pe_diff = (pe[..., None] - pe[..., None, :])**2     # (B, P, P)
         # pe_diff = pe_diff - tf.reduce_min(pe_diff, axis=-1, keepdims=True)    # diagonal is min
         exp_pe = tf.linalg.set_diag(tf.exp(-pe_diff),
                                     tf.tile(tf.zeros(embd.shape[-1], dtype=embd.dtype)[None],
