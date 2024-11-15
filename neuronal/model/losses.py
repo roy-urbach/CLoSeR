@@ -744,7 +744,7 @@ class LPL(tf.keras.losses.Loss):
                 raise NotImplementedError()
             centered = (embd - self.first_moment[None])**2
             co = centered[..., :, None, :] * centered[..., None, :, :]    # (B, DIM, DIM, P)
-            cov = tf.reduce_sum(co, axis=(0,)) / (tf.shape(embd)[0] - 1) # (DIM, DIM, P)
+            cov = tf.reduce_sum(co, axis=(0,)) / tf.cast(tf.shape(embd)[0] - 1, dtype=embd.dtype) # (DIM, DIM, P)
             mean_cov_sqr = tf.reduce_mean(cov, axis=-1)  # (DIM, DIM)
             mean_feat_cov = tf.reduce_mean(mean_cov_sqr[~tf.eye(embd.shape[1], dtype=tf.bool)])
         else:
