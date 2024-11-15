@@ -732,7 +732,7 @@ class LPL(tf.keras.losses.Loss):
             return -tf.reduce_mean(tf.reduce_sum((embd - self.first_moment) ** 2, axis=0) / var) / tf.cast(
                 tf.shape(embd)[0] - 1, dtype=var.dtype)
         else:
-            var = tf.reduce_sum((embd - tf.reduce_mean(embd, axis=0, keepdims=True))**2, axis=0) / tf.cast((tf.shape(embd)[0] - 1), embd.dtype) # (DIM, P, )
+            var = tf.reduce_sum((embd - tf.reduce_mean(tf.stop_gradient(embd), axis=0, keepdims=True))**2, axis=0) / tf.cast((tf.shape(embd)[0] - 1), embd.dtype) # (DIM, P, )
             if self.monitor is not None:
                 self.monitor.update_monitor("var", tf.reduce_mean(var))
             out = -tf.reduce_mean(tf.math.log(var + self.eps))
@@ -748,7 +748,7 @@ class LPL(tf.keras.losses.Loss):
             mean_cov_sqr = tf.reduce_mean(cov, axis=-1)  # (DIM, DIM)
             mean_feat_cov = tf.reduce_mean(mean_cov_sqr[~tf.eye(embd.shape[1], dtype=tf.bool)])
         else:
-            centered = (embd - tf.reduce_mean(embd, axis=0, keepdims=True))
+            centered = (embd - tf.reduce_mean(tf.stop_gradient(embd), axis=0, keepdims=True))
             co = centered[..., :, None, :] * centered[..., None, :, :]
             cov = tf.reduce_sum(co, axis=(0,)) / tf.cast(tf.shape(embd)[0] - 1, co.dtype)  # (DIM, DIM, P)
             if self.cov_sqr:
