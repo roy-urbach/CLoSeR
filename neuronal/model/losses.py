@@ -795,7 +795,7 @@ class LPL(tf.keras.losses.Loss):
             pe = tf.reduce_mean((tf.stop_gradient(embd) - pred)**2, axis=-2)  # (B, P)
             prev_embd = prev_embd[..., :pred_start, :]
 
-        if not self.local:
+        if self.local:
             self.update_estimation(embd)
         loss = self.continuous_loss(prev_embd, embd)
         if self.std_w:
