@@ -679,7 +679,8 @@ class NonLocalContrastive(tf.keras.losses.Loss):
 
 
 class LPL(tf.keras.losses.Loss):
-    def __init__(self, std_w=1, corr_w=10, cross_w=None, cov_sqr=True, alpha=0.1, l1=False, pe_w=None, local=True, eps=1e-4, name='agreement_and_std'):
+    def __init__(self, std_w=1, corr_w=10, cross_w=None, cov_sqr=True, alpha=0.1, l1=False, pe_w=None,
+                 cross_cov_w=None, local=True, eps=1e-4, name='agreement_and_std'):
         super().__init__(name=name)
         self.eps = eps
         self.std_w = std_w
@@ -693,7 +694,8 @@ class LPL(tf.keras.losses.Loss):
         self.l1 = l1
         self.local = local
         self.cross_w = cross_w
-        if cross_w:
+        self.cross_cov_w = cross_cov_w
+        if cross_w or cross_cov_w:
             losses.append("cross")
         if self.pe_w:
             losses.append("pe_cross")
@@ -768,6 +770,16 @@ class LPL(tf.keras.losses.Loss):
         self.monitor.update_monitor("cross", mean_mse)
         return mean_mse
 
+    def crosscov(self, embd):
+        # (B, DIM, P)
+        mean = tf.reduce_mean(embd, axis=0, keepdims=True)
+        centered = embd - mean
+        cov_across_dist = tf.einsum('bip,biq->ipq', centered, centered) / tf.cast(tf.shape(embd)[0] - 1, dtype=embd.dtype)
+        mean_cov_across_dist = tf.reduce_mean(cov_across_dist, axis=0)  # (P, P)
+        mean_cov_sqr = tf.reduce_mean(mean_cov_across_dist[~tf.eye(embd.shape[-1], dtype=tf.bool)])
+        self.monitor.update_monitor("cross", mean_cov_sqr)
+        return mean_cov_sqr
+
     def pe_weighted_crossdist(self, embd, pe):
         pe_diff = (pe[..., None] - pe[..., None, :])**2     # (B, P, P)
         # pe_diff = pe_diff - tf.reduce_min(pe_diff, axis=-1, keepdims=True)    # diagonal is min
@@ -804,6 +816,8 @@ class LPL(tf.keras.losses.Loss):
             loss = loss + self.corr_w * self.decorrelate(embd)
         if self.cross_w:
             loss = loss + self.cross_w * self.crossdist(embd)
+        if self.cross_cov_w:
+            loss = loss + self.cross_cov_w * self.crosscov(embd)
         if self.pe_w:
             loss = loss + self.pe_w * self.pe_weighted_crossdist(embd, tf.stop_gradient(pe))
 
