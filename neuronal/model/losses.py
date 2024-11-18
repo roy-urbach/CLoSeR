@@ -772,13 +772,16 @@ class LPL(tf.keras.losses.Loss):
 
     def crosscov(self, embd):
         # (B, DIM, P)
-        mean = tf.reduce_mean(tf.stop_gradient(embd), axis=0, keepdims=True)
-        centered = embd - mean
-        cov_across_dist = tf.einsum('bip,biq->ipq', centered, centered) / tf.cast(tf.shape(embd)[0] - 1, dtype=embd.dtype)
-        mean_cov_PP = tf.reduce_mean(cov_across_dist, axis=0)  # (P, P)
-        mean_cov = tf.reduce_mean(mean_cov_PP[~tf.eye(embd.shape[-1], dtype=tf.bool)])
-        self.monitor.update_monitor("cross", mean_cov)
-        return mean_cov
+        if self.local:
+            raise NotImplementedError()
+        else:
+            mean = tf.reduce_mean(tf.stop_gradient(embd), axis=0, keepdims=True)
+            centered = embd - mean
+            cov_across_dist = tf.einsum('bip,biq->ipq', centered, centered) / tf.cast(tf.shape(embd)[0] - 1, dtype=embd.dtype)
+            mean_cov_PP = tf.reduce_mean(cov_across_dist, axis=0)  # (P, P)
+            mean_cov = tf.reduce_mean(mean_cov_PP[~tf.eye(embd.shape[-1], dtype=tf.bool)])
+            self.monitor.update_monitor("cross", mean_cov)
+            return mean_cov
 
     def pe_weighted_crossdist(self, embd, pe):
         pe_diff = (pe[..., None] - pe[..., None, :])**2     # (B, P, P)
