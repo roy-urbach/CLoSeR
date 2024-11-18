@@ -775,8 +775,8 @@ class LPL(tf.keras.losses.Loss):
         mean = tf.reduce_mean(embd, axis=0, keepdims=True)
         centered = embd - mean
         cov_across_dist = tf.einsum('bip,biq->ipq', centered, centered) / tf.cast(tf.shape(embd)[0] - 1, dtype=embd.dtype)
-        mean_cov_across_dist = tf.reduce_mean(cov_across_dist, axis=0)  # (P, P)
-        mean_cov_sqr = tf.reduce_mean(mean_cov_across_dist[~tf.eye(embd.shape[-1], dtype=tf.bool)])
+        mean_cov_sqr_PP = tf.reduce_mean(cov_across_dist**2, axis=0)  # (P, P)
+        mean_cov_sqr = tf.reduce_mean(mean_cov_sqr_PP[~tf.eye(embd.shape[-1], dtype=tf.bool)])
         self.monitor.update_monitor("cross", mean_cov_sqr)
         return mean_cov_sqr
 
