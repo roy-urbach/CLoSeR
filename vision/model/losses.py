@@ -659,16 +659,16 @@ class AgreementAndSTD(tf.keras.losses.Loss):
             dist = tf.reduce_mean(diff**2, axis=1)
         batch_mean_dist = tf.reduce_mean(dist, axis=0)        # (P, P)
         P = embedding.shape[-1]
-        mean_dist = tf.tensordot(batch_mean_dist, (1-tf.eye(P, dtype=dist.dtype))/tf.cast(P * (P - 1), dist.dtype),  axes=[[0, 1], [0, 1]])
+        mean_dist = tf.reduce_mean(batch_mean_dist[~tf.eye(P, dtype=tf.bool)])#tf.tensordot(batch_mean_dist, (1-tf.eye(P, dtype=dist.dtype))/tf.cast(P * (P - 1), dist.dtype),  axes=[[0, 1], [0, 1]])
         if self.monitor is not None:
             self.monitor.update_monitor("distance", mean_dist)
         return mean_dist
 
     def neg_log_std(self, embd):
-        variance = tf.reduce_sum((embd - tf.reduce_mean(embd, axis=0, keepdims=True))**2, axis=0) / tf.cast((tf.shape(embd)[0] - 1), embd.dtype) # (DIM, P, )
+        variance = tf.reduce_sum((embd - tf.reduce_mean(tf.stop_gradient(embd), axis=0, keepdims=True))**2, axis=0) / tf.cast((tf.shape(embd)[0] - 1), embd.dtype) # (DIM, P, )
         if self.monitor is not None:
             self.monitor.update_monitor("var", tf.reduce_mean(variance))
-        out = tf.reduce_mean(-tf.math.log(variance + 1e-4))
+        out = tf.reduce_mean(-tf.math.log(variance + 1e-6))
         return out
 
     def local_neg_log_std(self, embd, eps=1e-4):
@@ -679,7 +679,7 @@ class AgreementAndSTD(tf.keras.losses.Loss):
         return -tf.reduce_mean(tf.reduce_sum((embd - self.first_moment)**2, axis=0) / var) / tf.cast(tf.shape(embd)[0] - 1, dtype=var.dtype)
 
     def decorrelate_nonlocal(self, embd):
-        centered = (embd - tf.reduce_mean(embd, axis=0, keepdims=True))
+        centered = (embd - tf.reduce_mean(tf.stop_gradient(embd), axis=0, keepdims=True))
         co = centered[..., :, None, :] * centered[..., None, :, :]
         cov = tf.reduce_sum(co, axis=(0, )) / tf.cast(tf.shape(embd)[0] - 1, co.dtype) # (DIM, DIM, P)
         cov_sqr = cov ** 2
@@ -699,7 +699,8 @@ class AgreementAndSTD(tf.keras.losses.Loss):
         return mean_feat_cov
 
     def call(self, y_true, y_pred):
-        self.update_estimation(y_pred)
+        if self.local:
+            self.update_estimation(y_pred)
         mean_dist = self.distance(embedding=y_pred)
 
         loss = mean_dist
