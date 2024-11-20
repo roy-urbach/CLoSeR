@@ -715,7 +715,7 @@ class LPL(tf.keras.losses.Loss):
             self.second_moment = self.second_moment.assign(self.second_moment * (1-self.alpha) + tf.reduce_mean(x**2, axis=0) * self.alpha)
 
         centered = x - self.first_moment[None]  # (B, DIM, P)
-        current_cov_est = tf.einsum('bip,bjp->ijp', centered, centered)/tf.cast(tf.shape(centered)[0] - 1)
+        current_cov_est = tf.einsum('bip,bjp->ijp', centered, centered)/tf.cast(tf.shape(centered)[0] - 1, dtype=centered.dtype)
         if self.cov_est is None:
             self.cov_est = tf.Variable(current_cov_est, trainable=False)
         else:
@@ -742,7 +742,7 @@ class LPL(tf.keras.losses.Loss):
             return -tf.reduce_mean(tf.reduce_sum((embd - self.first_moment) ** 2, axis=0) / var) / tf.cast(
                 tf.shape(embd)[0] - 1, dtype=var.dtype)
         else:
-            var = tf.reduce_sum((embd - tf.reduce_mean(tf.stop_gradient(embd), axis=0, keepdims=True))**2, axis=0) / tf.cast((tf.shape(embd)[0] - 1), embd.dtype) # (DIM, P, )
+            var = tf.reduce_sum((embd - tf.reduce_mean(tf.stop_gradient(embd), axis=0, keepdims=True))**2, axis=0) / tf.cast(tf.shape(embd)[0] - 1, embd.dtype) # (DIM, P, )
             if self.monitor is not None:
                 self.monitor.update_monitor("var", tf.reduce_mean(var))
             out = -tf.reduce_mean(tf.math.log(var + self.eps))
