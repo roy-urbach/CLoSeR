@@ -708,13 +708,13 @@ class LPL(tf.keras.losses.Loss):
         if self.first_moment is None:
             self.first_moment = tf.Variable(tf.reduce_mean(x, axis=0), trainable=False)
         else:
-            self.first_moment = self.first_moment.assign(self.first_moment * (1-self.alpha) + tf.reduce_mean(x, axis=0) * self.alpha)
+            self.first_moment.assign(self.first_moment * (1-self.alpha) + tf.reduce_mean(x, axis=0) * self.alpha)
 
         if self.std_w:
             if self.second_moment is None:
                 self.second_moment = tf.Variable(tf.reduce_mean(x**2, axis=0), trainable=False)
             else:
-                self.second_moment = self.second_moment.assign(self.second_moment * (1-self.alpha) + tf.reduce_mean(x**2, axis=0) * self.alpha)
+                self.second_moment.assign(self.second_moment * (1-self.alpha) + tf.reduce_mean(x**2, axis=0) * self.alpha)
 
         if self.corr_w:
             centered = x - self.first_moment[None]  # (B, DIM, P)
@@ -722,7 +722,7 @@ class LPL(tf.keras.losses.Loss):
             if self.cov_est is None:
                 self.cov_est = tf.Variable(current_cov_est, trainable=False)
             else:
-                self.cov_est = self.cov_est * (1-self.alpha) + current_cov_est * self.alpha
+                self.cov_est.assign(self.cov_est * (1-self.alpha) + current_cov_est * self.alpha)
 
     def continuous_loss(self, prev_embd, embd):
         # (B, DIM, P)
