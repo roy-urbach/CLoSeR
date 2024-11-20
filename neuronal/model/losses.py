@@ -754,7 +754,7 @@ class LPL(tf.keras.losses.Loss):
     def decorrelate(self, embd):
         if self.local:
             # If the same sign as the current estimation, minimize square (x_i-\bar{x_i})*(x_j-\bar{x_j}), else maximize
-            centered = (embd - self.first_moment[None])**2
+            centered = embd - self.first_moment[None]
             co = centered[..., :, None, :] * centered[..., None, :, :]    # (B, DIM, DIM, P)
 
             sign_est = tf.math.sign(self.cov_est)   # (DIM, DIM, P)
