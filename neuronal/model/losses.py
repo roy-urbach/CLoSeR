@@ -2,6 +2,7 @@ from utils.model.losses import GeneralLossByKey, koleo
 import tensorflow as tf
 
 from utils.model.metrics import LossMonitors
+from utils.utils import streval
 
 
 class CrossPathwayTemporalContrastiveLoss(tf.keras.losses.Loss):
@@ -680,13 +681,13 @@ class NonLocalContrastive(tf.keras.losses.Loss):
 
 class LPL(tf.keras.losses.Loss):
     def __init__(self, std_w=1, corr_w=10, cross_w=None, cov_sqr=True, alpha=0.1, l1=False, pe_w=None,
-                 cross_cov_w=None, local=True, eps=1e-4, name='agreement_and_std'):
+                 cross_cov_w=None, local=True, eps=1e-4, name='LPL'):
         super().__init__(name=name)
-        self.eps = eps
+        self.eps = streval(eps)
         self.std_w = std_w
         self.corr_w = corr_w
         self.cov_sqr = cov_sqr
-        self.pe_w =pe_w
+        self.pe_w = pe_w
         losses = ['cont_mse', 'var', 'cov']
         self.first_moment = None
         self.second_moment = None
@@ -715,7 +716,7 @@ class LPL(tf.keras.losses.Loss):
             self.second_moment = self.second_moment.assign(self.second_moment * (1-self.alpha) + tf.reduce_mean(x**2, axis=0) * self.alpha)
 
         centered = x - self.first_moment[None]  # (B, DIM, P)
-        current_cov_est = tf.einsum('bip,bjp->ijp', centered, centered)/tf.cast(tf.shape(centered)[0] - 1, dtype=centered.dtype)
+        current_cov_est = tf.einsum('bip,bjp->ijp', centered, centered)/tf.cast(tf.shape(x)[0] - 1, dtype=x.dtype)
         if self.cov_est is None:
             self.cov_est = tf.Variable(current_cov_est, trainable=False)
         else:
@@ -755,7 +756,7 @@ class LPL(tf.keras.losses.Loss):
             co = centered[..., :, None, :] * centered[..., None, :, :]    # (B, DIM, DIM, P)
 
             sign_est = tf.math.sign(self.cov_est)   # (DIM, DIM, P)
-            sign_cur = tf.math.sign(co)  # (B, DIM, DIM, P)
+            sign_cur = tf.math.sign(tf.stop_gradient(co))  # (B, DIM, DIM, P)
             signs_agree = tf.cast(sign_cur * sign_est[None], dtype=co.dtype)
 
             cov_loss = signs_agree * co**2
