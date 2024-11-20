@@ -759,7 +759,7 @@ class LPL(tf.keras.losses.Loss):
 
             sign_est = tf.math.sign(self.cov_est)   # (DIM, DIM, P)
             sign_cur = tf.math.sign(tf.stop_gradient(co))  # (B, DIM, DIM, P)
-            signs_agree = tf.cast(sign_cur * sign_est[None], dtype=co.dtype)
+            signs_agree = tf.cast(sign_cur == sign_est[None], dtype=co.dtype)
 
             cov_loss = signs_agree * co**2
             mean_over_p_cov_loss = tf.reduce_mean(cov_loss, axis=-1)
