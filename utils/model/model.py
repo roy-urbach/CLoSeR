@@ -8,7 +8,17 @@ import tensorflow as tf
 
 
 def get_optimizer(optimizer_cls=tf.optimizers.legacy.Nadam if tf.__version__ == '2.12.0' else tf.optimizers.Nadam,
-                  **kwargs):
+                  scheduler_kwargs={}, **kwargs):
+    if scheduler_kwargs:
+        assert "scheduler" in scheduler_kwargs
+        scheduler_name = scheduler_kwargs['scheduler']
+        try:
+            scheduler_cls = tf.keras.schedules.getattr(scheduler_name)
+        except Exception as err:
+            print(f"Tried to getattr tf.keras.schedules.{scheduler_name}, get error:", err)
+            raise err
+        kwargs['learning_rate'] = scheduler_cls(**{k: v for k, v in scheduler_kwargs.items() if k != 'scheduler'})
+
     if "optimizer" in kwargs:
         optimizer_cls_name = kwargs.pop("optimizer")
         try:

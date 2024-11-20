@@ -690,6 +690,7 @@ class LPL(tf.keras.losses.Loss):
         losses = ['cont_mse', 'var', 'cov']
         self.first_moment = None
         self.second_moment = None
+        self.cov_est = None
         self.alpha = alpha
         self.l1 = l1
         self.local = local
@@ -712,6 +713,13 @@ class LPL(tf.keras.losses.Loss):
             self.second_moment = tf.Variable(tf.reduce_mean(x**2, axis=0), trainable=False)
         else:
             self.second_moment = self.second_moment.assign(self.second_moment * (1-self.alpha) + tf.reduce_mean(x**2, axis=0) * self.alpha)
+
+        centered = x - self.first_moment[None]  # (B, DIM, P)
+        current_cov_est = tf.einsum('bip,bjp->ijp', centered, centered)/tf.cast(tf.shape(centered)[0] - 1)
+        if self.cov_est is None:
+            self.cov_est = tf.Variable(current_cov_est, trainable=False)
+        else:
+            self.cov_est = self.cov_est * (1-self.alpha) + current_cov_est * self.alpha
 
     def continuous_loss(self, prev_embd, embd):
         # (B, DIM, P)
@@ -742,13 +750,17 @@ class LPL(tf.keras.losses.Loss):
 
     def decorrelate(self, embd):
         if self.local:
-            if not self.cov_sqr:
-                raise NotImplementedError()
+            # If the same sign as the current estimation, minimize square (x_i-\bar{x_i})*(x_j-\bar{x_j}), else maximize
             centered = (embd - self.first_moment[None])**2
             co = centered[..., :, None, :] * centered[..., None, :, :]    # (B, DIM, DIM, P)
-            cov = tf.reduce_sum(co, axis=(0,)) / tf.cast(tf.shape(embd)[0] - 1, dtype=embd.dtype) # (DIM, DIM, P)
-            mean_cov_sqr = tf.reduce_mean(cov, axis=-1)  # (DIM, DIM)
-            mean_feat_cov = tf.reduce_mean(mean_cov_sqr[~tf.eye(embd.shape[1], dtype=tf.bool)])
+
+            sign_est = tf.math.sign(self.cov_est)   # (DIM, DIM, P)
+            sign_cur = tf.math.sign(co)  # (B, DIM, DIM, P)
+            signs_agree = tf.cast(sign_cur * sign_est[None], dtype=co.dtype)
+
+            cov_loss = signs_agree * co**2
+            mean_over_p_cov_loss = tf.reduce_mean(cov_loss, axis=-1)
+            mean_cov_loss = tf.reduce_mean(mean_over_p_cov_loss[~tf.eye(embd.shape[1], dtype=tf.bool)])
         else:
             centered = (embd - tf.reduce_mean(tf.stop_gradient(embd), axis=0, keepdims=True))
             co = centered[..., :, None, :] * centered[..., None, :, :]
@@ -758,9 +770,9 @@ class LPL(tf.keras.losses.Loss):
             else:
                 cov = tf.math.abs(cov)
             mean_cov_sqr = tf.reduce_mean(cov, axis=-1)
-            mean_feat_cov = tf.reduce_mean(mean_cov_sqr[~tf.eye(embd.shape[1], dtype=tf.bool)])
-        self.monitor.update_monitor("cov", mean_feat_cov)
-        return mean_feat_cov
+            mean_cov_loss = tf.reduce_mean(mean_cov_sqr[~tf.eye(embd.shape[1], dtype=tf.bool)])
+        self.monitor.update_monitor("cov", mean_cov_loss)
+        return mean_cov_loss
 
     def crossdist(self, embd):
         # (B, DIM, P)
