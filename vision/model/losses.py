@@ -634,6 +634,7 @@ class AgreementAndSTD(tf.keras.losses.Loss):
         self.monitor = LossMonitors("distance", "var", "cov", name="")
         self.first_moment = None
         self.second_moment = None
+        self.cov_est = None
         self.alpha = alpha
         self.l1 = l1
         self.local = local
@@ -643,12 +644,21 @@ class AgreementAndSTD(tf.keras.losses.Loss):
         if self.first_moment is None:
             self.first_moment = tf.Variable(tf.reduce_mean(x, axis=0), trainable=False)
         else:
-            self.first_moment = self.first_moment.assign(self.first_moment * (1-self.alpha) + tf.reduce_mean(x, axis=0) * self.alpha)
+            self.first_moment.assign(self.first_moment * (1-self.alpha) + tf.reduce_mean(x, axis=0) * self.alpha)
 
-        if self.second_moment is None:
-            self.second_moment = tf.Variable(tf.reduce_mean(x**2, axis=0), trainable=False)
-        else:
-            self.second_moment = self.second_moment.assign(self.second_moment * (1-self.alpha) + tf.reduce_mean(x**2, axis=0) * self.alpha)
+        if self.std_w:
+            if self.second_moment is None:
+                self.second_moment = tf.Variable(tf.reduce_mean(x**2, axis=0), trainable=False)
+            else:
+                self.second_moment.assign(self.second_moment * (1-self.alpha) + tf.reduce_mean(x**2, axis=0) * self.alpha)
+
+        if self.corr_w:
+            centered = x - self.first_moment[None]  # (B, DIM, P)
+            current_cov_est = tf.einsum('bip,bjp->ijp', centered, centered)/tf.cast(tf.shape(x)[0] - 1, dtype=x.dtype)
+            if self.cov_est is None:
+                self.cov_est = tf.Variable(current_cov_est, trainable=False)
+            else:
+                self.cov_est.assign(self.cov_est * (1-self.alpha) + current_cov_est * self.alpha)
 
     def distance(self, embedding):
         # (B, DIM, P)
@@ -689,14 +699,19 @@ class AgreementAndSTD(tf.keras.losses.Loss):
         return mean_feat_cov
 
     def decorrelate(self, embd):
-        raise NotImplementedError()
-        deviation = (embd - self.first_moment[None])
-        cov = deviation[..., :, None, :] * deviation[..., None, :, :]
-        cov = tf.reduce_sum(cov, axis=(0,)) / (tf.shape(embd)[0] - 1) # (DIM, DIM, P)
-        mean_cov_sqr = tf.reduce_mean(cov_sqr, axis=-1)  # (P, P)
-        mean_feat_cov = tf.reduce_mean(mean_cov_sqr[~tf.eye(embd.shape[1], dtype=tf.bool)])
-        self.monitor.update_monitor("cov", mean_feat_cov)
-        return mean_feat_cov
+        # If the same sign as the current estimation, minimize square (x_i-\bar{x_i})*(x_j-\bar{x_j}), else maximize
+        centered = embd - self.first_moment[None]
+        co = centered[..., :, None, :] * centered[..., None, :, :]  # (B, DIM, DIM, P)
+
+        sign_est = tf.math.sign(self.cov_est)  # (DIM, DIM, P)
+        sign_cur = tf.math.sign(tf.stop_gradient(co))  # (B, DIM, DIM, P)
+        signs_agree = tf.cast(sign_cur == sign_est[None], dtype=co.dtype)
+
+        cov_loss = signs_agree * co ** 2
+        mean_over_p_cov_loss = tf.reduce_mean(cov_loss, axis=-1)
+        mean_cov_loss = tf.reduce_mean(mean_over_p_cov_loss[~tf.eye(embd.shape[1], dtype=tf.bool)])
+        self.monitor.update_monitor("cov", mean_cov_loss)
+        return mean_cov_loss
 
     def call(self, y_true, y_pred):
         if self.local:
