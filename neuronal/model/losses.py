@@ -762,7 +762,7 @@ class LPL(tf.keras.losses.Loss):
             signs_agree = tf.cast(sign_cur == sign_est[None], dtype=co.dtype)
 
             cov_loss = signs_agree * co**2
-            mean_over_p_cov_loss = tf.reduce_mean(cov_loss, axis=-1)
+            mean_over_p_cov_loss = tf.reduce_mean(cov_loss, axis=(0, -1))   # (DIM, DIM)
             mean_cov_loss = tf.reduce_mean(mean_over_p_cov_loss[~tf.eye(embd.shape[1], dtype=tf.bool)])
         else:
             centered = (embd - tf.reduce_mean(tf.stop_gradient(embd), axis=0, keepdims=True))
