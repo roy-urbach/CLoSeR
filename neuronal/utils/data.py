@@ -588,4 +588,5 @@ class RPPlaceCells(ComplicatedData):
                     spikes=self.spikes,
                     trajectory=self.trajectory,
                     angles=self.angles,
+                    single_time_label=self.single_time_label
                     )
