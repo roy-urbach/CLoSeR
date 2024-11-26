@@ -27,11 +27,14 @@ class Labels(Enum):
 
     @staticmethod
     def get(name):
-        relevant_labels = [label for label in Labels if name in (label.name, label.value)]
-        if not len(relevant_labels):
-            raise ValueError(f"No label named {name}")
+        if isinstance(name, Labels):
+            return name
         else:
-            return relevant_labels[0]
+            relevant_labels = [label for label in Labels if name in (label.name, label.value, label.value.name)]
+            if not len(relevant_labels):
+                raise ValueError(f"No label named {name}")
+            else:
+                return relevant_labels[0]
 
 
 class SplitScheme(Enum):
