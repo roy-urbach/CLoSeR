@@ -170,7 +170,7 @@ class ComplicatedData:
     def clone(self, **kwargs):
         self_kwargs = self._things_to_inherit()
         self_kwargs.update(**kwargs)
-        clone = self.__class__.__init__(**self_kwargs)
+        clone = self.__class__(**self_kwargs)
         clone.name_to_label = {k: v for k, v in self.name_to_label.items()}
         return clone
 
