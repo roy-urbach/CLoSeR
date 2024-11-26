@@ -25,6 +25,14 @@ class Labels(Enum):
     ANGLE = Label("angle", CONTINUOUS, 1)
     NOTHING = Label(None, CONTINUOUS, 1)
 
+    @staticmethod
+    def get(name):
+        relevant_labels = [label for label in Labels if name in (label.name, label.value)]
+        if not len(relevant_labels):
+            raise ValueError(f"No label named {name}")
+        else:
+            return relevant_labels[0]
+
 
 class SplitScheme(Enum):
     LAST = 'last'

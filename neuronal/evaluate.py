@@ -171,7 +171,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
             x_val_embd_flattened = None
             x_val_embd_flattened_alltime = None
 
-    labels = [streval(label) for label in labels]
+    labels = [Labels.get(label) for label in labels]
     y_train = dataset.get_y_train(labels)
     y_test = dataset.get_y_test(labels)
     y_val = dataset.get_y_val(labels)
