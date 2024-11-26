@@ -172,9 +172,6 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
             x_val_embd_flattened_alltime = None
 
     labels = [Labels.get(label) for label in streval(labels)]
-    y_train = dataset.get_y_train(labels)
-    y_test = dataset.get_y_test(labels)
-    y_val = dataset.get_y_val(labels)
 
     def get_inp_ds(last_frame=False, pc=None, label=None, union=False, flatten=True, cache={}):
         nonflattened_name = f"lastframe{last_frame}_pc{pc}_un{union}"
@@ -202,15 +199,11 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
                     cur_x_val = cur_x_val.reshape((len(cur_x_val), -1, cur_x_val.shape[-1]))
                     cur_x_test = cur_x_test.reshape((len(cur_x_test), -1, cur_x_test.shape[-1]))
 
-            ds = Data(cur_x_train, dataset.get_y_train(),
-                      cur_x_test, dataset.get_y_test(),
-                      x_val=cur_x_val, y_val=dataset.get_y_val(), normalize=False, flatten_y=False)
+            ds = Data(cur_x_train, dataset.get_y_train(label) if label is not None else None,
+                      cur_x_test, dataset.get_y_test(label) if label is not None else None,
+                      x_val=cur_x_val, y_val=dataset.get_y_val(label) if label is not None else None, normalize=False, flatten_y=False)
 
             cache[name] = ds
-
-        ds.y_train = y_train[label] if label is not None else None
-        ds.y_val = y_val[label] if label is not None else None
-        ds.y_test = y_test[label] if label is not None else None
 
         return ds
     printd("done")
@@ -223,15 +216,19 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
     save_res = lambda *inputs: module.save_evaluation_json(model.name, results) if save_results else None
 
     for label in labels:
+        y_train = dataset.get_y_train(label.value.name)
+        y_test = dataset.get_y_test(label.value.name)
+        y_val = dataset.get_y_val(label.value.name) if x_val_embd_flattened is not None else None
+
         printd(f"evaluating label {label.value.name}")
         if not only_input:
-            embd_dataset = Data(x_train_embd_flattened, y_train[label.value.name],
-                                x_test_embd_flattened, y_test[label.value.name],
-                                x_val=x_val_embd_flattened, y_val=y_val[label.value.name] if y_val is not None else None,
+            embd_dataset = Data(x_train_embd_flattened, y_train,
+                                x_test_embd_flattened, y_test,
+                                x_val=x_val_embd_flattened, y_val=y_val,
                                 normalize=True)
-            embd_alltime_dataset = Data(x_train_embd_flattened_alltime, y_train[label.value.name],
-                                        x_test_embd_flattened_alltime, y_test[label.value.name],
-                                        x_val=x_val_embd_flattened_alltime, y_val=y_val[label.value.name] if y_val is not None else None,
+            embd_alltime_dataset = Data(x_train_embd_flattened_alltime, y_train,
+                                        x_test_embd_flattened_alltime, y_test,
+                                        x_val=x_val_embd_flattened_alltime, y_val=y_val,
                                         normalize=True)
 
             if with_pred:
