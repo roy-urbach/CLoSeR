@@ -563,7 +563,7 @@ class RPPlaceCells(ComplicatedData):
                 inds = test_start + np.arange(self.steps_per_sample)[None] + np.arange(
                     len(self.trajectory) - test_start - self.steps_per_sample)[:, None]
 
-            inds_y = inds[:, 0] if self.single_time_label else inds
+            inds_y = inds[:, -1] if self.single_time_label else inds
 
             self.x = trans(self.spikes[inds])
             self.y = {Labels.LOCATION.value.name: self.trajectory[inds_y],
