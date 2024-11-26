@@ -1,4 +1,5 @@
 import numpy as np
+import abc
 
 
 class Data:
@@ -111,3 +112,107 @@ def gen_to_tf_dataset(gen, batch_size, buffer_size):
             setattr(dataset, attr, getattr(gen, attr))
     dataset.__len__ = gen.__len__
     return dataset
+
+
+class Label:
+    def __init__(self, name, kind, dimension, meaning=None):
+        self.name = name
+        self.kind = kind
+        self.dimension = dimension
+        self.meaning = meaning
+
+
+class ComplicatedData:
+    __metaclass__ = abc.ABCMeta
+
+    def __init__(self, train=True, val=False, test=False):
+        assert train or val or test
+        self.train = train
+        self.train_ds = self if train else None
+        self.test = test
+        self.test_ds = self if test else None
+        self.val = val
+        self.val_ds = self if val else None
+        self.x = None
+        self.y = None
+
+        self.name_to_label = {}
+
+    def get_x(self, *args, **kwargs):
+        if self.x is None:
+            self._set_x(*args, **kwargs)
+        return self.x
+
+    def get_y(self, *args, labels=None, **kwargs):
+        if self.y is None:
+            self._set_y(*args, **kwargs)
+        if labels is None:
+            return self.y
+        else:
+            actual_y = {}
+            for name, label in self.name_to_label.items() if labels is None else {(label.value if hasattr(label, 'value') else label).name: label
+                                                                                  for label in labels}.items():
+                actual_y[name] = np.array(self.y[(label.value if hasattr(label, 'value') else label).name])
+            return actual_y
+
+    @abc.abstractmethod
+    def _set_x(self, *args, **kwargs):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def _set_y(self, *args, **kwargs):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def _things_to_inherit(self):
+        raise NotImplementedError()
+
+    def clone(self, **kwargs):
+        self_kwargs = self._things_to_inherit()
+        self_kwargs.update(**kwargs)
+        clone = self.__class__.__init__(**self_kwargs)
+        clone.name_to_label = {k: v for k, v in self.name_to_label.items()}
+        return clone
+
+    def get_train(self):
+        if self.train_ds is None:
+            self.train_ds = self.clone(train=True, val=False, test=False)
+        return self.train_ds
+
+    def get_validation(self):
+        if self.val_ds is None:
+            self.val_ds = self.clone(train=False, val=True, test=False)
+        return self.val_ds
+
+    def get_test(self):
+        if self.test_ds is None:
+            self.test_ds = self.clone(train=False, val=False, test=True)
+        return self.test_ds
+
+    def get_shape(self, *args, **kwargs):
+        return self.get_x(*args, **kwargs).shape
+
+    @abc.abstractmethod
+    def __len__(self):
+        raise NotImplementedError()
+
+    def get_x_train(self):
+        return self.get_train().get_x()
+
+    def get_y_train(self, *args, **kwargs):
+        return self.get_train().get_y(*args, **kwargs)
+
+    def get_x_val(self):
+        return self.get_validation().get_x()
+
+    def get_y_val(self, *args, **kwargs):
+        return self.get_validation().get_y(*args, **kwargs)
+
+    def get_x_test(self):
+        return self.get_test().get_x()
+
+    def get_y_test(self, *args, **kwargs):
+        return self.get_test().get_y(*args, **kwargs)
+
+    def update_name_to_label(self, name, label):
+        self.name_to_label[name] = label

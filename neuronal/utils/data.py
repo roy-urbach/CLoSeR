@@ -2,11 +2,13 @@ import numpy as np
 import os
 import pandas as pd
 from enum import Enum
+import abc
 
 from neuronal.utils.consts import NEURONAL_BASE_DIR, NATURAL_MOVIES, NATURAL_MOVIES_FRAMES, \
     NATURAL_MOVIES_TRIALS, SESSIONS, BLOCKS, VALID_SESSIONS
 import tensorflow as tf
 
+from utils.data import Label
 from utils.utils import streval
 
 DATA_DIR = f"{NEURONAL_BASE_DIR}/data"
@@ -14,19 +16,13 @@ CATEGORICAL = "categorical"
 CONTINUOUS = 'continuous'
 
 
-class Label:
-    def __init__(self, name, kind, dimension, meaning=None):
-        self.name = name
-        self.kind = kind
-        self.dimension = dimension
-        self.meaning = meaning
-
 
 class Labels(Enum):
     NEXT = Label("next", CONTINUOUS, None)
     STIMULUS = Label("stimulus", CATEGORICAL, 1 if len(NATURAL_MOVIES) <= 2 else len(NATURAL_MOVIES), NATURAL_MOVIES)
     TRIAL = Label("trial", CATEGORICAL, max(NATURAL_MOVIES_TRIALS.values()))
     FRAME = Label("normedframe", CONTINUOUS, 1)
+    LOCATION = Label("location", CONTINUOUS, 2)
 
 
 class SplitScheme(Enum):
@@ -279,7 +275,7 @@ class Trial:
         return f"<Trial {self.trial_num} (session {self.session_id}, stim {self.stimulus})>"
 
 
-class SessionDataGenerator(tf.keras.utils.Sequence):
+class SessionDataGenerator(ComplicatedData):
     def __init__(self, session_id, frames_per_sample=10, bins_per_frame=1, num_units=None,
                  stimuli=NATURAL_MOVIES, areas=None, train=True, val=False, test=False, binary=False, random=False,
                  split_scheme=SplitScheme.LAST):
@@ -313,15 +309,6 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
         self.random = random
 
         self.split_scheme = SplitScheme.get_split_scheme(split_scheme)
-        assert not (test and val)
-        self.train = train
-        self.train_ds = self if train else None
-        self.test = test
-        self.test_ds = self if test else None
-        self.val = val
-        self.val_ds = self if val else None
-        self.x = None
-        self.y = None
 
         self.name_to_label = {}
 
@@ -332,29 +319,11 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
     def is_generator():
         return True
 
-    def clone(self, **kwargs):
-        self_kwargs = dict(session_id=self.session_ids, frames_per_sample=self.frames_per_sample,
+    def _things_to_inherit(self):
+        return dict(session_id=self.session_ids, frames_per_sample=self.frames_per_sample,
                            bins_per_frame=self.bins_per_frame, stimuli=self.stimuli, areas=self.areas, train=self.train,
                            val=self.val, test=self.test, num_units=self.max_num_units, split_scheme=self.split_scheme)
-        self_kwargs.update(**kwargs)
-        clone = SessionDataGenerator(**self_kwargs)
-        clone.name_to_label = {k: v for k, v in self.name_to_label.items()}
-        return clone
 
-    def get_train(self):
-        if self.train_ds is None:
-            self.train_ds = self.clone(train=True, val=False, test=False)
-        return self.train_ds
-
-    def get_validation(self):
-        if self.val_ds is None:
-            self.val_ds = self.clone(train=False, val=True, test=False)
-        return self.val_ds
-
-    def get_test(self):
-        if self.test_ds is None:
-            self.test_ds = self.clone(train=False, val=False, test=True)
-        return self.test_ds
 
     def __len__(self):
         if self.__total_samples is None:
@@ -450,9 +419,6 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
     def areas_in_spikes(self):
         return self.areas is not None and not self.single_area
 
-    def update_name_to_label(self, name, label):
-        self.name_to_label[name] = label
-
     def get_activity_window(self, stim_name, trial_num, frame_num):
 
         last_bin = (frame_num + 1) * self.bins_per_frame
@@ -488,7 +454,7 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
 
         return spikes, y
 
-    def get_x(self):
+    def _set_x(self):
         if self.x is None:
             spikes = {area: [] for area in self.areas} if self.areas_in_spikes() else []
             y = {k.value.name: [] for k in Labels}
@@ -530,9 +496,10 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
             self.x = spikes
             self.y = y
 
-        return self.x
+    def _set_y(self):
+        self._set_x()
 
-    def get_y(self, labels=None):
+    def get_y(self, labels=None, **kwargs):
         if self.y is None:
             self.get_x()
 
@@ -544,24 +511,6 @@ class SessionDataGenerator(tf.keras.utils.Sequence):
             else:
                 actual_y[name] = np.array(self.y[label.value.name])
         return actual_y
-
-    def get_x_train(self):
-        return self.get_train().get_x()
-
-    def get_y_train(self, *args, **kwargs):
-        return self.get_train().get_y(*args, **kwargs)
-
-    def get_x_val(self):
-        return self.get_validation().get_x()
-
-    def get_y_val(self, *args, **kwargs):
-        return self.get_validation().get_y(*args, **kwargs)
-
-    def get_x_test(self):
-        return self.get_test().get_x()
-
-    def get_y_test(self, *args, **kwargs):
-        return self.get_test().get_y(*args, **kwargs)
 
     def __getitem__(self, idx):
         if self.random:
