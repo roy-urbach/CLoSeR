@@ -199,9 +199,9 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
                     cur_x_val = cur_x_val.reshape((len(cur_x_val), -1, cur_x_val.shape[-1]))
                     cur_x_test = cur_x_test.reshape((len(cur_x_test), -1, cur_x_test.shape[-1]))
 
-            ds = Data(cur_x_train, dataset.get_y_train(label) if label is not None else None,
-                      cur_x_test, dataset.get_y_test(label) if label is not None else None,
-                      x_val=cur_x_val, y_val=dataset.get_y_val(label) if label is not None else None, normalize=False, flatten_y=False)
+            ds = Data(cur_x_train, dataset.get_y_train()[Labels.get(label).value.name] if label is not None else None,
+                      cur_x_test, dataset.get_y_test()[Labels.get(label).value.name] if label is not None else None,
+                      x_val=cur_x_val, y_val=dataset.get_y_val()[Labels.get(label).value.name] if label is not None else None, normalize=False, flatten_y=False)
 
             cache[name] = ds
 
