@@ -36,7 +36,7 @@ def main():
         return parser.parse_known_args()
 
     args, unknown_args = parse()
-    kwargs = unknown_args_to_dict(unknown_args)
+    kwargs = unknown_args_to_dict(unknown_args, warning=True)
     args.json = ".".join(args.json.split(".")[:-1]) if args.json.endswith(".json") else args.json
     module = Modules.get_module(args.module)
     evaluating_fn = os.path.join(module.get_models_path(), args.json, 'is_evaluating')

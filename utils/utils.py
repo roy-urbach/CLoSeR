@@ -152,12 +152,20 @@ def smooth(arr, window=10):
     return x, y
 
 
-def streval(w):
+def streval(w, warning=False):
     if isinstance(w, str):
-        return eval(w)
+        try:
+            return eval(w)
+        except Exception as err:
+            if warning:
+                print(f"couldn't eval {w}")
+                import warnings
+                warnings.warn(f"couldn't eval {w}")
+            else:
+                raise err
     else:
         return w
 
 
-def unknown_args_to_dict(args):
-    return {args[2*i].split("--")[-1]: streval(args[2*i+1]) for i in range(len(args)//2)}
+def unknown_args_to_dict(args, warning=False):
+    return {args[2*i].split("--")[-1]: streval(args[2*i+1], warning=warning) for i in range(len(args)//2)}
