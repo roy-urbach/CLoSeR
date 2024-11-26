@@ -528,7 +528,7 @@ class SessionDataGenerator(ComplicatedData):
 
 
 class RPPlaceCells(ComplicatedData):
-    def __init__(self, name, envnum, steps_per_sample=2, spikes=None, trajectory=None, angles=None, **kwargs):
+    def __init__(self, name, envnum, steps_per_sample=2, spikes=None, trajectory=None, angles=None, single_time_label=True, **kwargs):
         super().__init__(**kwargs)
         self.name = name
         self.envnum = envnum
@@ -536,6 +536,7 @@ class RPPlaceCells(ComplicatedData):
         self.spikes = spikes
         self.trajectory = trajectory
         self.angles = angles
+        self.single_time_label = single_time_label
         self.fn = f"../RP_placecells/simulations/{self.name}/env{self.envnum}.npz"
 
     def _set_x(self):
@@ -562,9 +563,11 @@ class RPPlaceCells(ComplicatedData):
                 inds = test_start + np.arange(self.steps_per_sample)[None] + np.arange(
                     len(self.trajectory) - test_start - self.steps_per_sample)[:, None]
 
+            inds_y = inds[:, 0] if self.single_time_label else inds
+
             self.x = trans(self.spikes[inds])
-            self.y = {Labels.LOCATION.value.name: self.trajectory[inds],
-                      Labels.ANGLE.value.name: self.angles[inds]}
+            self.y = {Labels.LOCATION.value.name: self.trajectory[inds_y],
+                      Labels.ANGLE.value.name: self.angles[inds_y]}
 
     @staticmethod
     def inds2loc(inds):
