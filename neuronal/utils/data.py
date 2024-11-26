@@ -16,7 +16,6 @@ CATEGORICAL = "categorical"
 CONTINUOUS = 'continuous'
 
 
-
 class Labels(Enum):
     NEXT = Label("next", CONTINUOUS, None)
     STIMULUS = Label("stimulus", CATEGORICAL, 1 if len(NATURAL_MOVIES) <= 2 else len(NATURAL_MOVIES), NATURAL_MOVIES)
@@ -24,6 +23,7 @@ class Labels(Enum):
     FRAME = Label("normedframe", CONTINUOUS, 1)
     LOCATION = Label("location", CONTINUOUS, 2)
     ANGLE = Label("angle", CONTINUOUS, 1)
+    NOTHING = Label(None, CONTINUOUS, 1)
 
 
 class SplitScheme(Enum):
@@ -507,9 +507,10 @@ class SessionDataGenerator(ComplicatedData):
         for name, label in self.name_to_label.items() if labels is None else {label.value.name: label
                                                                               for label in labels}.items():
             if self.areas_in_spikes() and label == Labels.NEXT:
-                actual_y[name] = {area: np.stack(self.y[label.value.name][area], axis=0) for area in self.areas}
+                actual_y[name] = {area: np.stack(self.y[label.value.name][area], axis=0) if label.value.name else np.zeros(self.__len__())
+                                  for area in self.areas}
             else:
-                actual_y[name] = np.array(self.y[label.value.name])
+                actual_y[name] = np.array(self.y[label.value.name] if label.value.name else np.zeros(self.__len__()))
         return actual_y
 
     def __getitem__(self, idx):

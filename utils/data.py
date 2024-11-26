@@ -152,7 +152,7 @@ class ComplicatedData:
             actual_y = {}
             for name, label in self.name_to_label.items() if labels is None else {(label.value if hasattr(label, 'value') else label).name: label
                                                                                   for label in labels}.items():
-                actual_y[name] = np.array(self.y[(label.value if hasattr(label, 'value') else label).name])
+                actual_y[name] = np.array(self.y[(label.value if hasattr(label, 'value') else label).name] if label.value.name else np.zeros(self.__len__()))
             return actual_y
 
     @abc.abstractmethod

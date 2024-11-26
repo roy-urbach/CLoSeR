@@ -169,7 +169,7 @@ def compile_model(model, dataset, loss=CrossPathwayTemporalContrastiveLoss, loss
         losses['embedding'] = NullLoss()
     else:
         losses['embedding'] = loss(**loss_kwargs)
-    dataset.update_name_to_label('embedding', Labels.STIMULUS)    # The label is irrelevant here
+    dataset.update_name_to_label('embedding', Labels.NOTHING)    # The label is irrelevant here
 
     labels = [eval(label) if isinstance(label, str) else label for label in labels]
 
