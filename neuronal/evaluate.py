@@ -214,6 +214,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
         results = {}
 
     save_res = lambda *inputs: module.save_evaluation_json(model.name, results) if save_results else None
+    alltime = hasattr(dataset, "frame_per_sample") and dataset.frame_per_sample > 1
 
     for label in labels:
         y_train = dataset.get_y_train(labels=label.value.name)
@@ -228,7 +229,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
             embd_alltime_dataset = Data(x_train_embd_flattened_alltime, y_train,
                                         x_test_embd_flattened_alltime, y_test,
                                         x_val=x_val_embd_flattened_alltime, y_val=y_val,
-                                        normalize=True)
+                                        normalize=True) if alltime else None
 
             if with_pred:
                 remove_pred = lambda embd: embd[..., :embd.shape[-2]//2, :]
@@ -260,7 +261,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
                                                                                   linear=True, svm=False, **kwargs)
                 save_res()
 
-            if not only_input and dataset.frames_per_sample > 1:
+            if not only_input and alltime:
                 if f'{label.value.name}_alltime_linear' not in results or override_linear:
                     printd("alltime linear")
                     results[f'{label.value.name}_alltime_linear'] = classify_head_eval(embd_alltime_dataset,
@@ -268,12 +269,12 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
                                                                                        linear=True, svm=False, **kwargs)
                     save_res()
 
-            if not only_input and (with_pred and f'{label.value.name}_nopred_alltime_linear' not in results or override_linear):
-                printd("nopred alltime linear")
-                results[f'{label.value.name}_nopred_alltime_linear'] = classify_head_eval(embd_alltime_dataset_nopred,
-                                                                                  categorical=label.value.kind == CATEGORICAL,
-                                                                                  linear=True, svm=False, **kwargs)
-                save_res()
+                if (with_pred and f'{label.value.name}_nopred_alltime_linear' not in results or override_linear):
+                    printd("nopred alltime linear")
+                    results[f'{label.value.name}_nopred_alltime_linear'] = classify_head_eval(embd_alltime_dataset_nopred,
+                                                                                      categorical=label.value.kind == CATEGORICAL,
+                                                                                      linear=True, svm=False, **kwargs)
+                    save_res()
 
             if inp and (f'{label.value.name}_input_linear' not in results or override_linear):
                 printd("input linear")
@@ -282,7 +283,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
                                                                                  linear=True, svm=False, **kwargs)
                 save_res()
 
-                if dataset.frames_per_sample > 1:
+                if alltime:
                     printd("alltime input linear")
                     results[f'{label.value.name}_alltime_input_linear'] = classify_head_eval(
                         get_inp_ds(last_frame=False, pc=None, label=label.value.name, union=True),
@@ -309,7 +310,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
                                                                                      linear=True, svm=False, **kwargs)
                     save_res()
 
-                if dataset.frames_per_sample > 1:
+                if alltime:
                     printd("alltime input pca linear")
                     if only_input:
                         if pcs:
@@ -335,7 +336,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
                                                            voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean], **kwargs))
                 save_res()
 
-            if not only_input and (dataset.frames_per_sample > 1):
+            if not only_input and alltime:
                 if not any(['linear' in k and 'ensemble' in k and 'alltime' in k and label.value.name in k for k in results]) or override_linear:
                     printd("ensemble linear alltime")
                     results.update(classify_head_eval_ensemble(embd_alltime_dataset, linear=True, svm=False,
@@ -359,7 +360,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
                                                                **kwargs))
                     save_res()
 
-                if not only_input and (dataset.frames_per_sample > 1):
+                if not only_input and alltime:
                     if not any(['linear' in k and 'ensemble' in k and 'nopred' in k and 'alltime' in k and label.value.name in k for k in
                                 results]) or override_linear:
                         printd("ensemble linear alltime")
@@ -379,7 +380,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
                                                            voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean]), **kwargs)
                 save_res()
 
-                if dataset.frames_per_sample > 1:
+                if alltime:
                     printd("ensemble input alltime linear")
                     results.update(
                         classify_head_eval_ensemble(get_inp_ds(last_frame=False, pc=None, label=label.value.name, union=False),
@@ -410,7 +411,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
                                                                voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean]), **kwargs)
                     save_res()
 
-                if dataset.frames_per_sample > 1:
+                if alltime:
                     printd("ensemble input pca alltime linear")
                     if only_input:
                         if pcs:
@@ -444,7 +445,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
                                                            linear=False, k=k, **kwargs)
                     save_res()
 
-                if not only_input and dataset.frames_per_sample > 1:
+                if not only_input and alltime:
                     cur_name = f"{label.value.name}_alltime_k={k}"
                     if cur_name not in results:
                         printd(cur_name, ":", end='\t')
@@ -460,7 +461,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
                                                            categorical=label.value.kind == CATEGORICAL,
                                                            linear=False, k=k, **kwargs)
                     save_res()
-                if dataset.frames_per_sample > 1:
+                if alltime:
                     cur_name = f"{label.value.name}_alltime_input_k={k}"
                     if inp and (cur_name not in results):
                         printd(cur_name, ":", end='\t')
@@ -488,7 +489,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
                                                                linear=False, k=k, **kwargs)
                         save_res()
 
-                if dataset.frames_per_sample > 1:
+                if alltime:
                     if only_input:
                         if pcs:
                             for pc in pcs:
@@ -520,7 +521,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
                                                                voting_methods=[EnsembleVotingMethods.ArgmaxMeanProb if label.value.kind == CATEGORICAL else EnsembleVotingMethods.Mean]), **kwargs)
                     save_res()
 
-                if dataset.frames_per_sample > 1:
+                if alltime:
                     if not only_input and (not any(['k=' in key and 'ensemble' in key and 'alltime' in key and label.value.name in key
                                                     for key in results])):
                         printd(f"ensemble alltime k={k}")
@@ -545,7 +546,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
                                                                         **kwargs))
                         save_res()
 
-                    if dataset.frames_per_sample > 1:
+                    if alltime:
                         if not any([
                                        'k=' in key and 'ensemble' in key and 'alltime' in key and 'input' in key and label.value.name in key
                                        for key in results]):
@@ -586,7 +587,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
                                                                             **kwargs))
                             save_res()
 
-                    if dataset.frames_per_sample > 1:
+                    if alltime:
                         if not any([
                                        'k=' in key and 'ensemble' in key and 'alltime' in key and 'input' in key and label.value.name in key and "pca" in key
                                        for key in results]):
