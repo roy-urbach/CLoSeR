@@ -216,13 +216,10 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
     save_res = lambda *inputs: module.save_evaluation_json(model.name, results) if save_results else None
 
     for label in labels:
-        y_train = dataset.get_y_train(label.value.name)
-        y_test = dataset.get_y_test(label.value.name)
-        y_val = dataset.get_y_val(label.value.name) if x_val_embd_flattened is not None else None
+        y_train = dataset.get_y_train(labels=label.value.name)
+        y_test = dataset.get_y_test(labels=label.value.name)
+        y_val = dataset.get_y_val(labels=label.value.name) if x_val_embd_flattened is not None else None
 
-        print(y_train)
-
-        printd(f"evaluating label {label.value.name}")
         if not only_input:
             embd_dataset = Data(x_train_embd_flattened, y_train,
                                 x_test_embd_flattened, y_test,
