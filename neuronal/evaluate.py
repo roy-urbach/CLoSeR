@@ -220,6 +220,8 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
         y_test = dataset.get_y_test(label.value.name)
         y_val = dataset.get_y_val(label.value.name) if x_val_embd_flattened is not None else None
 
+        print(y_train)
+
         printd(f"evaluating label {label.value.name}")
         if not only_input:
             embd_dataset = Data(x_train_embd_flattened, y_train,

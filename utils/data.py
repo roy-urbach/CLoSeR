@@ -149,7 +149,7 @@ class ComplicatedData:
         if labels is None and self.name_to_label is None:
             return self.y
         elif isinstance(labels, str):
-                return self.y[labels]
+            return self.y[labels]
         elif isinstance(labels, Label):
             return self.y[labels.name]
         else:
