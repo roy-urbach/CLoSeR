@@ -152,8 +152,6 @@ class ComplicatedData:
                 return self.y[labels]
         elif isinstance(labels, Label):
             return self.y[labels.name]
-        elif labels is None:
-            return np.zeros(len(self))
         else:
             actual_y = {}
             for name, label in self.name_to_label.items() if labels is None else {(label.value if hasattr(label, 'value') else label).name: label
