@@ -146,7 +146,7 @@ class ComplicatedData:
     def get_y(self, *args, labels=None, **kwargs):
         if self.y is None:
             self._set_y(*args, **kwargs)
-        if labels is None or self.name_to_label is None:
+        if labels is None and self.name_to_label is None:
             return self.y
         else:
             actual_y = {}
