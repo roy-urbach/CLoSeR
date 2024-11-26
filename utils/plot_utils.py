@@ -145,3 +145,10 @@ def colorbar(mappable, ax=None):
     cbar = fig.colorbar(mappable, cax=cax)
     plt.sca(last_axes)
     return cbar
+
+
+def plot_CDF(arr, xlabel=None, **kwargs):
+    plt.plot(np.sort(arr), np.linspace(0, 1, arr.size), **kwargs)
+    plt.ylabel("CDF")
+    if xlabel:
+        plt.xlabel(xlabel)
