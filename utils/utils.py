@@ -161,6 +161,7 @@ def streval(w, warning=False):
                 print(f"couldn't eval {w}")
                 import warnings
                 warnings.warn(f"couldn't eval {w}")
+                return w
             else:
                 raise err
     else:
