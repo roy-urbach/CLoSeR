@@ -8,7 +8,7 @@ from neuronal.utils.consts import NEURONAL_BASE_DIR, NATURAL_MOVIES, NATURAL_MOV
     NATURAL_MOVIES_TRIALS, SESSIONS, BLOCKS, VALID_SESSIONS
 import tensorflow as tf
 
-from utils.data import Label
+from utils.data import Label, ComplicatedData
 from utils.utils import streval
 
 DATA_DIR = f"{NEURONAL_BASE_DIR}/data"
@@ -23,6 +23,7 @@ class Labels(Enum):
     TRIAL = Label("trial", CATEGORICAL, max(NATURAL_MOVIES_TRIALS.values()))
     FRAME = Label("normedframe", CONTINUOUS, 1)
     LOCATION = Label("location", CONTINUOUS, 2)
+    ANGLE = Label("angle", CONTINUOUS, 1)
 
 
 class SplitScheme(Enum):
@@ -523,3 +524,64 @@ class SessionDataGenerator(ComplicatedData):
                 cur_x = x[idx]
             cur_y = y[idx]
             return cur_x, cur_y
+
+
+class RPPlaceCells(ComplicatedData):
+    def __init__(self, name, envnum, steps_per_sample=2, spikes=None, trajectory=None, angles=None):
+        super().__init__()
+        self.name = name
+        self.envnum = envnum
+        self.steps_per_sample = steps_per_sample
+        self.spikes = spikes
+        self.trajectory = trajectory
+        self.angles = angles
+        self.fn = f"../RP_placecells/simulations/{self.name}/env{self.envnum}.npz"
+
+    def _set_x(self):
+        if self.x is None:
+            if self.spikes is None:
+                if os.path.exists(self.fn):
+                    data = np.load(self.fn, allow_pickle=True)
+                    self.spikes = data['spikes']
+                    self.trajectory = self.inds2loc(data['trajectory'])
+                    self.angles = self.inds2thetas(data['thetas'])
+                else:
+                    print(f"couldn't find {self.fn}")
+                    raise FileNotFoundError
+            val_start = int(len(self.trajectory) * 0.6)
+            test_start = int(len(self.trajectory) * 0.8)
+            trans = lambda arr: np.transpose(arr, [0, 2, 1])
+
+            if self.train:
+                inds = np.arange(self.steps_per_sample)[None] + np.arange(val_start - self.steps_per_sample)[:, None]
+            elif self.val:
+                inds = val_start + np.arange(self.steps_per_sample)[None] + np.arange(
+                    test_start - val_start - self.steps_per_sample)[:, None]
+            else:
+                inds = test_start + np.arange(self.steps_per_sample)[None] + np.arange(
+                    len(self.trajectory) - test_start - self.steps_per_sample)[:, None]
+
+            self.x = trans(self.spikes[inds])
+            self.y = {Labels.LOCATION.value.name: self.trajectory[inds],
+                      Labels.ANGLE.value.name: self.angles[inds]}
+
+    @staticmethod
+    def inds2loc(inds):
+        XS = YS = np.linspace(-3, 3, 101)
+        GRID = np.stack(np.meshgrid(XS, YS), axis=-1)
+        return GRID[inds[..., 0], inds[..., 1]]
+
+    @staticmethod
+    def inds2thetas(inds):
+        thetas = np.linspace(0, np.pi*2, 41)[:-1]
+        return thetas[inds]
+
+    def _set_y(self, *args, **kwargs):
+        self._set_x()
+
+    def _things_to_inherit(self):
+        return dict(name=self.name, envnum=self.envnum, steps_per_sample=self.steps_per_sample,
+                    spikes=self.spikes,
+                    trajectory=self.trajectory,
+                    angles=self.angles,
+                    fn=self.fn)

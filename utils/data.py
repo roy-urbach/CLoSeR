@@ -189,12 +189,11 @@ class ComplicatedData:
             self.test_ds = self.clone(train=False, val=False, test=True)
         return self.test_ds
 
-    def get_shape(self, *args, **kwargs):
-        return self.get_x(*args, **kwargs).shape
+    def get_shape(self):
+        return self.get_x().shape[1:]
 
-    @abc.abstractmethod
     def __len__(self):
-        raise NotImplementedError()
+        return self.get_x().shape[0]
 
     def get_x_train(self):
         return self.get_train().get_x()
