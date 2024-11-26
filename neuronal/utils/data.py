@@ -584,4 +584,4 @@ class RPPlaceCells(ComplicatedData):
                     spikes=self.spikes,
                     trajectory=self.trajectory,
                     angles=self.angles,
-                    fn=self.fn)
+                    )
