@@ -131,7 +131,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
     else:
         model_kwargs = module.load_json(model.name, config=True)
 
-    bins_per_frame = dataset.bins_per_frame
+    bins_per_frame = dataset.bins_per_frame if hasattr(dataset, "bins_per_frame") else 1
     encoder_removed_bins = model.get_layer("pathways").output_shape[-1] not in (model.get_layer("embedding").output_shape[1],
                                                                                 model.get_layer("embedding").output_shape[1] // 2)
     if not only_input:
