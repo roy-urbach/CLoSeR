@@ -148,11 +148,17 @@ class ComplicatedData:
             self._set_y(*args, **kwargs)
         if labels is None and self.name_to_label is None:
             return self.y
+        elif isinstance(labels, str):
+                return self.y[labels]
+        elif isinstance(labels, Label):
+            return self.y[labels.name]
+        elif labels is None:
+            return np.zeros(len(self))
         else:
             actual_y = {}
             for name, label in self.name_to_label.items() if labels is None else {(label.value if hasattr(label, 'value') else label).name: label
-                                                                                  for label in labels}.items():
-                actual_y[name] = np.array(self.y[(label.value if hasattr(label, 'value') else label).name] if label.value.name else np.zeros(self.__len__()))
+                                                                                      for label in labels}.items():
+                    actual_y[name] = np.array(self.y[(label.value if hasattr(label, 'value') else label).name] if label.value.name else np.zeros(len(self)))
             return actual_y
 
     @abc.abstractmethod
