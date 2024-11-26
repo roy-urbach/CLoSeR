@@ -527,8 +527,8 @@ class SessionDataGenerator(ComplicatedData):
 
 
 class RPPlaceCells(ComplicatedData):
-    def __init__(self, name, envnum, steps_per_sample=2, spikes=None, trajectory=None, angles=None):
-        super().__init__()
+    def __init__(self, name, envnum, steps_per_sample=2, spikes=None, trajectory=None, angles=None, **kwargs):
+        super().__init__(**kwargs)
         self.name = name
         self.envnum = envnum
         self.steps_per_sample = steps_per_sample
