@@ -14,7 +14,7 @@ def get_optimizer(optimizer_cls=tf.optimizers.legacy.Nadam if tf.__version__ == 
         scheduler_name = scheduler_kwargs['scheduler']
         try:
             from tensorflow.keras.optimizers import schedules
-            scheduler_cls = schedules.getattr(scheduler_name)
+            scheduler_cls = getattr(schedules, scheduler_name)
         except Exception as err:
             print(f"Tried to getattr tf.keras.optimizers.schedules.{scheduler_name}, get error:", err)
             raise err
