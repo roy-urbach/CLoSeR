@@ -681,7 +681,7 @@ class NonLocalContrastive(tf.keras.losses.Loss):
 
 class LPL(tf.keras.losses.Loss):
     def __init__(self, std_w=1, corr_w=10, cross_w=None, cov_sqr=True, alpha=0.1, l1=False, pe_w=None,
-                 cross_cov_w=None, local=True, eps=1e-4, name='LPL'):
+                 cross_cov_w=None, local=True, eps=1e-4, name='LPL', flatten_paths=False):
         super().__init__(name=name)
         self.eps = streval(eps)
         self.std_w = std_w
@@ -692,6 +692,8 @@ class LPL(tf.keras.losses.Loss):
         self.first_moment = None
         self.second_moment = None
         self.cov_est = None
+        assert not flatten_paths or (flatten_paths and not cross_w)
+        self.flatten_paths = flatten_paths
         self.alpha = alpha
         self.l1 = l1
         self.local = local
@@ -819,6 +821,9 @@ class LPL(tf.keras.losses.Loss):
 
     def call(self, y_true, y_pred):
         # (B, T, DIM, P)
+        if self.flatten_paths:
+            y_pred = tf.reshape(y_pred, (tf.shape(y_pred)[0], y_pred.shape[0], -1, 1))
+
         embd = y_pred[:, -1]
         prev_embd = tf.stop_gradient(y_pred[:, -2])
         if self.pe_w:
