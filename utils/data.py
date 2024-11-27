@@ -4,7 +4,7 @@ import abc
 
 class Data:
     def __init__(self, x_train, y_train, x_test, y_test, x_val=None, y_val=None, val_split=None, normalize=False,
-                 img_normalize=False, flatten_y=False, split=False):
+                 img_normalize=False, flatten_y=False, split=False, simple_norm=False):
         self.x_train = x_train
         self.y_train = y_train
         self.x_test = x_test
@@ -29,7 +29,7 @@ class Data:
         if img_normalize:
             self.image_normalize_data()
         if normalize:
-            self.normalize_data()
+            self.normalize_data(simple=simple_norm)
         if flatten_y:
             self.y_train = {k: v.flatten() for k, v in self.y_train.items()} if isinstance(self.y_train, dict) else self.y_train.flatten()
             self.y_test = {k: v.flatten() for k, v in self.y_test.items()} if isinstance(self.y_test, dict) else self.y_test.flatten()
@@ -44,9 +44,9 @@ class Data:
         self.x_train = self.x_train / 255
         self.x_test = self.x_test / 255
 
-    def normalize_data(self):
-        mean = self.x_train.mean(axis=0, keepdims=True)
-        std = self.x_train.std(ddof=1, axis=0, keepdims=True)
+    def normalize_data(self, simple=False):
+        mean = self.x_train.mean(axis=None if simple else 0, keepdims=True)
+        std = self.x_train.std(ddof=1, axis=None if simple else 0, keepdims=True)
         self.x_train = np.true_divide(self.x_train - mean, std, where=(std > 0) & ~np.isnan(std), out=np.zeros(self.x_train.shape, dtype=std.dtype))
         self.x_test = np.true_divide(self.x_test - mean, std, where=(std > 0) & ~np.isnan(std), out=np.zeros(self.x_test.shape, dtype=std.dtype))
         if self.x_val is not None:

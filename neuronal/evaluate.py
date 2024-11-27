@@ -10,7 +10,7 @@ from utils.utils import printd, streval
 import numpy as np
 
 
-def get_masked_ds(model, dataset, union=False, bins_per_frame=1, last_frame=True, pcs=None, normalize=False, flatten=True):
+def get_masked_ds(model, dataset, union=False, bins_per_frame=1, last_frame=True, pcs=None, normalize=False, flatten=True, simple_norm=False):
     if isinstance(model, str):
         model = load_model_from_json(model, Modules.NEURONAL)
     aug_layer = model.get_layer("data_augmentation")
@@ -63,7 +63,7 @@ def get_masked_ds(model, dataset, union=False, bins_per_frame=1, last_frame=True
 
     ds = Data(x_train, dataset.get_y_train(),
               x_test, dataset.get_y_test(),
-              x_val=x_val, y_val=dataset.get_y_val(), normalize=normalize, flatten_y=False)
+              x_val=x_val, y_val=dataset.get_y_val(), normalize=normalize, flatten_y=False, simple_norm=simple_norm)
     return ds
 
 
@@ -114,7 +114,7 @@ def evaluate_predict(dct, masked_ds, masked_ds_union, embd_alltime_noflat_ds, en
     return dct
 
 
-def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labels.STIMULUS],
+def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labels.STIMULUS], simple_norm=False,
              knn=False, linear=True, ensemble=True, save_results=False, override=False, override_linear=False, override_predict=False, inp=True,
              ks=[1] + list(range(5, 21, 5)), predict=False, only_input=False, pcs=[32, 64], **kwargs):
 
@@ -130,6 +130,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
             printd("done")
     else:
         model_kwargs = module.load_json(model.name, config=True)
+    assert dataset is not None
 
     bins_per_frame = dataset.bins_per_frame if hasattr(dataset, "bins_per_frame") else 1
     encoder_removed_bins = model.get_layer("pathways").output_shape[-1] not in (model.get_layer("embedding").output_shape[1],
@@ -184,8 +185,8 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
                 ds = cache[nonflattened_name]
             else:
                 ds = get_masked_ds(model, dataset=dataset, bins_per_frame=bins_per_frame,
-                                   pcs=pc,
-                                   last_frame=last_frame, normalize=True, flatten=False)
+                                   pcs=pc, union=union,
+                                   last_frame=last_frame, normalize=True, simple_norm=simple_norm, flatten=False)
                 cache[nonflattened_name] = ds
             cur_x_train, cur_x_test, cur_x_val = ds.get_x_train(), ds.get_x_test(), ds.get_x_val()
 
@@ -226,11 +227,11 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
             embd_dataset = Data(x_train_embd_flattened, y_train,
                                 x_test_embd_flattened, y_test,
                                 x_val=x_val_embd_flattened, y_val=y_val,
-                                normalize=True)
+                                normalize=True, simple_norm=simple_norm)
             embd_alltime_dataset = Data(x_train_embd_flattened_alltime, y_train,
                                         x_test_embd_flattened_alltime, y_test,
                                         x_val=x_val_embd_flattened_alltime, y_val=y_val,
-                                        normalize=True) if alltime else None
+                                        normalize=True, simple_norm=simple_norm) if alltime else None
 
             if with_pred:
                 remove_pred = lambda embd: embd[..., :embd.shape[-2]//2, :]
