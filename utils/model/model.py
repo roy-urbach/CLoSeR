@@ -135,7 +135,7 @@ def load_optimizer(model, module: Modules):
 class WeightDecayOptimizer:
     def __init__(self, optimizer, weight_decay):
         self.optimizer = optimizer
-        for k, v in self.optimizer.__dict__().items():
+        for k, v in self.optimizer.__dict__.items():
             if k not in ("apply_gradients", "get_config"):
                 setattr(self, k, v)
         # super().__init__(name="wd_" + str(optimizer))
