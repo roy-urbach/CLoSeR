@@ -132,7 +132,7 @@ def load_optimizer(model, module: Modules):
     model.optimizer.set_weights(weight_values)
 
 
-class WeightDecayOptimizer(tf.keras.optimizer.Optimizer):
+class WeightDecayOptimizer(tf.keras.optimizers.Optimizer):
     def __init__(self, optimizer, weight_decay):
         super().__init__()
         self.optimizer = optimizer
