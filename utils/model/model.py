@@ -134,7 +134,7 @@ def load_optimizer(model, module: Modules):
 
 class WeightDecayOptimizer(tf.keras.optimizers.Optimizer):
     def __init__(self, optimizer, weight_decay):
-        super().__init__()
+        super().__init__(name="wd_" + optimizer.name)
         self.optimizer = optimizer
         self.weight_decay = weight_decay
 
