@@ -1,4 +1,5 @@
-from utils.model.callbacks import SaveOptimizerCallback, ErasePreviousCallback, SaveHistory, StopIfNaN
+from utils.model.callbacks import SaveOptimizerCallback, ErasePreviousCallback, SaveHistory, StopIfNaN, \
+    WeightDecayCallback
 from utils.model.losses import NullLoss
 from utils.modules import Modules
 from utils.tf_utils import get_weights_fn, serialize
@@ -129,7 +130,7 @@ def load_optimizer(model, module: Modules):
     model.optimizer.set_weights(weight_values)
 
 
-def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_size=128, num_epochs=150, **kwargs):
+def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_size=128, num_epochs=150, wd=None, **kwargs):
     print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
     printd("Getting dataset...", end='\t')
@@ -137,8 +138,6 @@ def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_
     printd("Done!")
 
     model, max_epoch = load_or_create_model(model_name, module, dataset=dataset, print_log=True, **kwargs)
-
-    # TODO: add scheduler
 
     if num_epochs > max_epoch:
         printd(f"Fitting the model (with {model.count_params()} parameters)!")
@@ -149,7 +148,7 @@ def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_
                                                                         save_best_only=False,
                                                                         verbose=1),
                                      SaveOptimizerCallback(module), ErasePreviousCallback(module),
-                                     SaveHistory(module), StopIfNaN(module)]
+                                     SaveHistory(module), StopIfNaN(module)] + ([WeightDecayCallback(weight_decay=wd)] if wd else [])
                           )
         history = model.fit(x=dataset.get_x_train(),
                             y=dataset.get_y_train(),

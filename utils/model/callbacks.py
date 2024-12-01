@@ -98,3 +98,16 @@ class HistoryWithMetrics(tf.keras.callbacks.History):
                     logs[metric_name] = metric.numpy()
 
         super().on_epoch_end(epoch, logs=logs)
+
+
+class WeightDecayCallback(tf.keras.callbacks.Callback):
+    def __init__(self, weight_decay):
+        super(WeightDecayCallback, self).__init__()
+        self.weight_decay = weight_decay
+
+    def on_train_step_end(self, step, logs=None):
+        optimizer = self.model.optimizer
+        lr = optimizer.lr
+
+        for variable in self.model.trainable_weights:
+            variable.assign(variable * (1 - self.weight_decay * lr))
