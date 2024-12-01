@@ -9,7 +9,7 @@ import tensorflow as tf
 
 
 def get_optimizer(optimizer_cls=tf.optimizers.legacy.Nadam if tf.__version__ == '2.12.0' else tf.optimizers.Nadam,
-                  scheduler_kwargs={}, **kwargs):
+                  scheduler_kwargs={}, weight_decay=None, **kwargs):
     if scheduler_kwargs:
         assert "scheduler" in scheduler_kwargs
         scheduler_name = scheduler_kwargs['scheduler']
@@ -36,6 +36,9 @@ def get_optimizer(optimizer_cls=tf.optimizers.legacy.Nadam if tf.__version__ == 
     optimizer = optimizer_cls(**{k: eval(v) if isinstance(v, str) and v.startswith("tf.") else v
                                  for k, v in kwargs.items()})
     serialize(optimizer.__class__, 'Custom')
+
+    if weight_decay:
+        optimizer = WeightDecayOptimizer(optimizer, weight_decay=weight_decay)
     return optimizer
 
 
@@ -130,7 +133,28 @@ def load_optimizer(model, module: Modules):
     model.optimizer.set_weights(weight_values)
 
 
-def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_size=128, num_epochs=150, wd=None, **kwargs):
+class WeightDecayOptimizer:
+    def __init__(self, optimizer, weight_decay):
+        self.optimizer = optimizer
+        self.weight_decay = weight_decay
+
+    def apply_gradients(self, grads_and_vars, name=None):
+        self.optimizer.apply_gradients(grads_and_vars, name=name)
+
+        for grad, var in grads_and_vars:
+            lr = self.optimizer._decayed_lr(var.dtype)  # Get the current learning rate
+            var.assign(var * (1 - self.weight_decay * lr))
+
+    def get_config(self):
+        config = self.optimizer.get_config()
+        config.update({'weight_decay': self.weight_decay})
+        return config
+
+    def __getattr__(self, name):
+        return getattr(self.optimizer, name)
+
+
+def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_size=128, num_epochs=150, **kwargs):
     print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
     printd("Getting dataset...", end='\t')
@@ -148,7 +172,7 @@ def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_
                                                                         save_best_only=False,
                                                                         verbose=1),
                                      SaveOptimizerCallback(module), ErasePreviousCallback(module),
-                                     SaveHistory(module), StopIfNaN(module)] + ([WeightDecayCallback(weight_decay=wd)] if wd else [])
+                                     SaveHistory(module), StopIfNaN(module)]
                           )
         history = model.fit(x=dataset.get_x_train(),
                             y=dataset.get_y_train(),
