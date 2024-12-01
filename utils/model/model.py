@@ -138,6 +138,7 @@ class WeightDecayOptimizer(tf.keras.optimizers.Optimizer):
         self.optimizer = optimizer
         self.weight_decay = weight_decay
 
+
     def apply_gradients(self, grads_and_vars, name=None):
         self.optimizer.apply_gradients(grads_and_vars, name=name)
 
@@ -151,7 +152,7 @@ class WeightDecayOptimizer(tf.keras.optimizers.Optimizer):
         return config
 
     def __getattr__(self, name):
-        return getattr(self.optimizer, name)
+        return self.__dict__.get(name, getattr(self.optimizer, name))
 
 
 def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_size=128, num_epochs=150, **kwargs):
