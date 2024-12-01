@@ -104,6 +104,7 @@ class WeightDecayCallback(tf.keras.callbacks.Callback):
     def __init__(self, weight_decay):
         super(WeightDecayCallback, self).__init__()
         self.weight_decay = weight_decay
+        print(f"using weight decay: {weight_decay}")
 
     def on_train_step_end(self, step, logs=None):
         optimizer = self.model.optimizer
