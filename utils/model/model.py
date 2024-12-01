@@ -132,15 +132,16 @@ def load_optimizer(model, module: Modules):
     model.optimizer.set_weights(weight_values)
 
 
-class WeightDecayOptimizer:
+class WeightDecayOptimizer(tf.keras.optimizer.Optimizer):
     def __init__(self, optimizer, weight_decay):
+        super().__init__()
         self.optimizer = optimizer
         self.weight_decay = weight_decay
 
     def apply_gradients(self, grads_and_vars, name=None):
         self.optimizer.apply_gradients(grads_and_vars, name=name)
 
-        for grad, var in grads_and_vars:
+        for _, var in grads_and_vars:
             lr = self.optimizer._decayed_lr(var.dtype)  # Get the current learning rate
             var.assign(var * (1 - self.weight_decay * lr))
 
