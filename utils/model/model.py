@@ -132,12 +132,14 @@ def load_optimizer(model, module: Modules):
     model.optimizer.set_weights(weight_values)
 
 
-class WeightDecayOptimizer(tf.keras.optimizers.Optimizer):
+class WeightDecayOptimizer:
     def __init__(self, optimizer, weight_decay):
-        super().__init__(name="wd_" + str(optimizer))
         self.optimizer = optimizer
+        for k, v in self.optimizer.__dict__().items():
+            if k not in ("apply_gradients", "get_config"):
+                setattr(self, k, v)
+        # super().__init__(name="wd_" + str(optimizer))
         self.weight_decay = weight_decay
-
 
     def apply_gradients(self, grads_and_vars, name=None):
         self.optimizer.apply_gradients(grads_and_vars, name=name)
@@ -150,9 +152,6 @@ class WeightDecayOptimizer(tf.keras.optimizers.Optimizer):
         config = self.optimizer.get_config()
         config.update({'weight_decay': self.weight_decay})
         return config
-
-    def __getattr__(self, name):
-        return self.__dict__.get(name, getattr(self.optimizer, name))
 
 
 def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_size=128, num_epochs=150, **kwargs):
