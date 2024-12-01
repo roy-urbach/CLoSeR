@@ -1,5 +1,4 @@
-from utils.model.callbacks import SaveOptimizerCallback, ErasePreviousCallback, SaveHistory, StopIfNaN, \
-    WeightDecayCallback
+from utils.model.callbacks import SaveOptimizerCallback, ErasePreviousCallback, SaveHistory, StopIfNaN
 from utils.model.losses import NullLoss
 from utils.modules import Modules
 from utils.tf_utils import get_weights_fn, serialize
