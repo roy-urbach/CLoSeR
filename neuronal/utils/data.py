@@ -336,20 +336,20 @@ class SessionDataGenerator(ComplicatedData):
                            bins_per_frame=self.bins_per_frame, stimuli=self.stimuli, areas=self.areas, train=self.train,
                            val=self.val, test=self.test, num_units=self.max_num_units, split_scheme=self.split_scheme)
 
-    def __len__(self):
-        if self.__total_samples is None:
-            total = 0
-            for stim, act in self.spikes.items():
-                if self.areas_in_spikes():
-                    arr = act[self.areas[0]]
-                else:
-                    arr = act
-
-                num_trials = len(arr)
-                num_samples_in_trial = arr[0].shape[-1] - self.bins_per_sample + 1
-                total += num_trials * num_samples_in_trial
-            self.__total_samples = total
-        return self.__total_samples
+    # def __len__(self):
+    #     if self.__total_samples is None:
+    #         total = 0
+    #         for stim, act in self.spikes.items():
+    #             if self.areas_in_spikes():
+    #                 arr = act[self.areas[0]]
+    #             else:
+    #                 arr = act
+    #
+    #             num_trials = len(arr)
+    #             num_samples_in_trial = arr[0].shape[-1] - self.bins_per_sample + 1
+    #             total += num_trials * num_samples_in_trial
+    #         self.__total_samples = total
+    #     return self.__total_samples
 
     def __load_spikes(self):
         for stimulus in self.stimuli:
