@@ -10,7 +10,7 @@ from utils.tf_utils import set_seed, serialize
 
 @serialize
 class MLP(tf_layers.Layer):
-    def __init__(self, hidden_units, dropout_rate=0.1, kernel_regularizer='l1_l2', **kwargs):
+    def __init__(self, hidden_units, dropout_rate=0.1, kernel_regularizer='l1_l2', local=False, loss=None, **kwargs):
         super(MLP, self).__init__(**kwargs)
         self.hidden_units = hidden_units
         self.dense = [tf_layers.Dense(units, activation=tf.nn.gelu, kernel_regularizer=kernel_regularizer, name=self.name + f'_fc{i}')
@@ -18,17 +18,24 @@ class MLP(tf_layers.Layer):
         self.dropout = [tf_layers.Dropout(dropout_rate, name=self.name + f'_do{i}')
                         for i, _ in enumerate(self.hidden_units)] if dropout_rate else None
         self.depth = len(hidden_units)
+        self.local = local
+        if local:
+            assert loss is not None
+        self.loss = loss
 
     def call(self, inputs, training=None):
         x = inputs
         for l in range(self.depth):
             x = self.dense[l](x)
+            if self.local:
+                self.add_loss(self.loss(x))
+                x = tf.stop_gradient(x)
             if self.dropout is not None:
                 x = self.dropout[l](x, training=training)
         return x
 
     def get_config(self):
-        return dict(**super().get_config(), hidden_units=self.hidden_units)
+        return dict(**super().get_config(), hidden_units=self.hidden_units, local=self.local)
 
 
 @serialize

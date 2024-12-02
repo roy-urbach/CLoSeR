@@ -33,7 +33,9 @@ class MLPEncoder(MLP):
                                          activity_regularizer=out_regularizer, name=self.name + '_out')
 
     def call(self, inputs, **kwargs):
-        return self.out_layer(super().call(self.flatten(inputs) if self.flatten is not None else inputs, **kwargs))
+        act = super().call(self.flatten(inputs) if self.flatten is not None else inputs, **kwargs)
+        out = self.out_layer(act)
+        return out
 
 
 class BasicRNN(tf.keras.layers.Layer):
@@ -93,8 +95,8 @@ class LSTM(tf.keras.layers.Layer):
 
 
 class TimeAgnosticMLP(MLPEncoder):
-    def __init__(self, bins_per_frame, *args, **kwrags):
-        super().__init__(*args, flatten=False, **kwrags)
+    def __init__(self, bins_per_frame, *args, local=False, **kwrags):
+        super().__init__(*args, flatten=False, local=local, **kwrags)
         self.bins_per_frame = bins_per_frame
         self.reshape_shape = None
 

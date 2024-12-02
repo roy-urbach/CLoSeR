@@ -6,6 +6,7 @@ from neuronal.utils.data import Labels, CATEGORICAL
 from utils.model.layers import SplitPathways, Stack
 from utils.model.losses import NullLoss
 from utils.model.model import get_optimizer
+from utils.modules import Modules
 from utils.utils import get_class
 import numpy as np
 
@@ -41,7 +42,7 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
                  pathway_classification=True, pathway_classification_allpaths=False,
                  ensemble_classification=True, classifier_pathways=True,
                  predictor_kwargs={}, predictor_concat=True, pred_in_readout=False,
-                 augmentation_kwargs={}, encoder_kwargs={}, pathways_kwargs={}, labels=Labels):
+                 augmentation_kwargs={}, encoder_kwargs={}, pathways_kwargs={}, labels=Labels, module=Modules.NEURONAL):
     if isinstance(kernel_regularizer, str) and kernel_regularizer.startswith("tf."):
         kernel_regularizer = eval(kernel_regularizer)
 
@@ -82,6 +83,10 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
     import utils.model.encoders
     Encoder = get_class(encoder, utils.model.encoders)
     out_reg = tf.keras.regularizers.L2(l2) if l2 else None
+
+    if encoder_kwargs.get("local", False):
+        encoder_kwargs['loss'] = module.get_loss(encoder_kwargs.pop("loss"))(encoder_kwargs.pop("loss_kwargs"))
+
     enc_init = lambda i: Encoder(name=f'enc{i if i is not None else ""}',
                                  kernel_regularizer=kernel_regularizer,
                                  out_regularizer=out_reg, **encoder_kwargs)
