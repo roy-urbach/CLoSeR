@@ -139,7 +139,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
         with_pred = "predictions" in [l.name for l in model.layers]
 
         def transform_embedding(embedding, last_frame=True):
-            normalize = lambda arr: arr/np.linalg.norm(arr, keepdims=True, axis=-2) if model_kwargs['loss_kwargs'].pop("cosine", False) else arr
+            normalize = lambda arr: arr/np.linalg.norm(arr, keepdims=True, axis=-2) if model_kwargs.get('loss_kwargs', {}).pop("cosine", False) else arr
 
             if last_frame:
                 if encoder_removed_bins:
