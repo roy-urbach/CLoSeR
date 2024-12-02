@@ -555,7 +555,7 @@ class RPPlaceCells(ComplicatedData):
                     data = np.load(self.fn, allow_pickle=True)
                     self.spikes = data['spikes']
                     self.trajectory = self.inds2loc(data['trajectory'])
-                    self.angles = self.inds2thetas(data['thetas']) if Labels.ANGLE.value.is_categorical() else data['thetas']
+                    self.angles = self.inds2thetas(data['thetas']) if not Labels.ANGLE.value.is_categorical() else data['thetas']
                 else:
                     print(f"couldn't find {self.fn}")
                     raise FileNotFoundError
