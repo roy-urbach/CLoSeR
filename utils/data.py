@@ -197,7 +197,7 @@ class ComplicatedData:
         return self.get_x().shape[1:]
 
     def __len__(self):
-        return self.get_x().shape[0]
+        return self.get_y().shape[0]
 
     def get_x_train(self):
         return self.get_train().get_x()
