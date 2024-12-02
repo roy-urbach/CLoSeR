@@ -8,12 +8,10 @@ from neuronal.utils.consts import NEURONAL_BASE_DIR, NATURAL_MOVIES, NATURAL_MOV
     NATURAL_MOVIES_TRIALS, SESSIONS, BLOCKS, VALID_SESSIONS
 import tensorflow as tf
 
-from utils.data import Label, ComplicatedData
+from utils.data import Label, ComplicatedData, CONTINUOUS, CATEGORICAL
 from utils.utils import streval
 
 DATA_DIR = f"{NEURONAL_BASE_DIR}/data"
-CATEGORICAL = "categorical"
-CONTINUOUS = 'continuous'
 
 
 class Labels(Enum):
@@ -22,7 +20,7 @@ class Labels(Enum):
     TRIAL = Label("trial", CATEGORICAL, max(NATURAL_MOVIES_TRIALS.values()))
     FRAME = Label("normedframe", CONTINUOUS, 1)
     LOCATION = Label("location", CONTINUOUS, 2)
-    ANGLE = Label("angle", CONTINUOUS, 1)
+    ANGLE = Label("angle", CATEGORICAL, 1)
     NOTHING = Label(None, CONTINUOUS, 1)
 
     @staticmethod
@@ -557,7 +555,7 @@ class RPPlaceCells(ComplicatedData):
                     data = np.load(self.fn, allow_pickle=True)
                     self.spikes = data['spikes']
                     self.trajectory = self.inds2loc(data['trajectory'])
-                    self.angles = self.inds2thetas(data['thetas'])
+                    self.angles = self.inds2thetas(data['thetas']) if Labels.ANGLE.value.is_categorical() else data['thetas']
                 else:
                     print(f"couldn't find {self.fn}")
                     raise FileNotFoundError
