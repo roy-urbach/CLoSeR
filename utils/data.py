@@ -146,12 +146,12 @@ class ComplicatedData:
 
     def get_x(self, *args, **kwargs):
         if self.x is None:
-            self._set_x(*args, **kwargs)
+            self._load_data(*args, **kwargs)
         return self.x
 
     def get_y(self, *args, labels=None, **kwargs):
         if self.y is None:
-            self._set_y(*args, **kwargs)
+            self._set_x(*args, **kwargs)
         if labels is None and self.name_to_label is None:
             return self.y
         elif isinstance(labels, str):
@@ -170,15 +170,11 @@ class ComplicatedData:
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def _set_y(self, *args, **kwargs):
-        raise NotImplementedError()
-
-    @abc.abstractmethod
-    def _things_to_inherit(self):
+    def get_config(self):
         raise NotImplementedError()
 
     def clone(self, **kwargs):
-        self_kwargs = self._things_to_inherit()
+        self_kwargs = self.get_config()
         self_kwargs.update(**kwargs)
         clone = self.__class__(**self_kwargs)
         clone.name_to_label = {k: v for k, v in self.name_to_label.items()}

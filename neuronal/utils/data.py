@@ -287,9 +287,9 @@ class Trial:
 
 class SessionDataGenerator(ComplicatedData):
     def __init__(self, session_id, frames_per_sample=10, bins_per_frame=1, num_units=None,
-                 stimuli=NATURAL_MOVIES, areas=None, train=True, val=False, test=False, binary=False, random=False,
-                 split_scheme=SplitScheme.LAST):
-        super(SessionDataGenerator, self).__init__()
+                 stimuli=NATURAL_MOVIES, areas=None, binary=False, random=False,
+                 split_scheme=SplitScheme.LAST, **kwargs):
+        super(SessionDataGenerator, self).__init__(**kwargs)
         if session_id == 'valid':
             session_ids = VALID_SESSIONS
         else:
@@ -536,47 +536,65 @@ class SessionDataGenerator(ComplicatedData):
             return cur_x, cur_y
 
 
-class RPPlaceCells(ComplicatedData):
-    def __init__(self, name, envnum, steps_per_sample=2, spikes=None, trajectory=None, angles=None, single_time_label=True, **kwargs):
+class TemporalData(ComplicatedData):
+    def __init__(self, samples_per_example=2, single_time_label=True, x_samples=None, y_samples=None, **kwargs):
+        super().__init__(**kwargs)
+        self.samples_per_example = samples_per_example
+        self.single_time_label = single_time_label
+        self.x_samples = x_samples
+        self.y_samples = y_samples
+        if self.x_samples is None:
+            self._load_data()   # (assume x_steps is (B, DIM), and y_steps is {label: y.label} or (B, DIM) or (B, ))
+
+    def _load_data(self):
+        if self.x_samples is None:
+            raise NotImplementedError()
+
+    def get_config(self):
+        return dict(samples_per_example=self.samples_per_example,
+                    single_time_label=self.single_time_label)
+
+    def _set_x(self):
+        val_start = int(len(self.x_samples) * 0.6)
+        test_start = int(len(self.x_samples) * 0.8)
+        trans = lambda arr: np.transpose(arr, [0, 2, 1])
+
+        if self.train:
+            inds = np.arange(self.samples_per_example)[None] + np.arange(val_start - self.samples_per_example)[:, None]
+        elif self.val:
+            inds = val_start + np.arange(self.samples_per_example)[None] + np.arange(
+                test_start - val_start - self.samples_per_example)[:, None]
+        else:
+            inds = test_start + np.arange(self.samples_per_example)[None] + np.arange(
+                len(self.x_samples) - test_start - self.samples_per_example)[:, None]
+
+        inds_y = inds[:, -1] if self.single_time_label else inds
+
+        self.x = trans(self.x_samples[inds])
+        self.y = {k: val[inds_y] for k, val in self.y_samples.items()} if isinstance(self.y_samples, dict) else self.y_samples[inds_y]
+
+
+class RPPlaceCells(TemporalData):
+    def __init__(self, name, envnum, **kwargs):
         super().__init__(**kwargs)
         self.name = name
         self.envnum = envnum
-        self.steps_per_sample = steps_per_sample
-        self.spikes = spikes
-        self.trajectory = trajectory
-        self.angles = angles
-        self.single_time_label = single_time_label
         self.fn = f"../RP_placecells/simulations/{self.name}/env{self.envnum}.npz"
 
-    def _set_x(self):
-        if self.x is None:
-            if self.spikes is None:
-                if os.path.exists(self.fn):
-                    data = np.load(self.fn, allow_pickle=True)
-                    self.spikes = data['spikes']
-                    self.trajectory = self.inds2loc(data['trajectory'])
-                    self.angles = self.inds2thetas(data['thetas']) if not Labels.ANGLE.value.is_categorical() else data['thetas']
-                else:
-                    print(f"couldn't find {self.fn}")
-                    raise FileNotFoundError
-            val_start = int(len(self.trajectory) * 0.6)
-            test_start = int(len(self.trajectory) * 0.8)
-            trans = lambda arr: np.transpose(arr, [0, 2, 1])
+    def _load_data(self, *args, **kwargs):
+        if self.x_samples is None:
+            if os.path.exists(self.fn):
+                data = np.load(self.fn, allow_pickle=True)
+                self.x_samples = data['spikes']
 
-            if self.train:
-                inds = np.arange(self.steps_per_sample)[None] + np.arange(val_start - self.steps_per_sample)[:, None]
-            elif self.val:
-                inds = val_start + np.arange(self.steps_per_sample)[None] + np.arange(
-                    test_start - val_start - self.steps_per_sample)[:, None]
+                trajectory = self.inds2loc(data['trajectory'])
+                angles = self.inds2thetas(data['thetas']) if not Labels.ANGLE.value.is_categorical() else data[
+                    'thetas']
+                self.y_samples = {Labels.LOCATION.value.name: trajectory,
+                                  Labels.ANGLE.value.name: angles}
             else:
-                inds = test_start + np.arange(self.steps_per_sample)[None] + np.arange(
-                    len(self.trajectory) - test_start - self.steps_per_sample)[:, None]
-
-            inds_y = inds[:, -1] if self.single_time_label else inds
-
-            self.x = trans(self.spikes[inds])
-            self.y = {Labels.LOCATION.value.name: self.trajectory[inds_y],
-                      Labels.ANGLE.value.name: self.angles[inds_y]}
+                print(f"couldn't find {self.fn}")
+                raise FileNotFoundError
 
     @staticmethod
     def inds2loc(inds):
@@ -589,13 +607,5 @@ class RPPlaceCells(ComplicatedData):
         thetas = np.linspace(0, np.pi*2, 41)[:-1]
         return thetas[inds]
 
-    def _set_y(self, *args, **kwargs):
-        self._set_x()
-
-    def _things_to_inherit(self):
-        return dict(name=self.name, envnum=self.envnum, steps_per_sample=self.steps_per_sample,
-                    spikes=self.spikes,
-                    trajectory=self.trajectory,
-                    angles=self.angles,
-                    single_time_label=self.single_time_label
-                    )
+    def get_config(self):
+        return dict(**super().get_config(), name=self.name, envnum=self.envnum)
