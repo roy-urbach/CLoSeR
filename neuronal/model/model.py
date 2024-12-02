@@ -85,7 +85,7 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
     out_reg = tf.keras.regularizers.L2(l2) if l2 else None
 
     if encoder_kwargs.get("local", False):
-        encoder_kwargs['loss'] = module.get_loss(encoder_kwargs.pop("loss"))(encoder_kwargs.pop("loss_kwargs"))
+        encoder_kwargs['loss'] = module.get_loss(encoder_kwargs.pop("loss"))(**encoder_kwargs.pop("loss_kwargs", {}))
 
     enc_init = lambda i: Encoder(name=f'enc{i if i is not None else ""}',
                                  kernel_regularizer=kernel_regularizer,
