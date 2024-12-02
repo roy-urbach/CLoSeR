@@ -28,7 +28,7 @@ class MLP(tf_layers.Layer):
         for l in range(self.depth):
             x = self.dense[l](x)
             if self.local:
-                self.add_loss(self.loss(x))
+                self.add_loss(self.loss(None, x))
                 x = tf.stop_gradient(x)
             if self.dropout is not None:
                 x = self.dropout[l](x, training=training)
