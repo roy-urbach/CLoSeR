@@ -8,7 +8,7 @@ from neuronal.utils.consts import NEURONAL_BASE_DIR, NATURAL_MOVIES, NATURAL_MOV
     NATURAL_MOVIES_TRIALS, SESSIONS, BLOCKS, VALID_SESSIONS
 import tensorflow as tf
 
-from utils.data import Label, ComplicatedData, CONTINUOUS, CATEGORICAL
+from utils.data import Label, ComplicatedData, CONTINUOUS, CATEGORICAL, TemporalData
 from utils.utils import streval
 
 DATA_DIR = f"{NEURONAL_BASE_DIR}/data"
@@ -534,6 +534,7 @@ class SessionDataGenerator(ComplicatedData):
                 cur_x = x[idx]
             cur_y = y[idx]
             return cur_x, cur_y
+
 
 
 class RPPlaceCells(TemporalData):
