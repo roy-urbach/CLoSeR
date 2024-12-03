@@ -590,8 +590,8 @@ class PlaceCellsDS(TemporalData):
     def __init__(self, session, normalize_traj=True, trajectory=None, **kwargs):
         self.session = session
         self.normalize_traj = normalize_traj
-        super().__init__(**kwargs)
         self.trajectory = trajectory
+        super().__init__(**kwargs)
 
     def _load_data(self):
         if self.x_samples is None:
