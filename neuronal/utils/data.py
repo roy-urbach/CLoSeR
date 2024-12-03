@@ -515,18 +515,23 @@ class SessionDataGenerator(ComplicatedData):
         self._set_x()
 
     def get_y(self, labels=None, **kwargs):
-        if self.y is None:
-            self.get_x()
-
-        actual_y = {}
-        for name, label in self.name_to_label.items() if labels is None else {label.value.name: label
-                                                                              for label in labels}.items():
-            if self.areas_in_spikes() and label == Labels.NEXT:
-                actual_y[name] = {area: np.stack(self.y[label.value.name][area], axis=0) if label.value.name else np.zeros(self.__len__())
-                                  for area in self.areas}
-            else:
-                actual_y[name] = np.array(self.y[label.value.name] if label.value.name else np.zeros(self.__len__()))
-        return actual_y
+        if self.areas_in_spikes():
+            raise NotImplementedError()
+        else:
+            return super().get_y(labels=labels, **kwargs)
+        # if self.y is None:
+        #     self.get_x()
+        #
+        #
+        # actual_y = {}
+        # for name, label in self.name_to_label.items() if labels is None else {label.value.name if hasattr(label, 'value') else label: label
+        #                                                                       for label in labels}.items():
+        #     if self.areas_in_spikes() and label == Labels.NEXT:
+        #         actual_y[name] = {area: np.stack(self.y[label.value.name][area], axis=0) if label.value.name else np.zeros(self.__len__())
+        #                           for area in self.areas}
+        #     else:
+        #         actual_y[name] = np.array(self.y[label.value.name] if label.value.name else np.zeros(self.__len__()))
+        # return actual_y
 
     def __getitem__(self, idx):
         if self.random:
