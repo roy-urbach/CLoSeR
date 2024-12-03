@@ -330,10 +330,15 @@ class SessionDataGenerator(ComplicatedData):
     def is_generator():
         return True
 
-    def _things_to_inherit(self):
-        return dict(session_id=self.session_ids, frames_per_sample=self.frames_per_sample,
-                           bins_per_frame=self.bins_per_frame, stimuli=self.stimuli, areas=self.areas, train=self.train,
-                           val=self.val, test=self.test, num_units=self.max_num_units, split_scheme=self.split_scheme)
+    def get_config(self):
+        return dict(super().get_config(),
+                    session_id=self.session_ids,
+                    frames_per_sample=self.frames_per_sample,
+                    bins_per_frame=self.bins_per_frame,
+                    stimuli=self.stimuli,
+                    areas=self.areas,
+                    num_units=self.max_num_units,
+                    split_scheme=self.split_scheme)
 
     # def __len__(self):
     #     if self.__total_samples is None:
