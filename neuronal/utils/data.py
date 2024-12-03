@@ -593,7 +593,7 @@ class PlaceCellsDS(TemporalData):
             trajectory = sesmat[-1][..., 0]
             if self.normalize_traj:
                 trajectory = (trajectory - trajectory.mean()) / trajectory.std(ddof=1)
-            self.y_samples = {Labels.LOCATION1D.value.name: trajectory}
+            self.y_samples = {Labels.LOCATION1D.value.name: trajectory[..., None]}
 
     def get_config(self):
         return dict(**super().get_config(),
