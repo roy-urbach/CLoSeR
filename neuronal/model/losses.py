@@ -739,6 +739,9 @@ class LPL(tf.keras.losses.Loss):
 
     def continuous_loss(self, prev_embd, embd):
         # (B, DIM, P)
+        if self.vjepa_w:
+            prev_embd = layernorm(tf.stop_gradient(prev_embd), axis=-2, eps=self.eps)
+
         diff = embd - tf.stop_gradient(prev_embd)
         if self.l1:
             dist = tf.math.abs(tf.math.reduce_sum(diff, axis=1))
@@ -884,7 +887,6 @@ class CrossVJEPA(tf.keras.losses.Loss):
         super().__init__(**kwargs)
         self.l1 = l1
         self.epsilon = epsilon
-        self.monitor
 
     def distance(self, arr1, arr2, axis=-2):
         diff = arr1 - arr2
