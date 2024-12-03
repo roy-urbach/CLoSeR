@@ -680,15 +680,15 @@ class NonLocalContrastive(tf.keras.losses.Loss):
 
 
 class LPL(tf.keras.losses.Loss):
-    def __init__(self, std_w=1, corr_w=10, cross_w=None, vjepa_w=None, cov_sqr=True, alpha=0.1, l1=False, pe_w=None,
+    def __init__(self, cont_w=1, std_w=1, corr_w=10, cross_w=None, vjepa_w=None, cov_sqr=True, alpha=0.1, l1=False, pe_w=None,
                  cross_cov_w=None, local=True, eps=1e-4, name='LPL', flatten_paths=False):
         super().__init__(name=name)
         self.eps = streval(eps)
+        self.cont_w = cont_w
         self.std_w = std_w
         self.corr_w = corr_w
         self.cov_sqr = cov_sqr
         self.pe_w = pe_w
-        losses = ['cont_mse', 'var', 'cov']
         self.first_moment = None
         self.second_moment = None
         self.cov_est = None
@@ -700,10 +700,20 @@ class LPL(tf.keras.losses.Loss):
         self.local = local
         self.cross_w = cross_w
         self.cross_cov_w = cross_cov_w
+
+        losses = []
+        if self.cont_w:
+            losses.append("cont_mse")
+        if self.std_w:
+            losses.append("var")
+        if self.corr_w:
+            losses.append("cov")
         if cross_w or cross_cov_w:
             losses.append("cross")
         if self.pe_w:
             losses.append("pe_cross")
+        if self.vjepa_w:
+            losses.append("vjepa")
         self.monitor = LossMonitors(*losses, name="")
 
     def update_estimation(self, x):
@@ -844,7 +854,9 @@ class LPL(tf.keras.losses.Loss):
 
         if self.local:
             self.update_estimation(embd)
-        loss = self.continuous_loss(prev_embd, embd)
+        loss = 0.
+        if self.cont_w:
+            loss = loss + self.cont_w * self.continuous_loss(prev_embd, embd)
         if self.std_w:
             loss = loss + self.std_w * self.neg_log_std(embd)
         if self.corr_w:
