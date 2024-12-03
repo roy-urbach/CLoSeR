@@ -603,7 +603,7 @@ class PlaceCellsDS(TemporalData):
             trajectory = sesmat[-1][..., 0]
             if Labels.LOCATION1D.value.is_categorical():
                 min_, max_ = trajectory.min(), trajectory.max()
-                trajectory = np.digitize(trajectory, np.linspace(min_, max_, Labels.LOCATION1D.value.dimension+1)[:-1])
+                trajectory = np.digitize(trajectory, np.linspace(min_, max_, Labels.LOCATION1D.value.dimension+1)[:-1], 'left')
                 self.trajectory = trajectory
             elif self.normalize_traj:
                 trajectory = (trajectory - trajectory.mean()) / trajectory.std(ddof=1)
