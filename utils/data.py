@@ -131,14 +131,14 @@ class Label:
 class ComplicatedData:
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, train=True, val=False, test=False):
+    def __init__(self, train=True, val=False, test=False, train_ds=None, test_ds=None, val_ds=None):
         assert train or val or test
         self.train = train
-        self.train_ds = self if train else None
+        self.train_ds = self if train else train_ds
         self.test = test
-        self.test_ds = self if test else None
+        self.test_ds = self if test else test_ds
         self.val = val
-        self.val_ds = self if val else None
+        self.val_ds = self if val else val_ds
         self.x = None
         self.y = None
 
@@ -169,9 +169,9 @@ class ComplicatedData:
     def _set_x(self, *args, **kwargs):
         raise NotImplementedError()
 
-    @abc.abstractmethod
     def get_config(self):
-        raise NotImplementedError()
+        return dict(train=self.train, val=self.val, test=self.test,
+                    train_ds=self.train_ds, val_ds=self.val_ds, test_ds=self.test_ds)
 
     def clone(self, **kwargs):
         self_kwargs = self.get_config()
@@ -238,7 +238,8 @@ class TemporalData(ComplicatedData):
             raise NotImplementedError()
 
     def get_config(self):
-        return dict(samples_per_example=self.samples_per_example,
+        return dict(**super().get_config(),
+                    samples_per_example=self.samples_per_example,
                     single_time_label=self.single_time_label)
 
     def _set_x(self):

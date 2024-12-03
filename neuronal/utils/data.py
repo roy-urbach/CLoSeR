@@ -331,7 +331,7 @@ class SessionDataGenerator(ComplicatedData):
         return True
 
     def get_config(self):
-        return dict(super().get_config(),
+        return dict(**super().get_config(),
                     session_id=self.session_ids,
                     frames_per_sample=self.frames_per_sample,
                     bins_per_frame=self.bins_per_frame,
