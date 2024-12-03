@@ -263,7 +263,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
         return disagreement
 
     def crosspath_disagreement(self, embd):
-        dist = self.dist2logdist(tf.linalg.norm(embd[..., None] - embd[..., None, :], axis=-3))  # (B, T, P, P)
+        dist = self.distance(embd[..., None], embd[..., None, :], axis=-3)  # (B, T, P, P)
         mask = tf.tile(~tf.eye(tf.shape(dist)[-1], dtype=tf.bool)[None, None],
                        [tf.shape(dist)[0], tf.shape(dist)[1], 1, 1])
 
@@ -351,7 +351,7 @@ class ContinuousLoss(tf.keras.losses.Loss):
             arr2 = tf.nn.softmax(arr2, axis=axis)
             dist = self.jsd(arr1, arr2, axis=axis)
         elif self.l1:
-            dist = tf.reduce_sum(tf.abs(arr1 - arr2), axis=axis)
+            dist = (tf.reduce_mean if self.mse else tf.reduce_sum)(tf.abs(arr1 - arr2), axis=axis)
         elif self.cosine:
             norm = lambda arr: arr / tf.linalg.norm(tf.stop_gradient(arr), axis=axis, keepdims=True)
             cosine_sim = tf.reduce_sum(norm(arr1) * norm(arr2), axis=axis)
