@@ -604,7 +604,7 @@ class PlaceCellsDS(TemporalData):
             self.trajectory = trajectory
             if Labels.LOCATION1D.value.is_categorical():
                 min_, max_ = trajectory.min(), trajectory.max()
-                trajectory = np.digitize(trajectory, np.linspace(min_, max_, Labels.LOCATION1D.value.dimension+1)[:-1])
+                trajectory = np.digitize(trajectory, np.linspace(min_, max_, Labels.LOCATION1D.value.dimension+1)[1:])
             elif self.normalize_traj:
                 trajectory = (trajectory - trajectory.mean()) / trajectory.std(ddof=1)
             self.y_samples = {Labels.LOCATION1D.value.name: trajectory[..., None]}
