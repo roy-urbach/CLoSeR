@@ -831,7 +831,7 @@ class LPL(tf.keras.losses.Loss):
         return pe_weighted_dist
 
     def vjepa(self, embd):
-        last_embd_centered = layernorm(tf.stop_gradient(embd), axis=-2, eps=self.epsilon)
+        last_embd_centered = layernorm(tf.stop_gradient(embd), axis=-2, eps=self.eps)
 
         mean_dist = tf.reduce_mean(tf.abs((embd[..., None], last_embd_centered[..., None, :]), axis=(0,-3)))  # (P, P)
         mean_over_paths = tf.reduce_mean(mean_dist[~tf.eye(embd.shape[-1], dtype=tf.bool)])
