@@ -877,7 +877,7 @@ class CrossVJEPA(tf.keras.losses.Loss):
         last_embd = y_pred[:, -1]   # (B, DIM, P)
         last_embd_centered = layernorm(tf.stop_gradient(last_embd), axis=-2, eps=self.epsilon)
 
-        dist = self.distance(last_embd[..., None], last_embd_centered[..., None, :], axis=-2)   # (B, P, P)
+        dist = self.distance(last_embd[..., None], last_embd_centered[..., None, :], axis=-3)   # (B, P, P)
         mean_dist = tf.reduce_mean(dist, axis=0)
         mean_over_paths = tf.reduce_mean(mean_dist[~tf.eye(last_embd.shape[-1], dtype=tf.bool)])
         return mean_over_paths

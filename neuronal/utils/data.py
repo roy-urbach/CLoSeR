@@ -547,7 +547,6 @@ class SessionDataGenerator(ComplicatedData):
             return cur_x, cur_y
 
 
-
 class RPPlaceCells(TemporalData):
     def __init__(self, name, envnum, **kwargs):
         super().__init__(**kwargs)
