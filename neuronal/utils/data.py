@@ -20,7 +20,7 @@ class Labels(Enum):
     TRIAL = Label("trial", CATEGORICAL, max(NATURAL_MOVIES_TRIALS.values()))
     FRAME = Label("normedframe", CONTINUOUS, 1)
     LOCATION = Label("location", CONTINUOUS, 2)
-    LOCATION1D = Label("location1d", CONTINUOUS, 1)
+    LOCATION1D = Label("location1d", CATEGORICAL, 10)
     ANGLE = Label("angle", CATEGORICAL, 1)
     NOTHING = Label(None, CONTINUOUS, 1)
 
@@ -578,10 +578,11 @@ class RPPlaceCells(TemporalData):
 class PlaceCellsDS(TemporalData):
     PATH = "neuronal/data/event_traces.mat"
 
-    def __init__(self, session, normalize_traj=True, **kwargs):
+    def __init__(self, session, normalize_traj=True, trajectory=None, **kwargs):
         self.session = session
         self.normalize_traj = normalize_traj
         super().__init__(**kwargs)
+        self.trajectory = trajectory
 
     def _load_data(self):
         if self.x_samples is None:
@@ -591,13 +592,18 @@ class PlaceCellsDS(TemporalData):
             self.x_samples = sesmat[-2].toarray()
 
             trajectory = sesmat[-1][..., 0]
-            if self.normalize_traj:
+            if Labels.LOCATION1D.value.is_categorical():
+                min_, max_ = trajectory.min(), trajectory.max()
+                trajectory = np.digitize(trajectory, np.linspace(min_, max_, Labels.LOCATION1D.value.dimension+1)[:-1])
+                self.trajectory = trajectory
+            elif self.normalize_traj:
                 trajectory = (trajectory - trajectory.mean()) / trajectory.std(ddof=1)
             self.y_samples = {Labels.LOCATION1D.value.name: trajectory[..., None]}
 
     def get_config(self):
         return dict(**super().get_config(),
                     session=self.session,
-                    normalize_traj=self.normalize_traj
+                    normalize_traj=self.normalize_traj,
+                    trajectory=self.trajectory
                     )
 
