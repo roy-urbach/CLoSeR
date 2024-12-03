@@ -572,3 +572,31 @@ class RPPlaceCells(TemporalData):
 
     def get_config(self):
         return dict(**super().get_config(), name=self.name, envnum=self.envnum)
+
+
+class PlaceCellsDS(TemporalData):
+    PATH = "neuronal/data/event_traces.mat"
+
+    def __init__(self, session, normalize_traj=True, **kwargs):
+        self.session = session
+        self.normalize_traj = normalize_traj
+        super().__init__(**kwargs)
+
+    def _load_data(self):
+        if self.x_samples is None:
+            from scipy.io import loadmat
+            mat = loadmat(PlaceCellsDS.PATH)
+            sesmat = mat['event_traces'][0, self.session]
+            self.x_samples = sesmat[-2].toarray()
+
+            trajectory = sesmat[-1][..., 0]
+            if self.normalize_traj:
+                trajectory = (trajectory - trajectory.mean()) / trajectory.std(ddof=1)
+            self.y_samples = {Labels.LOCATION.value.name: trajectory}
+
+    def get_config(self):
+        return dict(**super().get_config(),
+                    session=self.session,
+                    normalize_traj=self.normalize_traj
+                    )
+
