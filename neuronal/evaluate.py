@@ -122,7 +122,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
         model_kwargs = module.load_json(model, config=True)
         assert model_kwargs is not None
         printd("loading model...", end='\t')
-        model = load_model_from_json(model, module, load=not only_input, optimizer_state=False)
+        model = load_model_from_json(model, module, load=not only_input)
         printd("done")
         if dataset is None:
             printd("loading dataset...", end='\t')
