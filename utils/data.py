@@ -146,7 +146,7 @@ class ComplicatedData:
 
     def get_x(self, *args, **kwargs):
         if self.x is None:
-            self._load_data(*args, **kwargs)
+            self._set_x(*args, **kwargs)
         return self.x
 
     def get_y(self, *args, labels=None, **kwargs):
@@ -221,3 +221,41 @@ class ComplicatedData:
 
     def update_name_to_label(self, name, label):
         self.name_to_label[name] = label
+
+
+class TemporalData(ComplicatedData):
+    def __init__(self, samples_per_example=2, single_time_label=True, x_samples=None, y_samples=None, **kwargs):
+        super().__init__(**kwargs)
+        self.samples_per_example = samples_per_example
+        self.single_time_label = single_time_label
+        self.x_samples = x_samples
+        self.y_samples = y_samples
+        if self.x_samples is None:
+            self._load_data()   # (assume x_steps is (B, DIM), and y_steps is {label: y.label} or (B, DIM) or (B, ))
+
+    def _load_data(self):
+        if self.x_samples is None:
+            raise NotImplementedError()
+
+    def get_config(self):
+        return dict(samples_per_example=self.samples_per_example,
+                    single_time_label=self.single_time_label)
+
+    def _set_x(self):
+        val_start = int(len(self.x_samples) * 0.6)
+        test_start = int(len(self.x_samples) * 0.8)
+        trans = lambda arr: np.transpose(arr, [0, 2, 1])
+
+        if self.train:
+            inds = np.arange(self.samples_per_example)[None] + np.arange(val_start - self.samples_per_example)[:, None]
+        elif self.val:
+            inds = val_start + np.arange(self.samples_per_example)[None] + np.arange(
+                test_start - val_start - self.samples_per_example)[:, None]
+        else:
+            inds = test_start + np.arange(self.samples_per_example)[None] + np.arange(
+                len(self.x_samples) - test_start - self.samples_per_example)[:, None]
+
+        inds_y = inds[:, -1] if self.single_time_label else inds
+
+        self.x = trans(self.x_samples[inds])
+        self.y = {k: val[inds_y] for k, val in self.y_samples.items()} if isinstance(self.y_samples, dict) else self.y_samples[inds_y]
