@@ -851,3 +851,34 @@ class LPL(tf.keras.losses.Loss):
 
         return loss
 
+
+def layernorm(arr, axis=-1, eps=1e-3):
+    sg_arr = tf.stop_gradient(arr)
+    return (arr - tf.reduce_mean(sg_arr, axis=axis, keepdims=True)) / (tf.math.reduce_std(sg_arr, axis=axis, keepdims=True) + eps)
+
+
+class CrossVJEPA(tf.keras.losses.Loss):
+    def __init__(self, l1=True, epsilon=1e-3, **kwargs):
+        super().__init__(**kwargs)
+        self.l1 = l1
+        self.epsilon = epsilon
+
+    def distance(self, arr1, arr2, axis=-2):
+        diff = arr1 - arr2
+        if self.l1:
+            dist = tf.abs(diff)
+        else:
+            dist = diff**2
+        mean_dist = tf.reduce_mean(dist, axis=axis)
+        return mean_dist
+
+    def call(self, y_true, y_pred):
+        # (B, T, DIM, P)
+        last_embd = y_pred[:, -1]   # (B, DIM, P)
+        last_embd_centered = layernorm(tf.stop_gradient(last_embd), axis=-2, eps=self.epsilon)
+
+        dist = self.distance(last_embd[..., None], last_embd_centered[..., None, :], axis=-2)   # (B, P, P)
+        mean_dist = tf.reduce_mean(dist, axis=0)
+        mean_over_paths = tf.reduce_mean(mean_dist[tf.eye(~tf.eye(mean_dist.shape[-1], dtype=tf.bool))])
+        return mean_over_paths
+
