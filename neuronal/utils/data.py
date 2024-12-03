@@ -20,6 +20,7 @@ class Labels(Enum):
     TRIAL = Label("trial", CATEGORICAL, max(NATURAL_MOVIES_TRIALS.values()))
     FRAME = Label("normedframe", CONTINUOUS, 1)
     LOCATION = Label("location", CONTINUOUS, 2)
+    LOCATION1D = Label("location1d", CONTINUOUS, 1)
     ANGLE = Label("angle", CATEGORICAL, 1)
     NOTHING = Label(None, CONTINUOUS, 1)
 
@@ -592,7 +593,7 @@ class PlaceCellsDS(TemporalData):
             trajectory = sesmat[-1][..., 0]
             if self.normalize_traj:
                 trajectory = (trajectory - trajectory.mean()) / trajectory.std(ddof=1)
-            self.y_samples = {Labels.LOCATION.value.name: trajectory}
+            self.y_samples = {Labels.LOCATION1D.value.name: trajectory}
 
     def get_config(self):
         return dict(**super().get_config(),
