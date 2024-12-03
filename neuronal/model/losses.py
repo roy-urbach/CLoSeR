@@ -680,7 +680,7 @@ class NonLocalContrastive(tf.keras.losses.Loss):
 
 
 class LPL(tf.keras.losses.Loss):
-    def __init__(self, std_w=1, corr_w=10, cross_w=None, cov_sqr=True, alpha=0.1, l1=False, pe_w=None,
+    def __init__(self, std_w=1, corr_w=10, cross_w=None, vjepa_w=None, cov_sqr=True, alpha=0.1, l1=False, pe_w=None,
                  cross_cov_w=None, local=True, eps=1e-4, name='LPL', flatten_paths=False):
         super().__init__(name=name)
         self.eps = streval(eps)
@@ -695,6 +695,7 @@ class LPL(tf.keras.losses.Loss):
         assert not flatten_paths or (flatten_paths and not cross_w)
         self.flatten_paths = flatten_paths
         self.alpha = alpha
+        self.vjepa_w = vjepa_w
         self.l1 = l1
         self.local = local
         self.cross_w = cross_w
@@ -819,6 +820,14 @@ class LPL(tf.keras.losses.Loss):
         self.monitor.update_monitor("pe_cross", pe_weighted_dist)
         return pe_weighted_dist
 
+    def vjepa(self, embd):
+        last_embd_centered = layernorm(tf.stop_gradient(embd), axis=-2, eps=self.epsilon)
+
+        mean_dist = tf.reduce_mean(tf.abs((embd[..., None], last_embd_centered[..., None, :]), axis=(0,-3)))  # (P, P)
+        mean_over_paths = tf.reduce_mean(mean_dist[~tf.eye(embd.shape[-1], dtype=tf.bool)])
+        self.monitor.update_monitor('vjepa', mean_over_paths)
+        return mean_over_paths
+
     def call(self, y_true, y_pred):
         # (B, T, DIM, P)
         if self.flatten_paths:
@@ -848,7 +857,8 @@ class LPL(tf.keras.losses.Loss):
             loss = loss + self.pe_w * self.pe_weighted_crossdist(embd, tf.stop_gradient(pe))
 
             loss = loss + tf.reduce_mean(pe)
-
+        if self.vjepa_w:
+            loss = loss + self.vjepa_w * self.vjepa(embd)
         return loss
 
 
@@ -862,6 +872,7 @@ class CrossVJEPA(tf.keras.losses.Loss):
         super().__init__(**kwargs)
         self.l1 = l1
         self.epsilon = epsilon
+        self.monitor
 
     def distance(self, arr1, arr2, axis=-2):
         diff = arr1 - arr2
