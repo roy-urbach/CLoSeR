@@ -549,10 +549,10 @@ class SessionDataGenerator(ComplicatedData):
 
 class RPPlaceCells(TemporalData):
     def __init__(self, name, envnum, **kwargs):
-        super().__init__(**kwargs)
         self.name = name
         self.envnum = envnum
         self.fn = f"../RP_placecells/simulations/{self.name}/env{self.envnum}.npz"
+        super().__init__(**kwargs)
 
     def _load_data(self, *args, **kwargs):
         if self.x_samples is None:
