@@ -680,7 +680,7 @@ class NonLocalContrastive(tf.keras.losses.Loss):
 
 
 class LPL(tf.keras.losses.Loss):
-    def __init__(self, cont_w=1, std_w=1, corr_w=10, cross_w=None, vjepa_w=None, cov_sqr=True, alpha=0.1, l1=False, pe_w=None,
+    def __init__(self, cont_w=1, std_w=1, corr_w=10, cross_w=None, wcross_w=None, vjepa_w=None, cov_sqr=True, alpha=0.1, l1=False, pe_w=None,
                  cross_cov_w=None, local=True, eps=1e-4, name='LPL', flatten_paths=False):
         super().__init__(name=name)
         self.eps = streval(eps)
@@ -699,6 +699,7 @@ class LPL(tf.keras.losses.Loss):
         self.l1 = l1
         self.local = local
         self.cross_w = cross_w
+        self.wcross_w = wcross_w
         self.cross_cov_w = cross_cov_w
 
         losses = []
@@ -708,7 +709,7 @@ class LPL(tf.keras.losses.Loss):
             losses.append("var")
         if self.corr_w:
             losses.append("cov")
-        if cross_w or cross_cov_w:
+        if cross_w or cross_cov_w or wcross_w:
             losses.append("cross")
         if self.pe_w:
             losses.append("pe_cross")
@@ -804,6 +805,15 @@ class LPL(tf.keras.losses.Loss):
         self.monitor.update_monitor("cross", mean_mse)
         return mean_mse
 
+    def wcross(self, embd):
+        mse = tf.reduce_mean((embd[..., None] - tf.stop_gradient(embd[..., None, :]))**2, axis=1)  # (B, P, P)
+        exp = tf.where(tf.eye(embd.shape[-1], dtype=tf.bool)[None], 0., tf.exp(-tf.stop_gradient(mse)))
+        w = exp / tf.reduce_sum(exp, axis=-1)
+        loss = tf.tensordot(w, mse, [[0, 1, 2],
+                                     [0, 1, 2]]) / tf.cast(tf.shape(embd)[0] * embd.shape[-1], embd.dtype)
+        self.monitor.update_monitor("cross", loss)
+        return loss
+
     def crosscov(self, embd):
         # (B, DIM, P)
         if self.local:
@@ -832,6 +842,8 @@ class LPL(tf.keras.losses.Loss):
                                                            [0, 1, 2]]) / tf.cast(tf.shape(embd)[0] * embd.shape[-1], dtype=embd.dtype)
         self.monitor.update_monitor("pe_cross", pe_weighted_dist)
         return pe_weighted_dist
+
+
 
     def vjepa(self, embd):
         last_embd_centered = layernorm(tf.stop_gradient(embd), axis=-2, eps=self.eps)
@@ -874,6 +886,8 @@ class LPL(tf.keras.losses.Loss):
             loss = loss + tf.reduce_mean(pe)
         if self.vjepa_w:
             loss = loss + self.vjepa_w * self.vjepa(embd)
+        if self.wcross_w is not None:
+            loss = loss + self.wcross_w * self.wcross(embd)
         return loss
 
 
