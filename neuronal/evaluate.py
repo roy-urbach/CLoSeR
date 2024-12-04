@@ -1,7 +1,7 @@
 from typing import Optional
 
 from neuronal.utils.data import Labels, CATEGORICAL
-from utils.data import Data
+from utils.data import Data, TemporalData
 from utils.evaluation.ensemble import EnsembleVotingMethods
 from utils.evaluation.evaluation import classify_head_eval_ensemble, classify_head_eval
 from utils.model.model import load_model_from_json
@@ -115,8 +115,9 @@ def evaluate_predict(dct, masked_ds, masked_ds_union, embd_alltime_noflat_ds, en
 
 
 def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labels.STIMULUS], simple_norm=False,
-             knn=False, linear=True, ensemble=True, save_results=False, override=False, override_linear=False, override_predict=False, inp=True,
-             ks=[1] + list(range(5, 21, 5)), predict=False, only_input=False, pcs=[32, 64], **kwargs):
+             knn=False, linear=True, ensemble=True, save_results=False, override=False, override_linear=False,
+             override_predict=False, inp=True, ks=[1] + list(range(5, 21, 5)),
+             predict=False, only_input=False, pcs=[32, 64], **kwargs):
 
     if isinstance(model, str):
         model_kwargs = module.load_json(model, config=True)
@@ -216,7 +217,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
         results = {}
 
     save_res = lambda *inputs: module.save_evaluation_json(model.name, results) if save_results else None
-    alltime = hasattr(dataset, "frame_per_sample") and dataset.frame_per_sample > 1
+    alltime = (hasattr(dataset, "frames_per_sample") and dataset.frames_per_sample > 1) or (issubclass(dataset, TemporalData) and dataset.samples_per_example > 1)
 
     for label in labels:
         y_train = dataset.get_y_train(labels=label.value.name)
@@ -240,11 +241,12 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
                                            x_val=remove_pred(embd_dataset.get_x_val()), y_val=embd_dataset.get_y_val(),
                                            normalize=False
                                            )
-                embd_alltime_dataset_nopred = Data(remove_pred(embd_alltime_dataset.get_x_train()), embd_alltime_dataset.get_y_train(),
-                                           remove_pred(embd_alltime_dataset.get_x_test()), embd_alltime_dataset.get_y_test(),
-                                           x_val=remove_pred(embd_alltime_dataset.get_x_val()), y_val=embd_alltime_dataset.get_y_val(),
-                                           normalize=False
-                                           )
+                if alltime:
+                    embd_alltime_dataset_nopred = Data(remove_pred(embd_alltime_dataset.get_x_train()), embd_alltime_dataset.get_y_train(),
+                                               remove_pred(embd_alltime_dataset.get_x_test()), embd_alltime_dataset.get_y_test(),
+                                               x_val=remove_pred(embd_alltime_dataset.get_x_val()), y_val=embd_alltime_dataset.get_y_val(),
+                                               normalize=False
+                                               )
 
         from utils.evaluation.evaluation import classify_head_eval
 
