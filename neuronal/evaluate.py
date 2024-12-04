@@ -217,7 +217,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
         results = {}
 
     save_res = lambda *inputs: module.save_evaluation_json(model.name, results) if save_results else None
-    alltime = (hasattr(dataset, "frames_per_sample") and dataset.frames_per_sample > 1) or (issubclass(dataset, TemporalData) and dataset.samples_per_example > 1)
+    alltime = (hasattr(dataset, "frames_per_sample") and dataset.frames_per_sample > 1) or (issubclass(dataset.__class__, TemporalData) and dataset.samples_per_example > 1)
 
     for label in labels:
         y_train = dataset.get_y_train(labels=label.value.name)
