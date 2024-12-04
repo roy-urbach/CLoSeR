@@ -871,7 +871,7 @@ class LPL(tf.keras.losses.Loss):
         # (B, DIM, P)
         def softmax(arr, tau):
             max_ = tf.reduce_max(arr, axis=-2, keepdims=True)
-            exps = tf.exp((arr - max_)/tau)
+            exps = tf.maximum(tf.exp((arr - max_)/tau), self.eps)
             return exps / tf.reduce_sum(exps, axis=-2, keepdims=True)
 
         ps = softmax(embd, taus)    # (B, DIM, P)
