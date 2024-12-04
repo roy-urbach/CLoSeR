@@ -808,7 +808,7 @@ class LPL(tf.keras.losses.Loss):
     def wcross(self, embd):
         mse = tf.reduce_mean((embd[..., None] - tf.stop_gradient(embd[..., None, :]))**2, axis=1)  # (B, P, P)
         exp = tf.where(tf.eye(embd.shape[-1], dtype=tf.bool)[None], 0., tf.exp(-tf.stop_gradient(mse)))
-        w = exp / tf.reduce_sum(exp, axis=-1)
+        w = exp / tf.reduce_sum(exp, axis=-1, keepdims=True)
         loss = tf.tensordot(w, mse, [[0, 1, 2],
                                      [0, 1, 2]]) / tf.cast(tf.shape(embd)[0] * embd.shape[-1], embd.dtype)
         self.monitor.update_monitor("cross", loss)
