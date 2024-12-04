@@ -921,7 +921,7 @@ class LPL(tf.keras.losses.Loss):
         if self.wcross_w:
             loss = loss + self.wcross_w * self.wcross(embd)
         if self.dino_w:
-            loss = loss + self.dino_w * self.dino_w
+            loss = loss + self.dino_w * self.dino(embd)
         return loss
 
 
