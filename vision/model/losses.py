@@ -588,41 +588,74 @@ class BasicDisagreement(tf.keras.losses.Loss):
 
 
 class DinoLoss(tf.keras.losses.Loss):
-    def __init__(self, entropy_w=0.1, sn=False, eps=1e-3, name="dino_loss"):
+    def __init__(self, entropy_w=0, taus=0.1, taut=0.05, alpha=0.9, sn=False, eps=1e-4, local=True, name="dino_loss"):
         super().__init__(name=name)
         self.entropy_w = entropy_w
         self.eps = eps
-        self.cross_entropy = None
-        self.koleo = None
         self.sn = sn
+        self.alpha = alpha
+        self.taus = taus
+        self.taut = taut
+        self.local = local
+        self.center = None
+        losses = ['dino']
+        if self.entropy_w:
+            losses.append('koleo')
+        self.monitor = LossMonitors(*losses)
 
-    def softmax(self, embd, axis=-2, stable=True):
+    def update_center(self, embd):
+        center = tf.reduce_mean(embd, axis=0, keepdims=True)
+        if self.center is None:
+            self.center = tf.Variable(center, trainable=False)
+        else:
+            self.center.assign(self.center * (1-self.alpha) + center * self.alpha)
+
+    def softmax(self, embd, axis=-2, stable=True, tau=1.):
         if stable:
             embd = embd - tf.reduce_max(embd, axis=axis, keepdims=True)
-        exps = tf.maximum(tf.math.exp(embd), self.eps)
+        exps = tf.maximum(tf.math.exp(embd / tau), self.eps)
         softmaxed = exps / tf.reduce_sum(exps, axis=axis, keepdims=True)
         return softmaxed
 
     def sinkhorn_knopp(self, embd, axis=-2):
         raise NotImplementedError()
 
-    def call(self, y_true, y_pred):
-        ps = self.softmax(y_pred, axis=-2)  # (B, DIM, P)
-        if self.sn:
-            pt = self.sinkhorn_knopp(tf.stop_gradient(y_pred), axis=-2)
-        else:
-            pt = tf.stop_gradient(ps)
+    def dino(self, embd):
+        s = embd
+        t = tf.stop_gradient(embd)
+        P = s.shape[-1]
 
+        ps = self.softmax(s, axis=-2, tau=self.taus)  # (B, DIM, P)
         log_ps = tf.math.log(ps)
 
-        pair_ce = -tf.einsum('bdp,bdk->bpk', pt, log_ps)     # (B, P, P)
-        mask = tf.tile(~tf.eye(tf.shape(pair_ce)[-1], dtype=tf.bool)[None],
-                       [tf.shape(pair_ce)[0], 1, 1])
+        center = self.center if self.center is not None else tf.reduce_mean(tf.stop_gradient(t), axis=0, keepdims=True)
+        if self.sn:
+            pt = self.sinkhorn_knopp(t, axis=-2)
+        else:
+            pt = self.softmax(t - center, axis=-2, tau=self.taut)
 
-        loss = self.cross_entropy = tf.reduce_mean(pair_ce[mask])
+        mean_ce = tf.reduce_sum(tf.reduce_mean(pt[..., None] * log_ps[..., None, :], axis=0), axis=0)  # (P, P)
+        mean_path_ce = -tf.reduce_mean(mean_ce[~tf.eye(P, dtype=tf.bool)])
+        if self.monitor is not None:
+            self.monitor.update_monitor("dino", mean_path_ce)
+
+        return mean_path_ce
+
+    def koleo(self, embd):
+        normed = embd / tf.linalg.norm(embd, axis=-2, keepdims=True)    # (B, DIM, P)
+        dists = tf.linalg.norm(normed[:, None]-normed[None], axis=-2)   # (B, B, P)
+        dists = tf.where(tf.eye(tf.shape(embd)[0], dtype=tf.bool)[..., None],
+                         tf.reduce_max(dists),
+                         dists)                                         # (B, B, P)
+        log_min_dists = tf.math.log(tf.reduce_min(dists, axis=1))       # (B, P)
+        return tf.reduce_mean(log_min_dists)
+
+    def call(self, y_true, y_pred):
+        if self.local:
+            self.update_center(tf.stop_gradient(y_pred))
+        loss = self.dino(y_pred)
         if self.entropy_w is not None:
-            self.koleo = koleo(y_pred, axis=-2)
-            loss = loss + self.koleo * self.entropy_w
+            loss = loss + self.entropy_w * self.koleo(y_pred)
         return loss
 
 
