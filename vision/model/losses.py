@@ -697,7 +697,7 @@ class AgreementAndSTD(tf.keras.losses.Loss):
     def distance(self, embedding):
         # (B, DIM, P)
         if self.cosine:
-            dist = -tf.reduce_sum(embedding[..., None], embedding[..., None, :], axis=-3)   # (B, P, P)
+            dist = -tf.reduce_sum(embedding[..., None]*embedding[..., None, :], axis=-3)   # (B, P, P)
         else:
             diff = embedding[..., None] - tf.stop_gradient(embedding[..., None, :])
             if self.l1:
