@@ -588,7 +588,7 @@ class BasicDisagreement(tf.keras.losses.Loss):
 
 
 class DinoLoss(tf.keras.losses.Loss):
-    def __init__(self, entropy_w=0, taus=0.1, taut=0.05, alpha=0.9, sn=False, eps=1e-4, local=True, name="dino_loss"):
+    def __init__(self, entropy_w=0, taus=0.1, taut=0.05, alpha=0.1, sn=False, eps=1e-4, local=True, name="dino_loss"):
         super().__init__(name=name)
         self.entropy_w = entropy_w
         self.eps = eps
