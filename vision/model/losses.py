@@ -660,7 +660,7 @@ class DinoLoss(tf.keras.losses.Loss):
 
 
 class AgreementAndSTD(tf.keras.losses.Loss):
-    def __init__(self, std_w=1, corr_w=10, alpha=0.1, l1=False, local=True, name='agreement_and_std'):
+    def __init__(self, std_w=1, corr_w=10, alpha=0.1, cosine=False, l1=False, local=True, name='agreement_and_std'):
         super().__init__(name=name)
         self.std_w = std_w
         self.corr_w = corr_w
@@ -668,6 +668,7 @@ class AgreementAndSTD(tf.keras.losses.Loss):
         self.first_moment = None
         self.second_moment = None
         self.cov_est = None
+        self.cosine = cosine
         self.alpha = alpha
         self.l1 = l1
         self.local = local
@@ -695,11 +696,14 @@ class AgreementAndSTD(tf.keras.losses.Loss):
 
     def distance(self, embedding):
         # (B, DIM, P)
-        diff = embedding[..., None] - tf.stop_gradient(embedding[..., None, :])
-        if self.l1:
-            dist = tf.math.abs(tf.math.reduce_sum(diff, axis=1))
+        if self.cosine:
+            dist = -tf.reduce_sum(embedding[..., None], embedding[..., None, :], axis=-3)   # (B, P, P)
         else:
-            dist = tf.reduce_mean(diff**2, axis=1)
+            diff = embedding[..., None] - tf.stop_gradient(embedding[..., None, :])
+            if self.l1:
+                dist = tf.math.abs(tf.math.reduce_sum(diff, axis=1))
+            else:
+                dist = tf.reduce_mean(diff**2, axis=1)
         batch_mean_dist = tf.reduce_mean(dist, axis=0)        # (P, P)
         P = embedding.shape[-1]
         mean_dist = tf.reduce_mean(batch_mean_dist[~tf.eye(P, dtype=tf.bool)])#tf.tensordot(batch_mean_dist, (1-tf.eye(P, dtype=dist.dtype))/tf.cast(P * (P - 1), dist.dtype),  axes=[[0, 1], [0, 1]])
@@ -747,6 +751,9 @@ class AgreementAndSTD(tf.keras.losses.Loss):
         return mean_cov_loss
 
     def call(self, y_true, y_pred):
+        if self.cosine:
+            y_pred = y_pred / tf.linalg.norm(y_pred, axis=-2, keepdims=True)
+
         if self.local:
             self.update_estimation(y_pred)
         mean_dist = self.distance(embedding=y_pred)
