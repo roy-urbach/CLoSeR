@@ -681,7 +681,7 @@ class NonLocalContrastive(tf.keras.losses.Loss):
 
 class LPL(tf.keras.losses.Loss):
     def __init__(self, cont_w=1, std_w=1, corr_w=10, cross_w=None, wcross_w=None, vjepa_w=None, dino_w=None, cov_sqr=True, alpha=0.1, l1=False, pe_w=None,
-                 cross_cov_w=None, local=True, eps=1e-4, name='LPL', flatten_paths=False):
+                 cross_cov_w=None, local=True, eps=1e-4, name='LPL', flatten_paths=False, crosspred_w=None):
         super().__init__(name=name)
         self.eps = streval(eps)
         self.cont_w = cont_w
@@ -703,6 +703,7 @@ class LPL(tf.keras.losses.Loss):
         self.cross_w = cross_w
         self.wcross_w = wcross_w
         self.cross_cov_w = cross_cov_w
+        self.crosspred_w = crosspred_w
 
         losses = []
         if self.cont_w:
@@ -719,6 +720,8 @@ class LPL(tf.keras.losses.Loss):
             losses.append("vjepa")
         if self.dino_w:
             losses.append("dino")
+        if self.crosspred_w:
+            losses.append("crosspred")
         self.monitor = LossMonitors(*losses, name="")
 
     def update_estimation(self, x):
@@ -855,6 +858,7 @@ class LPL(tf.keras.losses.Loss):
         return pe_weighted_dist
 
     def vjepa(self, embd):
+        # Not actually vjepa right now, maybe if there were more tokens
         embd_centered = layernorm(tf.stop_gradient(embd), axis=-2, eps=self.eps)
         diff = embd[..., None]-embd_centered[..., None, :]
         if self.l1:
@@ -892,12 +896,16 @@ class LPL(tf.keras.losses.Loss):
 
         embd = y_pred[:, -1]
         prev_embd = tf.stop_gradient(y_pred[:, -2])
-        if self.pe_w:
+        if self.pe_w or self.crosspred_w:
             pred_start = embd.shape[-2]//2
             pred = embd[..., pred_start:, :]
             embd = embd[..., :pred_start, :]
-            pe = tf.reduce_mean((tf.stop_gradient(embd) - pred)**2, axis=-2)  # (B, P)
             prev_embd = prev_embd[..., :pred_start, :]
+        if self.pe_w:
+            pe = tf.reduce_mean((tf.stop_gradient(embd) - pred)**2, axis=-2)  # (B, P)
+        elif self.crosspred_w:
+            crosspred_loss = tf.reduce_mean(tf.reduce_mean((tf.stop_gradient(embd)[..., None, :] - pred[..., None])**2,
+                                                           axis=(0, 1))[~tf.eye(embd.shape[-1], dtype=tf.bool)])
 
         if self.local:
             self.update_estimation(embd)
@@ -922,10 +930,13 @@ class LPL(tf.keras.losses.Loss):
             loss = loss + self.wcross_w * self.wcross(embd)
         if self.dino_w:
             loss = loss + self.dino_w * self.dino(embd)
+        if self.crosspred_w:
+            loss = loss + self.crosspred_w * crosspred_loss
         return loss
 
 
 def layernorm(arr, axis=-1, eps=1e-3):
+    raise NotImplementedError("not actually layer norm right now. Perhaps if there were more tokens")
     sg_arr = tf.stop_gradient(arr)
     return (arr - tf.reduce_mean(sg_arr, axis=axis, keepdims=True)) / (tf.math.reduce_std(sg_arr, axis=axis, keepdims=True) + eps)
 

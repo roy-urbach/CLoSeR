@@ -595,7 +595,7 @@ class DinoLoss(tf.keras.losses.Loss):
         self.sn = sn
         self.alpha = alpha
         self.taus = taus
-        self.taut = taut
+        self.taut = taut         # Should add taut warm-up
         self.local = local
         self.center = None
         losses = ['dino']
