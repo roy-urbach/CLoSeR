@@ -906,6 +906,7 @@ class LPL(tf.keras.losses.Loss):
         elif self.crosspred_w:
             crosspred_loss = tf.reduce_mean(tf.reduce_mean((tf.stop_gradient(embd)[..., None, :] - pred[..., None])**2,
                                                            axis=(0, 1))[~tf.eye(embd.shape[-1], dtype=tf.bool)])
+            self.monitor.update_monitor("crosspred", crosspred_loss)
 
         if self.local:
             self.update_estimation(embd)
