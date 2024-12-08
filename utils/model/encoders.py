@@ -128,7 +128,7 @@ class TimeAgnosticMLPTimeShift(TimeAgnosticMLP):
         # (B, N, T)
         B, N = tf.shape(inputs)[0], inputs.shape[1]
         time_shift_out = super().call(inputs)
-        return tf.concat([tf.zeros((B, 1, N), dtype=inputs.dtype), time_shift_out], axis=1)
+        return time_shift_out
 
 
 class RecurrentAdversarial(tf.keras.layers.Layer):
