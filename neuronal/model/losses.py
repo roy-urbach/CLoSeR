@@ -870,8 +870,7 @@ class LPL(tf.keras.losses.Loss):
         self.monitor.update_monitor('vjepa', mean_over_paths)
         return mean_over_paths
 
-    def dino(self, embd, taus=0.1, taut=0.05):
-        # MISSING PROJECTION HEAD!
+    def dino(self, embd, embd2=None, taus=0.1, taut=0.05):
         # (B, DIM, P)
         def softmax(arr, tau):
             max_ = tf.reduce_max(arr, axis=-2, keepdims=True)
@@ -882,7 +881,7 @@ class LPL(tf.keras.losses.Loss):
         log_ps = tf.math.log(ps)
 
         center = self.first_moment[None] if self.local else tf.reduce_mean(tf.stop_gradient(embd), axis=0, keepdims=True)
-        pt = softmax(tf.stop_gradient(embd) - center, taut)     # (B, DIM, P)
+        pt = softmax(tf.stop_gradient(embd if embd2 is None else embd2) - center, taut)     # (B, DIM, P)
 
         mean_ce = tf.reduce_sum(tf.reduce_mean(pt[..., None] * log_ps[..., None, :], axis=0), axis=0)  # (P, P)
         mean_path_ce = -tf.reduce_mean(mean_ce[~tf.eye(embd.shape[-1], dtype=tf.bool)])
@@ -895,15 +894,16 @@ class LPL(tf.keras.losses.Loss):
             y_pred = tf.reshape(y_pred, (tf.shape(y_pred)[0], y_pred.shape[0], -1, 1))
 
         embd = y_pred[:, -1]
-        prev_embd = tf.stop_gradient(y_pred[:, -2])
-        if self.pe_w or self.crosspred_w:
+        prev_embd = y_pred[:, -2]
+        prev_embd_sg = tf.stop_gradient(prev_embd)
+        if self.pe_w or (self.crosspred_w and not self.dino_w):
             pred_start = embd.shape[-2]//2
             pred = embd[..., pred_start:, :]
             embd = embd[..., :pred_start, :]
-            prev_embd = prev_embd[..., :pred_start, :]
+            prev_embd_sg = prev_embd_sg[..., :pred_start, :]
         if self.pe_w:
             pe = tf.reduce_mean((tf.stop_gradient(embd) - pred)**2, axis=-2)  # (B, P)
-        elif self.crosspred_w:
+        elif self.crosspred_w and not self.dino_w:
             crosspred_loss = tf.reduce_mean(tf.reduce_mean((tf.stop_gradient(embd)[..., None, :] - pred[..., None])**2,
                                                            axis=(0, 1))[~tf.eye(embd.shape[-1], dtype=tf.bool)])
             self.monitor.update_monitor("crosspred", crosspred_loss)
@@ -912,7 +912,7 @@ class LPL(tf.keras.losses.Loss):
             self.update_estimation(embd)
         loss = 0.
         if self.cont_w:
-            loss = loss + self.cont_w * self.continuous_loss(prev_embd, embd)
+            loss = loss + self.cont_w * self.continuous_loss(prev_embd_sg, embd)
         if self.std_w:
             loss = loss + self.std_w * self.neg_log_std(embd)
         if self.corr_w:
@@ -929,8 +929,9 @@ class LPL(tf.keras.losses.Loss):
         if self.wcross_w:
             loss = loss + self.wcross_w * self.wcross(embd)
         if self.dino_w:
-            loss = loss + self.dino_w * self.dino(embd)
-        if self.crosspred_w:
+            loss = loss + self.dino_w * self.dino(embd if not self.crosspred_w else prev_embd,
+                                                  embd2=tf.stop_gradient(embd) if self.crosspred_w else None)
+        if self.crosspred_w and not self.dino_w:
             loss = loss + self.crosspred_w * crosspred_loss
         return loss
 
