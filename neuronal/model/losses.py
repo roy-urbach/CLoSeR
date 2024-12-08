@@ -876,7 +876,7 @@ class LPL(tf.keras.losses.Loss):
         center = self.first_moment[None] if self.local else tf.reduce_mean(tf.stop_gradient(embd), axis=0, keepdims=True)
         pt = softmax(tf.stop_gradient(embd if embd2 is None else embd2) - center, taut)     # (B, DIM, P)
 
-        mean_ce = tf.reduce_sum(tf.reduce_mean(pt[..., None] * log_ps[..., None, :], axis=0), axis=0)  # (P, P)
+        mean_ce = tf.reduce_mean(tf.reduce_sum(pt[..., None] * log_ps[..., None, :], axis=1), axis=0)  # (P, P)
         mean_path_ce = -tf.reduce_mean(mean_ce[~tf.eye(embd.shape[-1], dtype=tf.bool)])
         self.monitor.update_monitor("dino", mean_path_ce)
         return mean_path_ce
@@ -923,7 +923,7 @@ class LPL(tf.keras.losses.Loss):
             loss = loss + self.wcross_w * self.wcross(embd)
         if self.dino_w:
             loss = loss + self.dino_w * self.dino(embd if not self.crosspred_w else prev_embd,
-                                                  embd2=tf.stop_gradient(embd) if self.crosspred_w else None)
+                                                  embd2=None if not self.crosspred_w else tf.stop_gradient(embd))
         if self.crosspred_w and not self.dino_w:
             loss = loss + self.crosspred_w * crosspred_loss
         return loss
