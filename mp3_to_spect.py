@@ -12,6 +12,7 @@ BINS = 84
 def parse():
     parser = argparse.ArgumentParser(description='convert a bird folder of mp3 to Morlet spectrogram')
     parser.add_argument('-b', '--bird', type=str, help='name of the bird', required=True)
+    parser.add_argument('--test', action=argparse.BooleanOptionalAction, default=False)
     args = parser.parse_known_args()
     return args
 
@@ -32,8 +33,9 @@ def convert():
     bird = args.bird
     printd(f"running bird {bird}")
     module = Modules.AUDITORY
-    path = f"{module.value}/data/train_audio/{bird}"
-    outpath = f"{module.value}/data/train_spect/{bird}.npz"
+    train_test = 'test' if args.test else 'train'
+    path = f"{module.value}/data/{train_test}_audio/{bird}"
+    outpath = f"{module.value}/data/{train_test}_spect/{bird}.npz"
     fns = os.listdir(path)
     printd(f"converting {len(fns)} files")
     spects = []
