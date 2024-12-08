@@ -923,7 +923,6 @@ class LPL(tf.keras.losses.Loss):
             loss = loss + self.cross_cov_w * self.crosscov(embd)
         if self.pe_w:
             loss = loss + self.pe_w * self.pe_weighted_crossdist(embd, tf.stop_gradient(pe))
-
             loss = loss + tf.reduce_mean(pe)
         if self.vjepa_w:
             loss = loss + self.vjepa_w * self.vjepa(embd)

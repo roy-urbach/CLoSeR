@@ -7,6 +7,7 @@ from utils.utils import get_class
 class Modules(Enum):
     VISION = "vision"
     NEURONAL = "neuronal"
+    AUDITORY = 'auditory'
 
     def get_models_path(self):
         return import_variable(self.value + "/utils", "consts", "MODULE_MODELS_DIR")
