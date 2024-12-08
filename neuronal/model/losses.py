@@ -745,13 +745,6 @@ class LPL(tf.keras.losses.Loss):
             else:
                 self.cov_est.assign(self.cov_est * (1-self.alpha) + current_cov_est * self.alpha)
 
-        if self.dino_w:
-            center = tf.reduce_mean(x, axis=-2)
-            if self.center is None:
-                self.center = tf.Variable(center, trainable=False)
-            else:
-                self.center.assign(self.center * (1-self.alpha) + center * self.alpha)
-
     def continuous_loss(self, prev_embd, embd):
         # (B, DIM, P)
         if self.vjepa_w:
