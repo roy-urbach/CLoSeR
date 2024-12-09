@@ -6,25 +6,25 @@ import os
 import tqdm
 
 from utils.utils import printd
-BINS = 84
+BINS = 2018
 
 
 def parse():
-    parser = argparse.ArgumentParser(description='convert a bird folder of mp3 to Morlet spectrogram')
+    parser = argparse.ArgumentParser(description='convert a bird folder of mp3 to log-melspectrogram')
     parser.add_argument('-b', '--bird', type=str, help='name of the bird', required=True)
     parser.add_argument('--test', action=argparse.BooleanOptionalAction, default=False)
     args = parser.parse_known_args()
     return args
 
 
-def mp3_to_spect(fn, db=True):
+def mp3_to_spect(fn):
     y, sr = librosa.load(fn)
     hop_length = 512
 
-    spectrogram = librosa.cqt(y, sr=sr, hop_length=hop_length, fmin=librosa.note_to_hz('C2'), n_bins=BINS)
-    spectrogram = np.abs(spectrogram)
-    if db:
-        spectrogram = librosa.amplitude_to_db(spectrogram)
+    spectrogram = librosa.feature.melspectrogram(y, sr=sr, hop_length=hop_length, n_fft=BINS)
+    spectrogram = np.log10(spectrogram+1e-8)
+    # if db:
+    #     spectrogram = librosa.amplitude_to_db(spectrogram)
     return spectrogram
 
 
