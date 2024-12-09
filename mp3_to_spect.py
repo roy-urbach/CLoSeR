@@ -21,7 +21,7 @@ def mp3_to_spect(fn):
     y, sr = librosa.load(fn)
     hop_length = 512
 
-    spectrogram = librosa.feature.melspectrogram(y, sr=sr, hop_length=hop_length, n_fft=BINS)
+    spectrogram = librosa.feature.melspectrogram(y=y, sr=sr, hop_length=hop_length, n_fft=BINS)
     spectrogram = np.log10(spectrogram+1e-8)
     # if db:
     #     spectrogram = librosa.amplitude_to_db(spectrogram)
