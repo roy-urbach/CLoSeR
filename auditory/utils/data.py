@@ -10,6 +10,8 @@ from utils.modules import Modules
 import os
 import numpy as np
 
+from utils.utils import streval
+
 
 class AuditoryLabels(Enum):
     BIRD = Label("bird", CATEGORICAL, len(ALL_BIRDS))
@@ -21,6 +23,7 @@ class BirdDataset(ComplicatedData):
     def __init__(self, birds=ALL_BIRDS, bins_per_sample=2, spects=None, files=None, **kwargs):
         super().__init__(**kwargs)
         self.bins_per_sample = bins_per_sample
+        birds = streval(birds)
         if not isinstance(birds[0], str):
             if isinstance(birds[0], bool):
                 birds = ALL_BIRDS[birds]

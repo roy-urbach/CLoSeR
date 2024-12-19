@@ -1,0 +1,32 @@
+{
+   "model_kwargs":{
+      "l2": 0,
+      "bins_per_frame": 1,
+      "pathways_kwargs":{
+         "n":10,
+         "d":0.1,
+         "fixed":true
+      },
+      "encoder": "TimeAgnosticMLP",
+      "encoder_kwargs": {
+         "bins_per_frame": 1,
+         "out_dim": 32,
+         "hidden_units": [32, 32],
+         "dropout_rate": 0
+      }
+   },
+   "pathway_classification": true,
+   "pathway_classification_allpaths": false,
+   "classifier": false,
+   "classifier_pathways": true,
+   "ensemble_classification": true,
+   "dataset":"BirdDataset",
+   "data_kwargs": {
+      "birds": [1,15,19,37,88]
+   },
+   "labels": ["AuditoryLabels.BIRDS"],
+   "loss": "LPL",
+   "loss_kwargs": {
+      "local": false
+   }
+}
