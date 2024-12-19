@@ -1,0 +1,7 @@
+from auditory.utils.data import AuditoryLabels
+import neuronal.evaluate as neur_evaluate
+from utils.modules import Modules
+
+
+def evaluate(model, dataset=None, module: Modules=Modules.AUDITORY, labels=[AuditoryLabels.BIRD], **kwargs):
+    return neur_evaluate.evaluate(model=model, dataset=dataset, module=module, labels=labels, **kwargs)

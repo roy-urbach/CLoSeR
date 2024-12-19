@@ -1,4 +1,6 @@
 import argparse
+
+from auditory.utils.consts import BINS
 from utils.modules import Modules
 import librosa
 import numpy as np
@@ -6,7 +8,6 @@ import os
 import tqdm
 
 from utils.utils import printd
-BINS = 2018
 
 
 def parse():
