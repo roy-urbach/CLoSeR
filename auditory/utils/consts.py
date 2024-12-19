@@ -1,5 +1,16 @@
 import numpy as np
 
+from utils.consts import MODELS_DIR, CONFIG_DIR
+
+AUDITORY_BASE_DIR = "auditory"
+
+AUDITORY_MODELS_DIR = f"{AUDITORY_BASE_DIR}/{MODELS_DIR}"
+AUDITORY_CONFIG_DIR = f"{AUDITORY_BASE_DIR}/{CONFIG_DIR}"
+
+MODULE_MODELS_DIR = AUDITORY_MODELS_DIR
+MODULE_CONFIG_DIR = AUDITORY_CONFIG_DIR
+
+
 # ALL_BIRDS = np.array(list(filter(lambda bird: os.path.exists(os.path.join(base_path, 'train_spect', f"{bird}.npz")), sorted(os.listdir(os.path.join(base_path, 'train_audio'))))))
 
 ALL_BIRDS = np.array(['aldfly', 'ameavo', 'amebit', 'amecro', 'amegfi', 'amekes',
