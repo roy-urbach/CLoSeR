@@ -24,7 +24,7 @@
    "data_kwargs": {
       "birds": [1,15,19,37,88]
    },
-   "labels": ["AuditoryLabels.BIRDS"],
+   "labels": ["Labels.BIRD"],
    "loss": "LPL",
    "loss_kwargs": {
       "local": false
