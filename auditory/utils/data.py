@@ -3,9 +3,7 @@ from enum import Enum
 
 from auditory.utils.consts import ALL_BIRDS, N_FREQS
 from utils.data import Label, CATEGORICAL, ComplicatedData
-from mp3_to_spect import BINS
 from tqdm import tqdm as counter
-from neuronal.utils.data import Labels
 from utils.modules import Modules
 import os
 import numpy as np
@@ -13,8 +11,19 @@ import numpy as np
 from utils.utils import streval
 
 
-class AuditoryLabels(Enum):
+class Labels(Enum):
     BIRD = Label("bird", CATEGORICAL, len(ALL_BIRDS))
+
+    @staticmethod
+    def get(name):
+        if isinstance(name, Labels):
+            return name
+        else:
+            relevant_labels = [label for label in Labels if name in (label.name, label.value, label.value.name)]
+            if not len(relevant_labels):
+                raise ValueError(f"No label named {name}")
+            else:
+                return relevant_labels[0]
 
 
 class BirdDataset(ComplicatedData):
@@ -30,7 +39,7 @@ class BirdDataset(ComplicatedData):
             else:
                 birds = np.array([ALL_BIRDS[bird] for bird in birds])
         self.birds = birds
-        AuditoryLabels.BIRD.dimension = len(birds)      # TODO: not that pretty, think if there's a way to make it more pretty
+        Labels.BIRD.dimension = len(birds)      # TODO: not that pretty, think if there's a way to make it more pretty
         self.spects = spects
         self.files = files
 
@@ -46,7 +55,7 @@ class BirdDataset(ComplicatedData):
                         # self.files[bird] = data['files']
 
             x = []
-            y = {AuditoryLabels.BIRD.value.name: []}
+            y = {Labels.BIRD.value.name: []}
 
             for birdid, bird in counter(enumerate(self.birds)):
                 inds = np.arange(len(self.spects[bird]))
@@ -63,7 +72,7 @@ class BirdDataset(ComplicatedData):
                     spect = self.spects[bird][i].reshape(N_FREQS, -1)  # (N, T)
                     x.append(spect.T[np.arange(self.bins_per_sample)[None] + np.arange(
                         spect.shape[-1] - self.bins_per_sample)[:, None]])
-                    y[AuditoryLabels.BIRD.value.name].extend([birdid] * (spect.shape[-1] - self.bins_per_sample))
+                    y[Labels.BIRD.value.name].extend([birdid] * (spect.shape[-1] - self.bins_per_sample))
 
             self.x = np.concatenate(x, axis=0).transpose(0, 2, 1)
             self.y = {k: np.array(v) for k, v in y.items()}
