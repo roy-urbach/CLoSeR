@@ -173,7 +173,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
             x_val_embd_flattened = None
             x_val_embd_flattened_alltime = None
 
-    labels = [Labels.get(label) for label in streval(labels)]
+    labels = [Labels.get(label) if isinstance(label, str) else label for label in streval(labels)]
 
     def get_inp_ds(last_frame=False, pc=None, label=None, union=False, flatten=True, cache={}):
         nonflattened_name = f"lastframe{last_frame}_pc{pc}_un{union}"
