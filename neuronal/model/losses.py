@@ -881,6 +881,21 @@ class LPL(tf.keras.losses.Loss):
         self.monitor.update_monitor("dino", mean_path_ce)
         return mean_path_ce
 
+    def crosspred(self, embd, pred):
+        assert pred is not None
+        teacher_embd = tf.stop_gradient(embd)
+        if self.center:
+            center = self.first_moment if self.local else tf.reduce_mean(teacher_embd, axis=0, keepdims=True)
+            teacher_embd = tf.stop_gradient(teacher_embd - center)
+        diff = teacher_embd[..., None, :] - pred[..., None]
+        if self.l1:
+            dist = tf.math.abs(diff)
+        else:
+            dist = diff ** 2
+        crosspred_loss = tf.reduce_mean(tf.reduce_mean(dist, axis=(0, 1))[~tf.eye(embd.shape[-1], dtype=tf.bool)])
+        return crosspred_loss
+
+
     def call(self, y_true, y_pred):
         # (B, T, DIM, P)
         if self.flatten_paths:
@@ -894,15 +909,18 @@ class LPL(tf.keras.losses.Loss):
             pred = embd[..., pred_start:, :]
             embd = embd[..., :pred_start, :]
             prev_embd_sg = prev_embd_sg[..., :pred_start, :]
-        if self.pe_w:
-            pe = tf.reduce_mean((tf.stop_gradient(embd) - pred)**2, axis=-2)  # (B, P)
-        elif self.crosspred_w and not self.dino_w:
-            crosspred_loss = tf.reduce_mean(tf.reduce_mean((tf.stop_gradient(embd)[..., None, :] - pred[..., None])**2,
-                                                           axis=(0, 1))[~tf.eye(embd.shape[-1], dtype=tf.bool)])
-            self.monitor.update_monitor("crosspred", crosspred_loss)
+        else:
+            pred = None
 
         if self.local:
             self.update_estimation(embd)
+
+        if self.pe_w:
+            pe = tf.reduce_mean((tf.stop_gradient(embd) - pred)**2, axis=-2)  # (B, P)
+        elif self.crosspred_w and not self.dino_w:
+            crosspred_loss = self.crosspred(embd, pred)
+            self.monitor.update_monitor("crosspred", crosspred_loss)
+
         loss = 0.
         if self.cont_w:
             loss = loss + self.cont_w * self.continuous_loss(prev_embd_sg, embd)
