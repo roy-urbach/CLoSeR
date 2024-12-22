@@ -387,7 +387,9 @@ class BasicRNNLayer(tf.keras.layers.Layer):
 
     def call(self, inputs, state):
         external_input = self.input_projection(inputs)
-        internal = self.recurrent_connections(self.dropout(state))
+        if self.dropout is not None:
+            state = self.dropout(state)
+        internal = self.recurrent_connections(state)
         output = self.activation(internal + external_input)
         return output
 
