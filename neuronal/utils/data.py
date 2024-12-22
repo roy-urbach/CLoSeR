@@ -327,11 +327,6 @@ class SessionDataGenerator(ComplicatedData):
         self.__total_samples = None
         self.__load_spikes()
 
-    def _set_label_to_dim(self):
-        if self.y is None:
-            self._set_x()
-        self.label_to_dim = {Labels.get(name): Labels.get(name).value.dimension for name in self.y}
-
     @staticmethod
     def is_generator():
         return True

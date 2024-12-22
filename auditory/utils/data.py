@@ -43,7 +43,7 @@ class BirdDataset(ComplicatedData):
         self.files = files
 
     def _set_label_to_dim(self):
-        self.label_to_dim = {Labels.BIRD: len(self.birds)}
+        self.label_to_dim = {Labels.BIRD.value.name: len(self.birds)}
 
     def _set_x(self):
         if self.x is None:
