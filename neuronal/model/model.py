@@ -42,7 +42,8 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
                  pathway_classification=True, pathway_classification_allpaths=False,
                  ensemble_classification=True, classifier_pathways=True,
                  predictor_kwargs={}, predictor_concat=True, pred_in_readout=False,
-                 augmentation_kwargs={}, encoder_kwargs={}, pathways_kwargs={}, labels=Labels, module=Modules.NEURONAL):
+                 augmentation_kwargs={}, encoder_kwargs={}, pathways_kwargs={}, labels=Labels, label_to_dim=None,
+                 module=Modules.NEURONAL):
     if isinstance(kernel_regularizer, str) and kernel_regularizer.startswith("tf."):
         kernel_regularizer = eval(kernel_regularizer)
 
@@ -145,7 +146,10 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
             for label in labels:
                 cur_name = 'logits' + (
                     str(path) if pathway_classification_allpaths else '') + f'_{label.value.name}'
-                pathway_logits = layers.Dense(label.value.dimension if label.value.dimension else input_shape[1], activation=None,
+                dim = label.value.dimension if label.value.dimension else input_shape[1]
+                if label_to_dim is not None and label in label_to_dim:
+                    dim = label_to_dim[label]
+                pathway_logits = layers.Dense(dim, activation=None,
                                               kernel_regularizer=kernel_regularizer, name=cur_name)(cur_embd)
                 outputs.append(pathway_logits)
     if ensemble_classification:
