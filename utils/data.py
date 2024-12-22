@@ -1,13 +1,15 @@
 import numpy as np
 import abc
 
+from utils.modules import Modules
+
 CATEGORICAL = "categorical"
 CONTINUOUS = 'continuous'
 
 
 class Data:
     def __init__(self, x_train, y_train, x_test, y_test, x_val=None, y_val=None, val_split=None, normalize=False,
-                 img_normalize=False, flatten_y=False, split=False, simple_norm=False):
+                 img_normalize=False, flatten_y=False, split=False, simple_norm=False, module:Modules=None):
         self.x_train = x_train
         self.y_train = y_train
         self.x_test = x_test
@@ -15,6 +17,7 @@ class Data:
         self.x_val = x_val
         self.y_val = y_val
         self.val_split = val_split
+        self.module = module
 
         if val_split and self.x_val is None and split:
             print("splitting randomly")
@@ -131,8 +134,9 @@ class Label:
 class ComplicatedData:
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, train=True, val=False, test=False, train_ds=None, test_ds=None, val_ds=None):
+    def __init__(self, module: Modules, train=True, val=False, test=False, train_ds=None, test_ds=None, val_ds=None):
         assert train or val or test
+        self.module = module
         self.train = train
         self.train_ds = self if train else train_ds
         self.test = test
@@ -143,6 +147,7 @@ class ComplicatedData:
         self.y = None
 
         self.name_to_label = {}
+        self.label_to_dim = None
 
     def get_x(self, *args, **kwargs):
         if self.x is None:
@@ -168,6 +173,17 @@ class ComplicatedData:
     @abc.abstractmethod
     def _set_x(self, *args, **kwargs):
         raise NotImplementedError()
+
+    @abc.abstractmethod
+    def _set_label_to_dim(self, *args, **kwargs):
+        if self.y is None:
+            self._set_x(*args, **kwargs)
+        self.label_to_dim = {self.module.get_label(name): self.module.get_label(name).value.dimension for name in self.y}
+
+    def get_label_to_dim(self):
+        if self.label_to_dim is None:
+            self._set_label_to_dim()
+        return self.label_to_dim
 
     def get_config(self):
         return dict(train=self.train, val=self.val, test=self.test,
@@ -224,8 +240,8 @@ class ComplicatedData:
 
 
 class TemporalData(ComplicatedData):
-    def __init__(self, samples_per_example=2, single_time_label=True, x_samples=None, y_samples=None, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, module: Modules, samples_per_example=2, single_time_label=True, x_samples=None, y_samples=None, **kwargs):
+        super().__init__(module=module, **kwargs)
         self.samples_per_example = samples_per_example
         self.single_time_label = single_time_label
         self.x_samples = x_samples

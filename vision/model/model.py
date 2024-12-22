@@ -32,7 +32,8 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
                  image_size=72, patch_size=8, pathway_classification=True, pathway_classification_allpaths=False,
                  ensemble_classification=False, classifier_pathways=True,
                  augmentation_kwargs={}, encoder_kwargs={}, pathways_kwargs={},
-                 predictive_embedding=None, predictive_embedding_kwargs={}, tokenizer_conv_kwargs=None):
+                 predictive_embedding=None, predictive_embedding_kwargs={}, tokenizer_conv_kwargs=None,
+                 label_to_dim=None):
     if isinstance(kernel_regularizer, str) and kernel_regularizer.startswith("tf."):
         kernel_regularizer = eval(kernel_regularizer)
 

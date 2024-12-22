@@ -45,7 +45,9 @@ def create_and_compile_model(model_name, dataset, model_kwargs, module: Modules,
                              optimizer_kwargs={}, metrics_kwargs={}, print_log=False, **kwargs):
     if print_log:
         printd("Creating model...", end='\t')
-    m = module.create_model(name=model_name, input_shape=dataset.get_shape(), **model_kwargs, **kwargs)
+    m = module.create_model(name=model_name, input_shape=dataset.get_shape(),
+                            label_to_dim=dataset.get_label_to_dim() if hasattr(dataset, "get_label_to_dim") else None,
+                            **model_kwargs, **kwargs)
     if print_log:
         printd("Done!")
 
@@ -158,7 +160,7 @@ def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_
     print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
     printd("Getting dataset...", end='\t')
-    dataset = module.get_class_from_data(dataset)(**data_kwargs)
+    dataset = module.get_class_from_data(dataset)(module=module, **data_kwargs)
     printd("Done!")
 
     model, max_epoch = load_or_create_model(model_name, module, dataset=dataset, print_log=True, **kwargs)

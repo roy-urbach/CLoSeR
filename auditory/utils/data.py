@@ -29,8 +29,8 @@ class Labels(Enum):
 class BirdDataset(ComplicatedData):
     PATH = os.path.join(Modules.AUDITORY.value, 'data', 'train_spect')
 
-    def __init__(self, birds=ALL_BIRDS, bins_per_sample=2, spects=None, files=None, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, module: Modules=Modules.AUDITORY, birds=ALL_BIRDS, bins_per_sample=2, spects=None, files=None, **kwargs):
+        super().__init__(module=module, **kwargs)
         self.bins_per_sample = bins_per_sample
         birds = streval(birds)
         if not isinstance(birds[0], str):
@@ -39,9 +39,11 @@ class BirdDataset(ComplicatedData):
             else:
                 birds = np.array([ALL_BIRDS[bird] for bird in birds])
         self.birds = birds
-        Labels.BIRD.value.dimension = len(birds)      # TODO: not that pretty, think if there's a way to make it more pretty
         self.spects = spects
         self.files = files
+
+    def _set_label_to_dim(self):
+        self.label_to_dim = {Labels.BIRD: len(self.birds)}
 
     def _set_x(self):
         if self.x is None:
