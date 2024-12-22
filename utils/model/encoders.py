@@ -40,7 +40,7 @@ class MLPEncoder(MLP):
 
 class BasicRNN(tf.keras.layers.Layer):
     def __init__(self, residual=False, outdim=None, name='rnn', kernel_regularizer=None, out_regularizer=None,
-                 **kwargs):
+                 only_last=False, **kwargs):
         super().__init__(name=name)
         self.residual = residual
         self.outdim = outdim
@@ -48,6 +48,7 @@ class BasicRNN(tf.keras.layers.Layer):
         self.out_proj = tf.keras.layers.Dense(outdim, name=name + "_out", kernel_regularizer=kernel_regularizer,
                                               activity_regularizer=out_regularizer) if outdim is not None else None
         self.initial_state = None
+        self.only_last = only_last
 
     def build(self, input_shape):
         self.initial_state = self.add_weight(
@@ -77,6 +78,8 @@ class BasicRNN(tf.keras.layers.Layer):
             out = self.out_proj(stacked_states)  # (B, T, OUTDIM)
         else:
             out = stacked_states
+        if self.only_last:  # (B, 1, OUTDIM)
+            return out[:, -1]
         return out
 
 
