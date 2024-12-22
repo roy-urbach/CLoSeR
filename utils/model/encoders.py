@@ -152,3 +152,19 @@ class RecurrentAdversarial(tf.keras.layers.Layer):
                             tf.concat([tf.zeros([tf.shape(inputs)[0], 1, self.outdim], dtype=adverse_embd.dtype), adverse_embd], axis=1)],
                            axis=-1)
         return concat
+
+
+class SplitFramesEncoderWrapper:
+    def __init__(self, encoder, frames=2, split_axis=-1, concat_axis=None):
+        self.encoder = encoder
+        self.frames = frames
+        self.split_axis = split_axis
+        if concat_axis is None:
+            concat_axis = split_axis
+        self.concat_axis = concat_axis
+
+    def __call__(self, inputs):
+        num_splits = inputs.shape[self.split_axis] // self.frames
+        splits = tf.split(inputs, num_or_size_splits=num_splits, axis=self.split_axis)
+        encs = [self.encoder(sp) for sp in splits]
+        return tf.concat(encs, axis=self.concat_axis)
