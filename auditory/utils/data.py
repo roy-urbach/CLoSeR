@@ -39,7 +39,7 @@ class BirdDataset(ComplicatedData):
             else:
                 birds = np.array([ALL_BIRDS[bird] for bird in birds])
         self.birds = birds
-        Labels.BIRD.dimension = len(birds)      # TODO: not that pretty, think if there's a way to make it more pretty
+        Labels.BIRD.value.dimension = len(birds)      # TODO: not that pretty, think if there's a way to make it more pretty
         self.spects = spects
         self.files = files
 
