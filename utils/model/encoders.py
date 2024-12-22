@@ -168,6 +168,6 @@ class SplitFramesEncoderWrapper:
 
     def __call__(self, inputs):
         num_splits = inputs.shape[self.split_axis] // self.frames
-        splits = tf.split(inputs, num_or_size_splits=num_splits, axis=self.split_axis)
+        splits = tf.split(inputs, num_or_size_splits=[self.frames]*num_splits, axis=self.split_axis)
         encs = [self.encoder(sp) for sp in splits]
         return tf.concat(encs, axis=self.concat_axis)
