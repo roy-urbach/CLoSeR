@@ -155,7 +155,10 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
     if ensemble_classification:
         for label in labels:
             ens_inp = tf.concat(path_divide_embedding, axis=-1)
-            ens_pred = layers.Dense(label.value.dimension if label.value.dimension else input_shape[1],
+            dim = label.value.dimension if label.value.dimension else input_shape[1]
+            if label_to_dim is not None and label.value.name in label_to_dim:
+                dim = label_to_dim[label.value.name]
+            ens_pred = layers.Dense(dim,
                                     activation=None,
                                     kernel_regularizer=kernel_regularizer,
                                     name=f'ensemble_logits_{label.value.name}')(ens_inp)
