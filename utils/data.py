@@ -174,7 +174,6 @@ class ComplicatedData:
     def _set_x(self, *args, **kwargs):
         raise NotImplementedError()
 
-    @abc.abstractmethod
     def _set_label_to_dim(self, *args, **kwargs):
         if self.y is None:
             self._set_x(*args, **kwargs)
@@ -291,7 +290,16 @@ class GeneratorDataset:
         self.val = val
         self.test = test
         self.name_to_label = {} if name_to_label is None else name_to_label
+        self.label_to_dim = None
         self._set()
+        self._set_label_to_dim()
+
+    def get_label_to_dim(self):
+        return self.label_to_dim
+
+    @abc.abstractmethod
+    def _set_label_to_dim(self, *args, **kwargs):
+        raise NotImplementedError()
 
     @abc.abstractmethod
     def _set(self):

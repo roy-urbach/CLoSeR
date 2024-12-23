@@ -93,9 +93,7 @@ class BirdDataset(ComplicatedData):
 class BirdGenerator(GeneratorDataset):
     PATH = os.path.join(Modules.AUDITORY.value, 'data', 'train_spect')
 
-    def __init__(self, module: Modules = Modules.AUDITORY, birds=ALL_BIRDS, bins_per_sample=32, **kwargs):
-        super().__init__(module=module, **kwargs)
-        self.module = module
+    def __init__(self, birds=ALL_BIRDS, bins_per_sample=32, **kwargs):
         self.bins_per_sample = bins_per_sample
         birds = streval(birds)
         if not isinstance(birds[0], str):
@@ -106,7 +104,10 @@ class BirdGenerator(GeneratorDataset):
         self.birds = birds
         self.spects = None
 
-        self._set()
+        super().__init__(**kwargs)
+
+    def _set_label_to_dim(self, *args, **kwargs):
+        self.label_to_dim = {Labels.BIRD.value.name: len(self.birds)}
 
     def get_shape(self):
         return self.spects[self.birds[0]].shape[0], self.bins_per_sample
