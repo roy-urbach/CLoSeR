@@ -84,9 +84,9 @@ class BasicRNN(tf.keras.layers.Layer):
 
 
 class LSTM(tf.keras.layers.Layer):
-    def __init__(self, *args, name='lstm', out_regularizer=None, **kwargs):
+    def __init__(self, *args, name='lstm', out_regularizer=None, only_last=False, **kwargs):
         super().__init__(name=name)
-        self.lstm = tf.keras.layers.LSTM(*args, return_sequences=True, **kwargs)
+        self.lstm = tf.keras.layers.LSTM(*args, return_sequences=not only_last, **kwargs)
         self.out_regularizer = out_regularizer
         self.outdim = self.lstm.units
 
