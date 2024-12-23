@@ -96,7 +96,7 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
                                  out_regularizer=out_reg, **encoder_kwargs)
     encoders = [enc_init(i) for i in range(len(pathways))] if encoder_per_path else [enc_init(None)] * len(pathways)
     if split_frames:
-        encoders = [SplitFramesEncoderWrapper(encoder, frames=frames, split_axis=-1, concat_axis=1) for encoder in encoders]
+        encoders = [SplitFramesEncoderWrapper(encoder, frames=frames, split_axis=-1, stack_axis=1) for encoder in encoders]
 
     embedding = Stack(name='embedding' if not predictor_kwargs else 'embedding_before_pred',
                       axis=-1)(*[encoder(pathway) for encoder, pathway in zip(encoders, pathways)])

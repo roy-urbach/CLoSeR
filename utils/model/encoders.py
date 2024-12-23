@@ -158,16 +158,16 @@ class RecurrentAdversarial(tf.keras.layers.Layer):
 
 
 class SplitFramesEncoderWrapper:
-    def __init__(self, encoder, frames=2, split_axis=-1, concat_axis=None):
+    def __init__(self, encoder, frames=2, split_axis=-1, stack_axis=None):
         self.encoder = encoder
         self.frames = frames
         self.split_axis = split_axis
-        if concat_axis is None:
-            concat_axis = split_axis
-        self.concat_axis = concat_axis
+        if stack_axis is None:
+            stack_axis = split_axis
+        self.stack_axis = stack_axis
 
     def __call__(self, inputs):
         # bins_in_split = inputs.shape[self.split_axis] // self.frames
         splits = tf.split(inputs, num_or_size_splits=self.frames, axis=self.split_axis)
         encs = [self.encoder(sp) for sp in splits]
-        return tf.concat(encs, axis=self.concat_axis)
+        return tf.stack(encs, axis=self.stack_axis)
