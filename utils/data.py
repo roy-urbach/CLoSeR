@@ -276,3 +276,48 @@ class TemporalData(ComplicatedData):
 
         self.x = trans(self.x_samples[inds])
         self.y = {k: val[inds_y] for k, val in self.y_samples.items()} if isinstance(self.y_samples, dict) else self.y_samples[inds_y]
+
+
+class GeneratorDataset:
+    def __init__(self, module: Modules, train=True, val=False, test=False, batch_size=32, name_to_label=None):
+        self.module = module
+        self.train = train
+        self.val = val
+        self.test = test
+        self.batch_size = batch_size
+
+        assert (train + val + test) == 1
+        self.train = train
+        self.val = val
+        self.test = test
+        self.name_to_label = {} if name_to_label is None else name_to_label
+        self._set()
+
+    @abc.abstractmethod
+    def _set(self):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def __iter__(self):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def get_shape(self):
+        raise NotImplementedError()
+
+    def get_config(self):
+        return dict(train=self.train, val=self.val, test=self.test,
+                    module=self.module, batch_size=self.batch_size,
+                    name_to_label={k: v for k, v in self.name_to_label.items()})
+
+    def get_train(self):
+        return self.__class__(**self.get_config(), train=True, val=False, test=False)
+
+    def get_val(self):
+        return self.__class__(**self.get_config(), train=False, val=True, test=False)
+
+    def get_test(self):
+        return self.__class__(**self.get_config(), train=False, val=False, test=True)
+
+    def update_name_to_label(self, name, label):
+        self.name_to_label[name] = label

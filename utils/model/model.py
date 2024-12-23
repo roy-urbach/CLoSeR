@@ -1,3 +1,4 @@
+from utils.data import GeneratorDataset
 from utils.model.callbacks import SaveOptimizerCallback, ErasePreviousCallback, SaveHistory, StopIfNaN
 from utils.model.losses import NullLoss
 from utils.modules import Modules
@@ -178,11 +179,25 @@ def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_
                                      SaveOptimizerCallback(module), ErasePreviousCallback(module),
                                      SaveHistory(module), StopIfNaN(module)]
                           )
-        history = model.fit(x=dataset.get_x_train(),
-                            y=dataset.get_y_train(),
-                            validation_split=dataset.get_val_split() if hasattr(dataset, 'get_val_split') else None,
-                            validation_data=None if hasattr(dataset, 'get_val_split') else (dataset.get_x_val(), dataset.get_y_val()),
-                            batch_size=batch_size,
-                            **fit_kwargs)
+
+        if issubclass(dataset.__class__, GeneratorDataset):
+            train_dataset = tf.data.Dataset.from_generator(lambda: dataset)
+            val_dataset = dataset.get_val()
+            val_dataset = tf.data.Dataset.from_generator(lambda: val_dataset)
+
+            history = model.fit(train_dataset,
+                                validation_data=val_dataset,
+                                batch_size=dataset.batch_size,
+                                steps_per_epoch=1000,
+                                **fit_kwargs)
+        else:
+            history = model.fit(x=dataset.get_x_train(),
+                                y=dataset.get_y_train(),
+                                validation_split=dataset.get_val_split() if hasattr(dataset, 'get_val_split') else None,
+                                validation_data=None if hasattr(dataset, 'get_val_split') else (
+                                dataset.get_x_val(), dataset.get_y_val()),
+                                batch_size=batch_size,
+                                **fit_kwargs)
+
         printd("Done!")
     return model
