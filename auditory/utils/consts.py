@@ -57,6 +57,6 @@ ALL_BIRDS = np.array(['aldfly', 'ameavo', 'amebit', 'amecro', 'amegfi', 'amekes'
        'winwre3', 'wlswar', 'wooduc', 'wooscj2', 'woothr', 'y00475',
        'yebfly', 'yebsap', 'yehbla', 'yelwar', 'yerwar', 'yetvir'])
 
-N_FREQS = 128
+N_FREQS = 256
 SR = 22050
 BINS = 2018

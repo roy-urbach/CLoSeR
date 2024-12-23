@@ -18,14 +18,37 @@ def parse():
     return args
 
 
-def mp3_to_spect(fn, hop_length=512, eps=1e-8, **kwargs):
+def mp3_to_spect(fn,
+                 window_size=1024,
+                 hop_size=320,
+                 mel_bins=256,
+                 fmin=50,
+                 fmax=10000,
+                 window='hann',
+                 center=True,
+                 pad_mode='reflect'):
     y, sr = librosa.load(fn)
+    stft = librosa.core.stft(y,
+                             n_fft=window_size,
+                             hop_length=hop_size,
+                             win_length=window_size,
+                             window=window,
+                             center=center,
+                             pad_mode=pad_mode, )
+    spectrogram = np.abs(stft) ** 2
+    melw = librosa.filters.mel(sr=sr,
+                               n_fft=window_size,
+                               n_mels=mel_bins,
+                               fmin=fmin, fmax=fmax)
+    mel_spect = (melw @ spectrogram)
+    log_mel_spect = librosa.core.power_to_db(mel_spect)
+    # return log_mel_spect
 
-    spectrogram = librosa.feature.melspectrogram(y=y, sr=sr, hop_length=hop_length, n_fft=BINS, **kwargs)
-    spectrogram = np.log10(spectrogram+eps)
+    # spectrogram = librosa.feature.melspectrogram(y=y, sr=sr, hop_length=hop_length, n_fft=BINS, **kwargs)
+    # spectrogram = np.log10(spectrogram+eps)
     # if db:
     #     spectrogram = librosa.amplitude_to_db(spectrogram)
-    return spectrogram
+    return log_mel_spect
 
 
 def convert():
