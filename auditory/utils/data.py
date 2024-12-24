@@ -112,7 +112,7 @@ class BirdGenerator(GeneratorDataset):
         self.label_to_dim = {Labels.BIRD.value.name: len(self.birds)}
 
     def get_shape(self):
-        return self.spects[self.birds[0]].shape[0], self.bins_per_sample
+        return self.spects[self.birds[0]][0].shape[0], self.bins_per_sample
 
     def _set(self):
         if self.spects is None:
