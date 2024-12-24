@@ -2,7 +2,6 @@ import numpy as np
 import abc
 
 from utils.modules import Modules
-from utils.utils import streval
 
 CATEGORICAL = "categorical"
 CONTINUOUS = 'continuous'
@@ -76,7 +75,6 @@ class Data:
         if labels is None:
             return y
         else:
-            labels = streval(labels)
             assert isinstance(y, dict)
             if isinstance(labels, str):
                 return y[labels]
