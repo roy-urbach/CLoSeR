@@ -154,8 +154,9 @@ class BirdGenerator(GeneratorDataset):
             bird_batch_name_cache = np.reshape([self.birds[bird_id]
                                                 for bird_id in bird_batch_cache.flatten()], bird_batch_cache.shape)
             spect_num_cache = np.random.randint(self.num_spects[bird_batch_cache])
-            spects_length_cache = np.array([self.spects_length[bird_name][spect_id] for bird_name, spect_id in zip(bird_batch_name_cache.flatten(),
-                                                                                                             spect_num_cache.flatten())]).reshape(bird_batch_cache)
+            spects_length_cache = np.array([self.spects_length[bird_name][spect_id]
+                                            for bird_name, spect_id in zip(bird_batch_name_cache.flatten(),
+                                                                           spect_num_cache.flatten())]).reshape(bird_batch_cache.shape)
             start_indices_cache = np.random.randint(spects_length_cache - self.bins_per_sample)
             del spects_length_cache
 
