@@ -103,6 +103,8 @@ class BirdGenerator(GeneratorDataset):
                 birds = np.array([ALL_BIRDS[bird] for bird in birds])
         self.birds = birds
         self.spects = None
+        self.spects_length = None
+        self.num_spects = None
 
         super().__init__(**kwargs)
 
@@ -115,6 +117,7 @@ class BirdGenerator(GeneratorDataset):
     def _set(self):
         if self.spects is None:
             self.spects = {}
+            self.spects_length = {}
             for bird in counter(self.birds):
                 with np.load(os.path.join(self.PATH, f'{bird}.npz'), allow_pickle=True) as data:
                     self.spects[bird] = data['spectrograms']
@@ -132,31 +135,43 @@ class BirdGenerator(GeneratorDataset):
 
                 self.spects[bird] = [spect.reshape(N_FREQS, -1) for i, spect in enumerate(self.spects[bird]) if mask[i]]
                 self.spects[bird] = [spect for spect in self.spects[bird] if spect.shape[-1] > self.bins_per_sample]
+                self.spects_length[bird] = np.array([spect.shape[-1] for spect in self.spects[bird]])
+            self.num_spects = np.array([len(self.spects[bird]) for bird in self.birds])
+
 
     def get_config(self):
         return dict(**super().get_config(), birds=self.birds, bins_per_sample=self.bins_per_sample)
 
     def __iter__(self):
         while True:
+
+            # random sample for 1000 steps
+            random_cache = 1000
+
+
             # Sample a random batch of birds
-            bird_batch = np.random.choice(len(self.birds), self.batch_size, replace=True)
-            bird_batch_name = [self.birds[bird_id] for bird_id in bird_batch]
-            spect_num = np.random.randint([len(self.spects[bird_name]) for bird_name in bird_batch_name])
+            bird_batch_cache = np.random.choice(len(self.birds), (random_cache, self.batch_size), replace=True)
+            bird_batch_name_cache = np.reshape([self.birds[bird_id]
+                                                for bird_id in bird_batch_cache.flatten()], bird_batch_cache.shape)
+            spect_num_cache = np.random.randint(self.num_spects[bird_batch_cache])
+            spects_length_cache = np.array([self.spects_length[bird_name][spect_id] for bird_name, spect_id in zip(bird_batch_name_cache.flatten(),
+                                                                                                             spect_num_cache.flatten())]).reshape(bird_batch_cache)
+            start_indices_cache = np.random.randint(spects_length_cache - self.bins_per_sample)
+            del spects_length_cache
 
-            # Initialize batch of sequences and targets
-            sequences = []
+            for step, (bird_batch, bird_batch_name, spect_num, start_indices) in enumerate(zip(bird_batch_cache,
+                                                                                               bird_batch_name_cache,
+                                                                                               spect_num_cache,
+                                                                                               start_indices_cache
+                                                                                               )):
+                # Initialize batch of sequences and targets
+                sequences = [self.spects[bird][spect_id][:, start_ind:start_ind+self.bins_per_sample]
+                             for bird, spect_id, start_ind in zip(bird_batch_name, spect_num, start_indices)]
 
-            for i, (bird_id, bird_name, spect_i) in enumerate(zip(bird_batch, bird_batch_name, spect_num)):
-                spectrogram = self.spects[bird_name][spect_i]
+                y = {Labels.BIRD.value.name: bird_batch}
 
-                # Randomly sample a starting point for each spectrogram in the batch
-                start_indices = random.randint(0, spectrogram.shape[-1] - self.bins_per_sample)
-                sequences.append(spectrogram[:, start_indices:start_indices+self.bins_per_sample])
-
-            y = {Labels.BIRD.value.name: bird_batch}
-
-            actual_y = {}
-            for name, label in self.name_to_label.items():
-                actual_y[name] = np.array(y[(label.value if hasattr(label, 'value') else label).name] if label.value.name else np.zeros(self.batch_size))
-            # Yield the batch of sequences and targets
-            yield np.array(sequences), actual_y
+                actual_y = {}
+                for name, label in self.name_to_label.items():
+                    actual_y[name] = np.array(y[(label.value if hasattr(label, 'value') else label).name] if label.value.name else np.zeros(self.batch_size))
+                # Yield the batch of sequences and targets
+                yield np.array(sequences), actual_y
