@@ -2,6 +2,7 @@ import numpy as np
 import abc
 
 from utils.modules import Modules
+from utils.utils import streval
 
 CATEGORICAL = "categorical"
 CONTINUOUS = 'continuous'
@@ -71,20 +72,31 @@ class Data:
     def get_x_train(self):
         return self.x_train
 
-    def get_y_train(self):
-        return self.y_train
+    def _get_y_labels(self, y, labels=None):
+        if labels is None:
+            return y
+        else:
+            labels = streval(labels)
+            assert isinstance(y, dict)
+            if isinstance(labels, str):
+                return y[labels]
+            else:
+                return {label: y[label] for label in labels}
+
+    def get_y_train(self, labels=None):
+        return self._get_y_labels(self.y_train, labels=labels)
 
     def get_x_test(self):
         return self.x_test
 
-    def get_y_test(self):
-        return self.y_test
+    def get_y_test(self, labels=None):
+        return self._get_y_labels(self.y_test, labels=labels)
 
     def get_x_val(self):
         return self.x_val
 
-    def get_y_val(self):
-        return self.y_val
+    def get_y_val(self, labels=None):
+        return self._get_y_labels(self.y_val, labels=labels)
 
     def get_val_split(self):
         return self.val_split
@@ -349,4 +361,28 @@ class GeneratorDataset:
         return tf.data.Dataset.from_generator(lambda: self,
                                               output_types=self.get_output_dtypes(),
                                               output_shapes=self.get_output_shapes())
+
+    def to_regular_dataset(self, ntrain=10000, nval=2000, ntest=2000, **kwargs):
+        from math import ceil
+        assert self.train
+
+        def ds_to_examples(ds, num_examples):
+            X_train = []
+            y_train = {}
+            for i, (X, y) in enumerate(ds):
+                if i > ceil(num_examples/self.batch_size): break
+                X_train.append(X)
+                for k in y:
+                    y_train[k].append(y[k])
+            X_train = np.concatenate(X_train, axis=0)
+            y_train = {k: np.concatenate(v, axis=0) for k, v in y_train.items()}
+            return (X_train, y_train)
+
+        train = ds_to_examples(self, ntrain)
+        val = ds_to_examples(self.get_val(), nval)
+        test = ds_to_examples(self.get_test(), ntest)
+        return Data(x_train=train[0], y_train=train[1],
+                    x_val=val[0], y_val=val[1],
+                    x_test=test[0], y_test=test[1],
+                    flatten_y=False, **kwargs)
 

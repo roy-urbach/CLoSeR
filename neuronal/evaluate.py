@@ -1,7 +1,7 @@
 from typing import Optional
 
 from neuronal.utils.data import Labels, CATEGORICAL
-from utils.data import Data, TemporalData
+from utils.data import Data, TemporalData, GeneratorDataset
 from utils.evaluation.ensemble import EnsembleVotingMethods
 from utils.evaluation.evaluation import classify_head_eval_ensemble, classify_head_eval
 from utils.model.model import load_model_from_json
@@ -117,7 +117,7 @@ def evaluate_predict(dct, masked_ds, masked_ds_union, embd_alltime_noflat_ds, en
 def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labels.STIMULUS], simple_norm=False,
              knn=False, linear=True, ensemble=True, save_results=False, override=False, override_linear=False,
              override_predict=False, inp=True, ks=[1] + list(range(5, 21, 5)),
-             predict=False, only_input=False, pcs=[32, 64], **kwargs):
+             predict=False, only_input=False, pcs=[32, 64], generator_n_kwargs={}, **kwargs):
 
     if isinstance(model, str):
         model_kwargs = module.load_json(model, config=True)
@@ -128,6 +128,8 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
         if dataset is None:
             printd("loading dataset...", end='\t')
             dataset = module.get_class_from_data(model_kwargs['dataset'])(**model_kwargs.get('data_kwargs', {}))
+            if issubclass(dataset.__class__, GeneratorDataset):
+                dataset = dataset.to_regular_dataset(**generator_n_kwargs)
             printd("done")
     else:
         model_kwargs = module.load_json(model.name, config=True)

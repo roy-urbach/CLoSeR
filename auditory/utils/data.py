@@ -144,7 +144,6 @@ class BirdGenerator(GeneratorDataset):
                 self.spects_length[bird] = np.array([spect.shape[-1] for spect in self.spects[bird]])
             self.num_spects = np.array([len(self.spects[bird]) for bird in self.birds])
 
-
     def get_config(self):
         return dict(**super().get_config(), birds=self.birds, bins_per_sample=self.bins_per_sample)
 
@@ -153,7 +152,6 @@ class BirdGenerator(GeneratorDataset):
 
             # random sample for 1000 steps
             random_cache = 1000
-
 
             # Sample a random batch of birds
             bird_batch_cache = np.random.choice(len(self.birds), (random_cache, self.batch_size), replace=True)
@@ -177,8 +175,11 @@ class BirdGenerator(GeneratorDataset):
 
                 y = {Labels.BIRD.value.name: bird_batch}
 
-                actual_y = {}
-                for name, label in self.name_to_label.items():
-                    actual_y[name] = np.array(y[(label.value if hasattr(label, 'value') else label).name] if label.value.name else np.zeros(self.batch_size))
+                if self.name_to_label:
+                    actual_y = {}
+                    for name, label in self.name_to_label.items():
+                        actual_y[name] = np.array(y[(label.value if hasattr(label, 'value') else label).name] if label.value.name else np.zeros(self.batch_size))
+                else:
+                    actual_y = y
                 # Yield the batch of sequences and targets
                 yield np.array(sequences), actual_y
