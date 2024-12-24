@@ -180,6 +180,6 @@ class BirdGenerator(GeneratorDataset):
                     for name, label in self.name_to_label.items():
                         actual_y[name] = np.array(y[(label.value if hasattr(label, 'value') else label).name] if label.value.name else np.zeros(self.batch_size))
                 else:
-                    actual_y = y
+                    actual_y = {k.value.name: v for k, v in y.items()}
                 # Yield the batch of sequences and targets
                 yield np.array(sequences), actual_y
