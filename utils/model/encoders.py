@@ -218,7 +218,7 @@ class TemporalConvNet:
                                                   activity_regularizer=out_regularizer
                                                   ) if out_dim else None
 
-    def call(self, inputs):
+    def __call__(self, inputs):
         x = inputs
         for i in range(self.depth):
             x = self.conv_layers[i](x)
