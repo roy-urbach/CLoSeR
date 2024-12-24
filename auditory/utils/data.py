@@ -138,7 +138,7 @@ class BirdGenerator(GeneratorDataset):
     def __iter__(self):
         while True:
             # Sample a random batch of birds
-            bird_batch = random.sample(np.arange(len(self.birds)), self.batch_size)
+            bird_batch = np.random.choice(len(self.birds), self.batch_size, replace=True)
             bird_batch_name = [self.birds[bird_id] for bird_id in bird_batch]
             spect_num = np.random.randint([len(self.spects[bird_name]) for bird_name in bird_batch_name])
 
