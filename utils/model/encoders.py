@@ -185,18 +185,20 @@ class TemporalConvNet:
         out_dim: The number of output units (default: 1).
     """
 
-    def __init__(self, width=32, depth=3, kernel_size=3, out_dim=None, name='tempconv',
-                 data_format='channels_first', kernel_regularizer=None, activity_regularizer=None):
+    def __init__(self, width=32, depth=3, kernel_size=3, out_dim=32, name='tempconv',
+                 data_format='channels_first', kernel_regularizer=None, activity_regularizer=None,
+                 out_regularizer=None):
         super(TemporalConvNet, self).__init__()
         self.depth = depth
         self.conv_layers = []
         self.pool_layers = []
+        out_linear = bool(out_dim)
         for i in range(depth):
             self.conv_layers.append(
                 tf.keras.layers.Conv1D(
                     filters=width * 2**i,
                     kernel_size=kernel_size,
-                    activation='gelu',
+                    activation='gelu' if i < depth -1 or out_linear else None,
                     padding='same',
                     name=name + f"_conv{i}",
                     data_format=data_format,
@@ -209,11 +211,11 @@ class TemporalConvNet:
                     tf.keras.layers.MaxPooling1D(pool_size=2, strides=2, name=name + f"_maxpool{i}",
                                                  data_format=data_format)
                 )
-        self.global_avg_pool = tf.keras.layers.GlobalAveragePooling1D(name=name + "_avgpool")
-        self.flatten = tf.keras.layers.Flatten(name=name + "_flatten")
+        self.global_avg_pool = tf.keras.layers.GlobalAveragePooling1D(name=name + "_avgpool", )
+        self.flatten = tf.keras.layers.Flatten(name=name + "_flatten", activity_regularizer=None if out_linear else out_regularizer)
         self.output_layer = tf.keras.layers.Dense(out_dim, name=name + "_out",
                                                   kernel_regularizer=kernel_regularizer,
-                                                  activity_regularizer=activity_regularizer
+                                                  activity_regularizer=out_regularizer
                                                   ) if out_dim else None
 
     def call(self, inputs):
