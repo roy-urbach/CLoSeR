@@ -116,7 +116,7 @@ def load_model_from_json(model_name, module: Modules, load=True, optimizer_state
         return None
     else:
         def call(dataset, data_kwargs={}, **kwargs):
-            model, _ = load_or_create_model(model_name, module, dataset=module.get_class_from_data(dataset)(**data_kwargs),
+            model, _ = load_or_create_model(model_name, module=module, dataset=module.get_class_from_data(dataset)(**data_kwargs),
                                             load=load, optimizer_state=optimizer_state, skip_mismatch=skip_mismatch,
                                             **kwargs)
             return model
