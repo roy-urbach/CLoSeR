@@ -195,7 +195,7 @@ class TemporalConvNet:
                 tf.keras.layers.Conv1D(
                     filters=width * 2**i,
                     kernel_size=kernel_size,
-                    activation='relu',
+                    activation='gelu',
                     padding='same',
                     name=name + f"_conv{i}",
                     data_format=data_format
