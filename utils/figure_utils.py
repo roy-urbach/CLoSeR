@@ -247,7 +247,7 @@ def plot_lines_different_along_d(model_format, module:Modules, seeds, args, ds, 
     # stds = np.nanstd(res, axis=2, ddof=1)
     # CI = stats.norm.interval(0.975, loc=means, scale=stds / np.sqrt(np.sum(~np.isnan(res), axis=2)))
     ax = None
-    fig = plt.figure() if fig is None else fig
+    fig = plt.figure(figsize=(4+4*train, 8)) if fig is None else fig
     plt.suptitle(model_format + " " + name + f" different {arg}")
     only_test = measure or not train
     for i in range(res.shape[-1] if not measure else 1):
