@@ -171,3 +171,52 @@ class SplitFramesEncoderWrapper:
         splits = tf.split(inputs, num_or_size_splits=self.frames, axis=self.split_axis)
         encs = [self.encoder(sp) for sp in splits]
         return tf.stack(encs, axis=self.stack_axis)
+
+
+class TemporalConvNet:
+    """
+    A 1D convolutional neural network with convolutional hidden layers,
+    max-pooling, and global average pooling.
+
+    Args:
+        width: The initial number of filters in the first convolutional layer.
+        depth: The depth of the model (number of convolutional layers).
+        kernel_size: The size of the convolutional kernel (default: 3).
+        out_dim: The number of output units (default: 1).
+    """
+
+    def __init__(self, width=32, depth=3, kernel_size=3, out_dim=1, name='tempconv', data_format='channels_first'):
+        super(TemporalConvNet, self).__init__()
+        self.depth = depth
+        self.conv_layers = []
+        self.pool_layers = []
+        for i in range(depth):
+            self.conv_layers.append(
+                tf.keras.layers.Conv1D(
+                    filters=width * 2**i,
+                    kernel_size=kernel_size,
+                    activation='relu',
+                    padding='same',
+                    name=name + f"_conv{i}",
+                    data_format=data_format
+                )
+            )
+            if i < depth - 1:  # Add max-pooling for all layers except the last
+                self.pool_layers.append(
+                    tf.keras.layers.MaxPooling1D(pool_size=2, strides=2, name=name + f"_maxpool{i}",
+                                                 data_format=data_format)
+                )
+        self.global_avg_pool = tf.keras.layers.GlobalAveragePooling1D(name=name + "_avgpool")
+        self.flatten = tf.keras.layers.Flatten(name=name + "_flatten")
+        self.output_layer = tf.keras.layers.Dense(out_dim, name=name + "_out")
+
+    def call(self, inputs):
+        x = inputs
+        for i in range(self.depth):
+            x = self.conv_layers[i](x)
+            if i < self.depth - 1:  # Apply max-pooling for all layers except the last
+                x = self.pool_layers[i](x)
+        x = self.global_avg_pool(x)
+        x = self.flatten(x)
+        x = self.output_layer(x)
+        return x
