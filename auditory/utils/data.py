@@ -131,6 +131,7 @@ class BirdGenerator(GeneratorDataset):
                     assert False, "train or val or test should be True"
 
                 self.spects[bird] = [spect.reshape(N_FREQS, -1) for i, spect in enumerate(self.spects[bird]) if mask[i]]
+                self.spects[bird] = [spect for spect in self.spects[bird] if spect.shape[-1] > self.bins_per_sample]
 
     def get_config(self):
         return dict(**super().get_config(), birds=self.birds, bins_per_sample=self.bins_per_sample)
