@@ -199,13 +199,13 @@ def compile_model(model, dataset, loss=CrossPathwayTemporalContrastiveLoss, loss
             metrics_kwargs.get('kwargs', {}))
 
     label_class_loss = {
-        label.value.name: (tf.keras.losses.SparseCategoricalCrossentropy if label.value.dimension > 1 else tf.keras.losses.BinaryCrossentropy) if label.value.kind == CATEGORICAL else tf.keras.losses.MeanAbsoluteError
+        label.value.name: (tf.keras.losses.SparseCategoricalCrossentropy if label.value.dimension > 1 else tf.keras.losses.BinaryCrossentropy) if label.value.is_categorical() else tf.keras.losses.MeanAbsoluteError
         for label in labels}
     label_class_metric = {
-        label.value.name: (tf.keras.metrics.SparseCategoricalAccuracy if label.value.dimension > 1 else tf.keras.metrics.BinaryAccuracy) if label.value.kind == CATEGORICAL else tf.keras.losses.MeanAbsoluteError
+        label.value.name: (tf.keras.metrics.SparseCategoricalAccuracy if label.value.dimension > 1 else tf.keras.metrics.BinaryAccuracy) if label.value.is_categorical() else tf.keras.losses.MeanAbsoluteError
         for label in labels}
 
-    label_kwargs = {label.value.name: dict(from_logits=True) if label.is_categorical() else {} for label in labels}
+    label_kwargs = {label.value.name: dict(from_logits=True) if label.value.is_categorical() else {} for label in labels}
 
     if pathway_classification:
         if pathway_classification_allpaths:
