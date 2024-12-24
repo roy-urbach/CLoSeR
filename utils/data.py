@@ -327,13 +327,13 @@ class GeneratorDataset:
                     name_to_label={k: v for k, v in self.name_to_label.items()})
 
     def get_train(self):
-        return self.__class__(**self.get_config(), train=True, val=False, test=False)
+        return self.__class__(**dict(**self.get_config(), train=True, val=False, test=False))
 
     def get_val(self):
-        return self.__class__(**self.get_config(), train=False, val=True, test=False)
+        return self.__class__(**dict(**self.get_config(), train=False, val=True, test=False))
 
     def get_test(self):
-        return self.__class__(**self.get_config(), train=False, val=False, test=True)
+        return self.__class__(**dict(**self.get_config(), train=False, val=False, test=True))
 
     def update_name_to_label(self, name, label):
         self.name_to_label[name] = label
