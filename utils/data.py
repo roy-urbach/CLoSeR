@@ -373,7 +373,7 @@ class GeneratorDataset:
                 if i > ceil(num_examples/self.batch_size): break
                 X_train.append(X)
                 for k in y:
-                    y_train[k].append(y[k])
+                    y_train.setdefault(k, []).append(y[k])
             X_train = np.concatenate(X_train, axis=0)
             y_train = {k: np.concatenate(v, axis=0) for k, v in y_train.items()}
             return (X_train, y_train)
