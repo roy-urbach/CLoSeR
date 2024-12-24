@@ -205,24 +205,26 @@ def compile_model(model, dataset, loss=CrossPathwayTemporalContrastiveLoss, loss
         label.value.name: (tf.keras.metrics.SparseCategoricalAccuracy if label.value.dimension > 1 else tf.keras.metrics.BinaryAccuracy) if label.value.kind == CATEGORICAL else tf.keras.losses.MeanAbsoluteError
         for label in labels}
 
+    label_kwargs = {label.value.name: dict(from_logits=True) if label.is_categorical() else {} for label in labels}
+
     if pathway_classification:
         if pathway_classification_allpaths:
             for path in range(model.get_layer("pathways").n):
                 for label in labels:
                     dataset.update_name_to_label(f'logits{path}_{label.value.name}', label)
-                    losses[f'logits{path}_{label.value.name}'] = label_class_loss[label.value.name]()
-                    metrics[f'logits{path}_{label.value.name}'] = label_class_metric[label.value.name]()
+                    losses[f'logits{path}_{label.value.name}'] = label_class_loss[label.value.name](**label_kwargs[label.value.name])
+                    metrics[f'logits{path}_{label.value.name}'] = label_class_metric[label.value.name](**label_kwargs[label.value.name])
         else:
             for label in labels:
                 dataset.update_name_to_label(f'logits_{label.value.name}', label)
-                losses[f'logits_{label.value.name}'] = label_class_loss[label.value.name]()
-                metrics[f'logits_{label.value.name}'] = label_class_metric[label.value.name]()
+                losses[f'logits_{label.value.name}'] = label_class_loss[label.value.name](**label_kwargs[label.value.name])
+                metrics[f'logits_{label.value.name}'] = label_class_metric[label.value.name](**label_kwargs[label.value.name])
 
     if ensemble_classification:
         for label in labels:
             dataset.update_name_to_label(f'ensemble_logits_{label.value.name}', label)
-            losses[f'ensemble_logits_{label.value.name}'] = label_class_loss[label.value.name]()
-            metrics[f'ensemble_logits_{label.value.name}'] = label_class_metric[label.value.name]()
+            losses[f'ensemble_logits_{label.value.name}'] = label_class_loss[label.value.name](**label_kwargs[label.value.name])
+            metrics[f'ensemble_logits_{label.value.name}'] = label_class_metric[label.value.name](**label_kwargs[label.value.name])
 
     for loss in losses.values():
         if hasattr(loss, "monitor") and loss.monitor is not None:
