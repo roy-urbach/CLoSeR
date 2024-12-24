@@ -127,7 +127,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
         printd("done")
         if dataset is None:
             printd("loading dataset...", end='\t')
-            dataset = module.get_class_from_data(model_kwargs['dataset'])(**model_kwargs.get('data_kwargs', {}))
+            dataset = module.get_class_from_data(model_kwargs['dataset'])(module=module, **model_kwargs.get('data_kwargs', {}))
             if issubclass(dataset.__class__, GeneratorDataset):
                 dataset = dataset.to_regular_dataset(**generator_n_kwargs)
             printd("done")
