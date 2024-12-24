@@ -213,18 +213,18 @@ def compile_model(model, dataset, loss=CrossPathwayTemporalContrastiveLoss, loss
                 for label in labels:
                     dataset.update_name_to_label(f'logits{path}_{label.value.name}', label)
                     losses[f'logits{path}_{label.value.name}'] = label_class_loss[label.value.name](**label_kwargs[label.value.name])
-                    metrics[f'logits{path}_{label.value.name}'] = label_class_metric[label.value.name](**label_kwargs[label.value.name])
+                    metrics[f'logits{path}_{label.value.name}'] = label_class_metric[label.value.name]()
         else:
             for label in labels:
                 dataset.update_name_to_label(f'logits_{label.value.name}', label)
                 losses[f'logits_{label.value.name}'] = label_class_loss[label.value.name](**label_kwargs[label.value.name])
-                metrics[f'logits_{label.value.name}'] = label_class_metric[label.value.name](**label_kwargs[label.value.name])
+                metrics[f'logits_{label.value.name}'] = label_class_metric[label.value.name]()
 
     if ensemble_classification:
         for label in labels:
             dataset.update_name_to_label(f'ensemble_logits_{label.value.name}', label)
             losses[f'ensemble_logits_{label.value.name}'] = label_class_loss[label.value.name](**label_kwargs[label.value.name])
-            metrics[f'ensemble_logits_{label.value.name}'] = label_class_metric[label.value.name](**label_kwargs[label.value.name])
+            metrics[f'ensemble_logits_{label.value.name}'] = label_class_metric[label.value.name]()
 
     for loss in losses.values():
         if hasattr(loss, "monitor") and loss.monitor is not None:
