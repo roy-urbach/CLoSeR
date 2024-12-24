@@ -183,8 +183,8 @@ def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_
         if issubclass(dataset.__class__, GeneratorDataset):
             val_dataset = dataset.get_val()
 
-            history = model.fit(dataset,
-                                validation_data=val_dataset,
+            history = model.fit(iter(dataset),
+                                validation_data=iter(val_dataset),
                                 batch_size=dataset.batch_size,
                                 steps_per_epoch=1000,
                                 validation_steps=250,
