@@ -185,7 +185,8 @@ class TemporalConvNet:
         out_dim: The number of output units (default: 1).
     """
 
-    def __init__(self, width=32, depth=3, kernel_size=3, out_dim=None, name='tempconv', data_format='channels_first'):
+    def __init__(self, width=32, depth=3, kernel_size=3, out_dim=None, name='tempconv',
+                 data_format='channels_first', kernel_regularizer=None, activity_regularizer=None):
         super(TemporalConvNet, self).__init__()
         self.depth = depth
         self.conv_layers = []
@@ -198,7 +199,9 @@ class TemporalConvNet:
                     activation='gelu',
                     padding='same',
                     name=name + f"_conv{i}",
-                    data_format=data_format
+                    data_format=data_format,
+                    kernel_regularizer=kernel_regularizer,
+                    activity_regularizer=activity_regularizer
                 )
             )
             if i < depth - 1:  # Add max-pooling for all layers except the last
@@ -208,7 +211,10 @@ class TemporalConvNet:
                 )
         self.global_avg_pool = tf.keras.layers.GlobalAveragePooling1D(name=name + "_avgpool")
         self.flatten = tf.keras.layers.Flatten(name=name + "_flatten")
-        self.output_layer = tf.keras.layers.Dense(out_dim, name=name + "_out") if out_dim else None
+        self.output_layer = tf.keras.layers.Dense(out_dim, name=name + "_out",
+                                                  kernel_regularizer=kernel_regularizer,
+                                                  activity_regularizer=activity_regularizer
+                                                  ) if out_dim else None
 
     def call(self, inputs):
         x = inputs
