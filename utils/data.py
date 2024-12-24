@@ -294,6 +294,14 @@ class GeneratorDataset:
         self._set()
         self._set_label_to_dim()
 
+    @abc.abstractmethod
+    def get_output_dtypes(self):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def get_output_shapes(self):
+        raise NotImplementedError()
+
     def get_label_to_dim(self):
         return self.label_to_dim
 
@@ -329,3 +337,10 @@ class GeneratorDataset:
 
     def update_name_to_label(self, name, label):
         self.name_to_label[name] = label
+
+    def to_keras_generator(self):
+        import tensorflow as tf
+        return tf.data.Dataset.from_generator(lambda: self,
+                                              output_types=self.get_output_dtypes(),
+                                              output_shapes=self.get_output_shapes())
+

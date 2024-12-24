@@ -181,11 +181,9 @@ def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_
                           )
 
         if issubclass(dataset.__class__, GeneratorDataset):
-            train_dataset = tf.data.Dataset.from_generator(lambda: dataset)
             val_dataset = dataset.get_val()
-            val_dataset = tf.data.Dataset.from_generator(lambda: val_dataset)
 
-            history = model.fit(train_dataset,
+            history = model.fit(dataset,
                                 validation_data=val_dataset,
                                 batch_size=dataset.batch_size,
                                 steps_per_epoch=1000,

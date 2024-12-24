@@ -108,6 +108,12 @@ class BirdGenerator(GeneratorDataset):
 
         super().__init__(**kwargs)
 
+    def get_output_dtypes(self):
+        return {name: int for name in self.name_to_label}
+
+    def get_output_shapes(self):
+        pass
+
     def _set_label_to_dim(self, *args, **kwargs):
         self.label_to_dim = {Labels.BIRD.value.name: len(self.birds)}
 
