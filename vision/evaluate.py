@@ -33,7 +33,7 @@ def evaluate(model, module: Modules=Modules.VISION, knn=False, linear=True, ense
         assert model_kwargs is not None
         model = load_model_from_json(model, module)
         if dataset is None:
-            dataset = module.get_class_from_data(model_kwargs.get('dataset', 'Cifar10'))(**model_kwargs.get('data_kwargs', {}), split=True)
+            dataset = module.get_class_from_data(model_kwargs.get('dataset', 'Cifar10'))(module=module, **model_kwargs.get('data_kwargs', {}), split=True)
 
     printd("getting embedding...")
     printd("train...", end='\t')
