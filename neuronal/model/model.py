@@ -172,6 +172,7 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
 
     # Create the Keras model.
     model = tf.keras.Model(inputs=inputs, outputs=outputs, name=name)
+    setattr(model, 'bins_per_frame', bins_per_frame)
     return model
 
 

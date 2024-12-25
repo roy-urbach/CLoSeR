@@ -117,7 +117,7 @@ def evaluate_predict(dct, masked_ds, masked_ds_union, embd_alltime_noflat_ds, en
 def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labels.STIMULUS], simple_norm=False,
              knn=False, linear=True, ensemble=True, save_results=False, override=False, override_linear=False,
              override_predict=False, inp=True, ks=[1] + list(range(5, 21, 5)),
-             predict=False, only_input=False, pcs=[32, 64], generator_n_kwargs={}, bins_per_frame=None, **kwargs):
+             predict=False, only_input=False, pcs=[32, 64], generator_n_kwargs={}, **kwargs):
 
     if isinstance(model, str):
         model_kwargs = module.load_json(model, config=True)
@@ -135,7 +135,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
         model_kwargs = module.load_json(model.name, config=True)
     assert dataset is not None
 
-    bins_per_frame = (dataset.bins_per_frame if hasattr(dataset, "bins_per_frame") else 1) if bins_per_frame is None else bins_per_frame
+    bins_per_frame = model.bins_per_frame if hasattr(model, "bins_per_frame") else (dataset.bins_per_frame if hasattr(dataset, 'bins_per_frame') else 1)
     encoder_removed_bins = model.get_layer("pathways").output_shape[-1] not in (model.get_layer("embedding").output_shape[1],
                                                                                 model.get_layer("embedding").output_shape[1] // 2)
     if not only_input:
