@@ -34,7 +34,7 @@ class MelSpectrogramAugmenter(tf.keras.layers.Layer):
         num_bins = int(nyquist_rate / 1000)  # Adjust based on desired frequency resolution
         freqs = np.linspace(0.0, nyquist_rate, num_bins)
         freqs = np.maximum(freqs, 1e-6)  # Avoid division by zero
-        pink_noise_psd = 1 / np.sqrt(self.freqs)
+        pink_noise_psd = 1 / np.sqrt(freqs)
 
         # Interpolate pink noise PSD to mel-frequencies
         self.mel_pink_noise_psd = tf.constant(np.interp(mel_bins, freqs, pink_noise_psd))
