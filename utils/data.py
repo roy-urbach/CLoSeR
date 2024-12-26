@@ -196,7 +196,7 @@ class ComplicatedData:
         return self.label_to_dim
 
     def get_config(self):
-        return dict(train=self.train, val=self.val, test=self.test,
+        return dict(module=self.module, train=self.train, val=self.val, test=self.test,
                     train_ds=self.train_ds, val_ds=self.val_ds, test_ds=self.test_ds)
 
     def clone(self, **kwargs):
