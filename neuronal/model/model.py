@@ -14,9 +14,10 @@ import numpy as np
 
 def get_neuronal_data_augmentation(bins_per_frame, augmentations=[], **kwargs):
     data_augmentation = tf.keras.Sequential(
+        augmentations +
         [
             layers.Normalization(),
-        ] + augmentations,
+        ],
         name="data_augmentation",
     )
     return data_augmentation
