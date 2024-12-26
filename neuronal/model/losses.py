@@ -680,7 +680,8 @@ class NonLocalContrastive(tf.keras.losses.Loss):
 
 
 class LPL(tf.keras.losses.Loss):
-    def __init__(self, cont_w=1, std_w=1, corr_w=10, cross_w=None, wcross_w=None, vjepa_w=None, dino_w=None, cov_sqr=True, alpha=0.1, l1=False, pe_w=None,
+    def __init__(self, cont_w=1, std_w=1, corr_w=10, cross_w=None, wcross_w=None, vjepa_w=None,
+                 dino_w=None, cov_sqr=True, alpha=0.1, l1=False, pe_w=None, pe_w_absolute=False,
                  cross_cov_w=None, local=True, center=False, eps=1e-4, name='LPL', flatten_paths=False, crosspred_w=None):
         super().__init__(name=name)
         self.eps = streval(eps)
@@ -689,6 +690,7 @@ class LPL(tf.keras.losses.Loss):
         self.corr_w = corr_w
         self.cov_sqr = cov_sqr
         self.pe_w = pe_w
+        self.pe_w_absolute = pe_w_absolute
         self.first_moment = None
         self.second_moment = None
         self.center = center
@@ -843,6 +845,9 @@ class LPL(tf.keras.losses.Loss):
                                     )
         z_pe = tf.reduce_sum(exp_pe, axis=-1, keepdims=True)
         pe_weights = exp_pe / z_pe  # (B, P, P)
+
+        if self.pe_w_absolute:
+            pe_weights = pe_weights * pe[..., None]
 
         dist = tf.reduce_mean((embd[..., None] - tf.stop_gradient(embd[..., None, :]))**2, axis=1)  # (B, P, P)
         pe_weighted_dist = tf.tensordot(pe_weights, dist, [[0, 1, 2],
