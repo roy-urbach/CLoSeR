@@ -718,6 +718,7 @@ class LPL(tf.keras.losses.Loss):
             losses.append("cross")
         if self.pe_w:
             losses.append("pe_cross")
+            losses.append("pe")
         if self.vjepa_w:
             losses.append("vjepa")
         if self.dino_w:
@@ -938,7 +939,9 @@ class LPL(tf.keras.losses.Loss):
             loss = loss + self.cross_cov_w * self.crosscov(embd)
         if self.pe_w:
             loss = loss + self.pe_w * self.pe_weighted_crossdist(embd, tf.stop_gradient(pe))
-            loss = loss + tf.reduce_mean(pe)
+            mean_pe = tf.reduce_mean(pe)
+            self.monitor.update_monitor("pe", mean_pe)
+            loss = loss + mean_pe
         if self.vjepa_w:
             loss = loss + self.vjepa_w * self.vjepa(embd)
         if self.wcross_w:
