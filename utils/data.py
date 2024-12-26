@@ -187,7 +187,8 @@ class ComplicatedData:
     def _set_label_to_dim(self, *args, **kwargs):
         if self.y is None:
             self._set_x(*args, **kwargs)
-        self.label_to_dim = {self.module.get_label(name).value.name: self.module.get_label(name).value.dimension for name in self.y}
+        self.label_to_dim = {self.module.get_label(name).value.name: self.module.get_label(name).value.dimension
+                             for name in self.y}
 
     def get_label_to_dim(self):
         if self.label_to_dim is None:

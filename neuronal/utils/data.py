@@ -327,6 +327,9 @@ class SessionDataGenerator(ComplicatedData):
         self.__total_samples = None
         self.__load_spikes()
 
+    def _set_label_to_dim(self):
+        self.label_to_dim = None
+
     @staticmethod
     def is_generator():
         return True
