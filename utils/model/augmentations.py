@@ -26,15 +26,18 @@ class MelSpectrogramAugmenter(tf.keras.layers.Layer):
         self.white_noise_factor = white_noise_factor
 
         # Calculate and store mel frequencies once
-        self.mel_bins = tf.constant(librosa.mel_frequencies(n_mels=self.n_mels, fmin=self.f_min, fmax=self.f_max),
+        mel_bins = tf.constant(librosa.mel_frequencies(n_mels=self.n_mels, fmin=self.f_min, fmax=self.f_max),
                                     dtype=tf.float32)
 
         # Calculate and store pink noise PSD once
         nyquist_rate = self.sr / 2
         num_bins = int(nyquist_rate / 1000)  # Adjust based on desired frequency resolution
-        freqs = tf.linspace(0.0, nyquist_rate, num_bins)
-        self.freqs = tf.maximum(freqs, 1e-6)  # Avoid division by zero
-        self.pink_noise_psd = 1 / tf.sqrt(self.freqs)
+        freqs = np.linspace(0.0, nyquist_rate, num_bins)
+        freqs = np.maximum(freqs, 1e-6)  # Avoid division by zero
+        pink_noise_psd = 1 / np.sqrt(self.freqs)
+
+        # Interpolate pink noise PSD to mel-frequencies
+        self.mel_pink_noise_psd = tf.constant(np.interp(mel_bins, freqs, pink_noise_psd))
 
     def call(self, inputs, training=None):
         """
@@ -49,12 +52,9 @@ class MelSpectrogramAugmenter(tf.keras.layers.Layer):
         if not training:
             return inputs
 
-        # Interpolate pink noise PSD to mel-frequencies
-        mel_pink_noise_psd = tf.interp(self.mel_bins, self.freqs, self.pink_noise_psd)
-
         # Generate pink noise
         pink_noise = tf.random.normal(shape=inputs.shape, mean=0.0, stddev=1.0)
-        pink_noise *= mel_pink_noise_psd[None, :]
+        pink_noise *= self.mel_pink_noise_psd[None, :]
 
         # Generate white noise
         white_noise = tf.random.normal(shape=inputs.shape, mean=0.0, stddev=1.0)

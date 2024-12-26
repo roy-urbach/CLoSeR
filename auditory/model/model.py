@@ -13,7 +13,8 @@ def create_model(input_shape, name='auditory_model', encoder='TimeAgnosticMLP',
     white_noise_w = augmentation_kwargs.get('white_noise_w', 0)
     if pink_noise_w or white_noise_w:
         augmentation_kwargs['augmentations'] = [MelSpectrogramAugmenter(sr=SR, n_mels=N_FREQS, f_min=FMIN, f_max=FMAX,
-                                                                        pink_noise_factor=pink_noise_w, white_noise_factor=white_noise_w)]
+                                                                        pink_noise_factor=pink_noise_w,
+                                                                        white_noise_factor=white_noise_w)]
     labels = [eval(label) if isinstance(label, str) else label for label in labels]
     return neur_model.create_model(input_shape, name=name, encoder=encoder, labels=labels, module=module,
                                    augmentation_kwargs=augmentation_kwargs, **kwargs)
