@@ -53,11 +53,11 @@ class MelSpectrogramAugmenter(tf.keras.layers.Layer):
             return inputs
 
         # Generate pink noise
-        pink_noise = tf.random.normal(shape=inputs.shape, mean=0.0, stddev=1.0)
+        pink_noise = tf.random.normal(shape=tf.shape(inputs), mean=0.0, stddev=1.0)
         pink_noise *= self.mel_pink_noise_psd[None, :]
 
         # Generate white noise
-        white_noise = tf.random.normal(shape=inputs.shape, mean=0.0, stddev=1.0)
+        white_noise = tf.random.normal(shape=tf.shape(inputs), mean=0.0, stddev=1.0)
 
         # Add noise to the mel-spectrogram
         augmented_mel = inputs + self.pink_noise_factor * pink_noise + self.white_noise_factor * white_noise
