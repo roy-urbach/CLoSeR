@@ -1,0 +1,65 @@
+import tensorflow as tf
+import numpy as np
+
+
+class MelSpectrogramAugmenter(tf.keras.layers.Layer):
+    """
+    Applies pink and white noise augmentation directly in the mel-spectrogram domain using TensorFlow.
+
+    Args:
+        sr: Sampling rate of the audio (required for frequency calculations).
+        n_mels: Number of Mel bands.
+        f_min: Minimum frequency for Mel filterbank.
+        f_max: Maximum frequency for Mel filterbank.
+        pink_noise_factor: Factor to control the intensity of the pink noise.
+        white_noise_factor: Factor to control the intensity of the white noise.
+    """
+
+    def __init__(self, sr, n_mels, f_min, f_max, pink_noise_factor=0.05, white_noise_factor=0.02, name='spect_noise'):
+        super().__init__(name=name)
+        import librosa
+        self.sr = sr
+        self.n_mels = n_mels
+        self.f_min = f_min
+        self.f_max = f_max
+        self.pink_noise_factor = pink_noise_factor
+        self.white_noise_factor = white_noise_factor
+
+        # Calculate and store mel frequencies once
+        self.mel_bins = tf.constant(librosa.mel_frequencies(n_mels=self.n_mels, fmin=self.f_min, fmax=self.f_max),
+                                    dtype=tf.float32)
+
+        # Calculate and store pink noise PSD once
+        nyquist_rate = self.sr / 2
+        num_bins = int(nyquist_rate / 1000)  # Adjust based on desired frequency resolution
+        freqs = tf.linspace(0.0, nyquist_rate, num_bins)
+        self.freqs = tf.maximum(freqs, 1e-6)  # Avoid division by zero
+        self.pink_noise_psd = 1 / tf.sqrt(self.freqs)
+
+    def call(self, inputs, training=None):
+        """
+        Applies pink and white noise augmentation to the input mel-spectrogram.
+
+        Args:
+            inputs: Input mel-spectrogram tensor.
+
+        Returns:
+            Augmented mel-spectrogram tensor.
+        """
+        if not training:
+            return inputs
+
+        # Interpolate pink noise PSD to mel-frequencies
+        mel_pink_noise_psd = tf.interp(self.mel_bins, self.freqs, self.pink_noise_psd)
+
+        # Generate pink noise
+        pink_noise = tf.random.normal(shape=inputs.shape, mean=0.0, stddev=1.0)
+        pink_noise *= mel_pink_noise_psd[None, :]
+
+        # Generate white noise
+        white_noise = tf.random.normal(shape=inputs.shape, mean=0.0, stddev=1.0)
+
+        # Add noise to the mel-spectrogram
+        augmented_mel = inputs + self.pink_noise_factor * pink_noise + self.white_noise_factor * white_noise
+
+        return augmented_mel

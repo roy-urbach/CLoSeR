@@ -9,6 +9,9 @@ import tqdm
 
 from utils.utils import printd
 
+FMIN = 50
+FMAX = 10000
+
 
 def parse():
     parser = argparse.ArgumentParser(description='convert a bird folder of mp3 to log-melspectrogram')
@@ -22,8 +25,8 @@ def mp3_to_spect(fn,
                  window_size=1024,
                  hop_size=320,
                  mel_bins=256,
-                 fmin=50,
-                 fmax=10000,
+                 fmin=FMIN,
+                 fmax=FMAX,
                  window='hann',
                  center=True,
                  pad_mode='reflect'):
