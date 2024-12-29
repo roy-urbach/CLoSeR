@@ -309,7 +309,7 @@ class ConvNet:
 @serialize
 class SplitPathways(tf.keras.layers.Layer):
     # Receives (B, ..., S, DIM)
-    # Outputs (B, ..., d*S, N, DIM)
+    # Outputs (B, ..., d*S, P, DIM)
 
     def __init__(self, num_signals, token_per_path=False, n=2, d=0.5, intersection=True, fixed=False,
                  seed=0, class_token=True, pathway_to_cls=None, axis=-2, **kwargs):

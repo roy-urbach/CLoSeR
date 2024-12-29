@@ -16,7 +16,7 @@ class SplitPathwaysAuditory(SplitPathways):
     :return: (B, d*S, N, DIM)
     """
 
-    def __init__(self, num_units, spatial_k=1, n=2, d=0.5, intersection=True, fixed=False, seed=0, axis=-3, **kwargs):
+    def __init__(self, num_units, spatial_k=1, n=2, d=0.5, intersection=True, fixed=False, seed=0, axis=-2, **kwargs):
         if isinstance(num_units, dict):
             raise NotImplementedError()
         import warnings
@@ -24,14 +24,18 @@ class SplitPathwaysAuditory(SplitPathways):
             warnings.warn(f"num units ({num_units}) / spatial_k ({spatial_k}) isn't an int, still running")
         super().__init__(num_signals=num_units//spatial_k, n=n, d=d, intersection=intersection,
                          fixed=fixed, seed=seed, class_token=False, axis=axis, **kwargs)
-        self.num_units = num_units
+        self.units = num_units // spatial_k
+        self.full_units = num_units
         self.spatial_k = spatial_k
+        self.expected_size = int(d * self.units) * self.spatial_k
 
     def call(self, inputs, training=False):
         # (B, N, T)
-        inputs_reshape = tf.reshape(inputs, (-1, self.num_units, self.spatial_k, inputs.shape[-1])) # (B, N/K, K, T)
-        paths = super().call(inputs_reshape)    # (B, d*N/K, K, T)
-        flattened = tf.reshape(paths, (tf.shape(paths)[0], -1, inputs.shape[-1]))   # (B, d*N, T)
+        T = inputs.shape[-1]
+        inputs_reshape = tf.transpose(tf.reshape(inputs, (-1, self.num_units, self.spatial_k, T)),
+                                      [0, 2, 1, 3])  # (B, K, N/K, T)
+        paths = super().call(inputs_reshape)    # (B, K, d*N/K, P, T)
+        flattened = tf.reshape(paths, (-1, self.expected_size, self.n, T))   # (B, d*N, P, T)
         return flattened
 
 
