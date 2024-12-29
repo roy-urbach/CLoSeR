@@ -27,7 +27,7 @@ class SplitPathwaysAuditory(SplitPathways):
         self.num_units = num_units // spatial_k
         self.full_units = num_units
         self.spatial_k = spatial_k
-        self.expected_size = int(d * self.units) * self.spatial_k
+        self.expected_size = int(d * self.num_units) * self.spatial_k
 
     def call(self, inputs, training=False):
         # (B, N, T)
