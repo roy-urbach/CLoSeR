@@ -34,9 +34,9 @@ class EnsembleModel:
         self.best_CS = None
 
     def split(self, X):
-        return np.unstack(X, axis=self.ensemble_axis)
-        # return [X_single.squeeze(axis=self.ensemble_axis)
-        #         for X_single in np.split(X, X.shape[self.ensemble_axis], axis=self.ensemble_axis)]
+        # return np.unstack(X, axis=self.ensemble_axis)
+        return [X_single.squeeze(axis=self.ensemble_axis)
+                for X_single in np.split(X, X.shape[self.ensemble_axis], axis=self.ensemble_axis)]
 
     def fit_with_validation(self, X_train, y_train, X_val, y_val, X_test, y_test, voting_method=EnsembleVotingMethods.ArgmaxMeanProb, individual_ys=False):
         if not self.CS_models:
