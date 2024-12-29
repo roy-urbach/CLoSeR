@@ -24,7 +24,7 @@ class SplitPathwaysAuditory(SplitPathways):
             warnings.warn(f"num units ({num_units}) / spatial_k ({spatial_k}) isn't an int, still running")
         super().__init__(num_signals=num_units//spatial_k, n=n, d=d, intersection=intersection,
                          fixed=fixed, seed=seed, class_token=False, axis=axis, **kwargs)
-        self.units = num_units // spatial_k
+        self.num_units = num_units // spatial_k
         self.full_units = num_units
         self.spatial_k = spatial_k
         self.expected_size = int(d * self.units) * self.spatial_k
