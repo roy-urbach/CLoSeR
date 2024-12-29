@@ -34,8 +34,9 @@ class EnsembleModel:
         self.best_CS = None
 
     def split(self, X):
-        return [X_single.squeeze(axis=self.ensemble_axis)
-                for X_single in np.split(X, X.shape[self.ensemble_axis], axis=self.ensemble_axis)]
+        return np.unstack(X, axis=self.ensemble_axis)
+        # return [X_single.squeeze(axis=self.ensemble_axis)
+        #         for X_single in np.split(X, X.shape[self.ensemble_axis], axis=self.ensemble_axis)]
 
     def fit_with_validation(self, X_train, y_train, X_val, y_val, X_test, y_test, voting_method=EnsembleVotingMethods.ArgmaxMeanProb, individual_ys=False):
         if not self.CS_models:
@@ -72,8 +73,8 @@ class EnsembleModel:
                 ens_score = self.score(X_val, y_val, CS=[C]*len(self.models), voting_method=voting_method)
                 if ensemble_score_val is None or ens_score > ensemble_score_val:
                     ensemble_score_val = ens_score
-                    ensemble_score_test = self.score(X_test, y_test, voting_method=voting_method, CS=CS)
-                    ensemble_score_train = self.score(X_train, y_train, voting_method=voting_method, CS=CS)
+                    ensemble_score_test = self.score(X_test, y_test, voting_method=voting_method, CS=[C]*len(self.models))
+                    ensemble_score_train = self.score(X_train, y_train, voting_method=voting_method, CS=[C]*len(self.models))
 
             if np.unique(self.best_CS).size > 1:
                 ens_score = self.score(X_val, y_val, voting_method=voting_method)
