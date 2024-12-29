@@ -312,9 +312,10 @@ class SplitPathways(tf.keras.layers.Layer):
     # Outputs (B, ..., d*S, N, DIM)
 
     def __init__(self, num_signals, token_per_path=False, n=2, d=0.5, intersection=True, fixed=False,
-                 seed=0, class_token=True, pathway_to_cls=None, **kwargs):
+                 seed=0, class_token=True, pathway_to_cls=None, axis=-2, **kwargs):
         super(SplitPathways, self).__init__(**kwargs)
         assert intersection or (n*int(num_signals * d)) <= num_signals
+        self.axis = axis
         self.n = n
         self.seed = seed
         self.fixed = fixed
@@ -373,7 +374,7 @@ class SplitPathways(tf.keras.layers.Layer):
 
         indices = self.get_indices()
 
-        return tf.gather(inputs, indices, axis=-2, batch_dims=0)
+        return tf.gather(inputs, indices, axis=self.axis, batch_dims=0)
 
 
 class BasicRNNLayer(tf.keras.layers.Layer):

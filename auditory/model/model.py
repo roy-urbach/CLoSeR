@@ -3,8 +3,36 @@ import neuronal.model.losses as neur_losses
 from auditory.utils.consts import N_FREQS, SR
 from auditory.utils.data import Labels
 from mp3_to_spect import FMIN, FMAX
+from utils.model.layers import SplitPathways
 from utils.modules import Modules
 from utils.model.augmentations import MelSpectrogramAugmenter
+import tensorflow as tf
+
+
+class SplitPathwaysAuditory(SplitPathways):
+    """
+    Call
+    :param inputs: (B, S, T)
+    :return: (B, d*S, N, DIM)
+    """
+
+    def __init__(self, num_units, spatial_k=1, n=2, d=0.5, intersection=True, fixed=False, seed=0, axis=-3, **kwargs):
+        if isinstance(num_units, dict):
+            raise NotImplementedError()
+        import warnings
+        if num_units % spatial_k:
+            warnings.warn(f"num units ({num_units}) / spatial_k ({spatial_k}) isn't an int, still running")
+        super().__init__(num_signals=num_units//spatial_k, n=n, d=d, intersection=intersection,
+                         fixed=fixed, seed=seed, class_token=False, axis=axis, **kwargs)
+        self.num_units = num_units
+        self.spatial_k = spatial_k
+
+    def call(self, inputs, training=False):
+        # (B, N, T)
+        inputs_reshape = tf.reshape(inputs, (-1, self.num_units, self.spatial_k, inputs.shape[-1])) # (B, N/K, K, T)
+        paths = super().call(inputs_reshape)    # (B, d*N/K, K, T)
+        flattened = tf.reshape(paths, (tf.shape(paths)[0], -1, inputs.shape[-1]))   # (B, d*N, T)
+        return flattened
 
 
 def create_model(input_shape, name='auditory_model', encoder='TimeAgnosticMLP',
@@ -17,7 +45,7 @@ def create_model(input_shape, name='auditory_model', encoder='TimeAgnosticMLP',
                                                                         white_noise_factor=white_noise_w)]
     labels = [eval(label) if isinstance(label, str) else label for label in labels]
     return neur_model.create_model(input_shape, name=name, encoder=encoder, labels=labels, module=module,
-                                   augmentation_kwargs=augmentation_kwargs, **kwargs)
+                                   augmentation_kwargs=augmentation_kwargs, SplitClass=SplitPathwaysAuditory, **kwargs)
 
 
 def compile_model(model, dataset, loss=neur_losses.LPL, labels=(Labels.BIRD, ), **kwargs):

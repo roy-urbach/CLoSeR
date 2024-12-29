@@ -45,7 +45,7 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
                  ensemble_classification=True, classifier_pathways=True,
                  predictor_kwargs={}, predictor_concat=True, pred_in_readout=False,
                  augmentation_kwargs={}, encoder_kwargs={}, pathways_kwargs={}, labels=Labels, label_to_dim=None,
-                 module=Modules.NEURONAL):
+                 module=Modules.NEURONAL, SplitClass=SplitPathwaysNeuronal):
     if isinstance(kernel_regularizer, str) and kernel_regularizer.startswith("tf."):
         kernel_regularizer = eval(kernel_regularizer)
 
@@ -65,7 +65,7 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
     if classifier and not classifier_pathways:
         pathways = [augmented]
     else:
-        pathways = SplitPathwaysNeuronal(units, name='pathways', **pathways_kwargs)(augmented)  # (B, d*S, N, T)
+        pathways = SplitClass(units, name='pathways', **pathways_kwargs)(augmented)  # (B, d*S, N, T)
         pathways = tf.unstack(pathways, axis=-2)  # List[(B, d*S, T)]
 
     if random_rotations:
