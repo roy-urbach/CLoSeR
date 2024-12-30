@@ -39,6 +39,13 @@ class MelSpectrogramAugmenter(tf.keras.layers.Layer):
         # Interpolate pink noise PSD to mel-frequencies
         self.mel_pink_noise_psd = tf.constant(np.interp(mel_bins, freqs, pink_noise_psd))
 
+    def build(self, input_shape):
+        current_mel_shape_len = len(self.mel_pink_noise_psd.shape)
+        assert current_mel_shape_len <= len(input_shape)
+        while current_mel_shape_len < len(input_shape):
+            self.mel_pink_noise_psd = self.mel_pink_noise_psd[..., None]
+            current_mel_shape_len = len(self.mel_pink_noise_psd.shape)
+
     def call(self, inputs, training=None):
         """
         Applies pink and white noise augmentation to the input mel-spectrogram.
