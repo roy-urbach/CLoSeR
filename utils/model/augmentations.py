@@ -57,6 +57,7 @@ class MelSpectrogramAugmenter(tf.keras.layers.Layer):
 
         # Interpolate pink noise PSD to mel-frequencies
         self.mel_pink_noise_psd = None
+        self.gaus = tf.keras.layers.GaussianNoise(1)
 
     def build(self, input_shape):
         import librosa
@@ -83,6 +84,9 @@ class MelSpectrogramAugmenter(tf.keras.layers.Layer):
             trainable=False,
         )
 
+    def get_noise(self, shape, dtype=None):
+        return self.gaus(tf.zeros(shape, dtype=dtype))
+
     def call(self, inputs, training=None):
         """
         Applies pink and white noise augmentation to the input mel-spectrogram.
@@ -97,11 +101,11 @@ class MelSpectrogramAugmenter(tf.keras.layers.Layer):
             return inputs
 
         # Generate pink noise
-        noise = tf.random.normal(shape=tf.shape(inputs), mean=0.0, stddev=1.0, dtype=inputs.dtype)
+        noise = self.get_noise(tf.shape(inputs), dtype=inputs.dtype)
         pink_noise = noise * self.mel_pink_noise_psd[None]
 
         # Generate white noise
-        white_noise = tf.random.normal(shape=tf.shape(inputs), mean=0.0, stddev=1.0, dtype=inputs.dtype)
+        white_noise = self.get_noise(tf.shape(inputs), dtype=inputs.dtype)
 
         # Add noise to the mel-spectrogram
         augmented_mel = inputs + self.pink_noise_factor * pink_noise + self.white_noise_factor * white_noise
