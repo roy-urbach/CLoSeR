@@ -15,7 +15,7 @@ class MelSpectrogramAugmenter(tf.keras.layers.Layer):
         white_noise_factor: Factor to control the intensity of the white noise.
     """
 
-    def __init__(self, sr, n_mels, f_min, f_max, pink_noise_factor=0.05, white_noise_factor=0.02, name='spect_noise'):
+    def __init__(self, sr, n_mels, f_min, f_max, pink_noise_factor=0.05, white_noise_factor=0.02, seed=None, name='spect_noise'):
         super().__init__(name=name)
         import librosa
         self.sr = sr
@@ -39,6 +39,8 @@ class MelSpectrogramAugmenter(tf.keras.layers.Layer):
 
         # Interpolate pink noise PSD to mel-frequencies
         self.mel_pink_noise_psd = None
+
+        self.seed_generator = tf.keras.random.SeedGenerator(seed)
 
     def build(self, input_shape):
         current_mel_shape_len = len(self.mel_pink_noise_psd_numpy.shape)
@@ -66,11 +68,11 @@ class MelSpectrogramAugmenter(tf.keras.layers.Layer):
             return inputs
 
         # Generate pink noise
-        pink_noise = tf.random.normal(shape=tf.shape(inputs), mean=0.0, stddev=1.0, dtype=inputs.dtype)
-        pink_noise *= self.mel_pink_noise_psd[None]
+        noise = tf.random.normal(shape=tf.shape(inputs), mean=0.0, stddev=1.0, dtype=inputs.dtype, seed=self.seed_generator)
+        pink_noise = noise * self.mel_pink_noise_psd[None]
 
         # Generate white noise
-        white_noise = tf.random.normal(shape=tf.shape(inputs), mean=0.0, stddev=1.0, dtype=inputs.dtype)
+        white_noise = tf.random.normal(shape=tf.shape(inputs), mean=0.0, stddev=1.0, dtype=inputs.dtype, seed=self.seed_generator)
 
         # Add noise to the mel-spectrogram
         augmented_mel = inputs + self.pink_noise_factor * pink_noise + self.white_noise_factor * white_noise
