@@ -48,7 +48,7 @@ class MelSpectrogramAugmenter(tf.keras.layers.Layer):
             current_mel_shape_len = len(self.mel_pink_noise_psd_numpy.shape)
         self.mel_pink_noise_psd = self.add_weight(
             shape=self.mel_pink_noise_psd_numpy.shape,
-            initializer=lambda shape, dtype=None: self.mel_pink_noise_psd_numpy if dtype is None else tf.cast(self.mel_pink_noise_psd_numpy, dtype=dtype)),
+            initializer=lambda shape, dtype=None: self.mel_pink_noise_psd_numpy if dtype is None else tf.cast(self.mel_pink_noise_psd_numpy, dtype=dtype),
             trainable=False,
         )
 
