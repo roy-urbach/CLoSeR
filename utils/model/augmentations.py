@@ -46,7 +46,7 @@ class MelSpectrogramAugmenter(tf.keras.layers.Layer):
         white_noise_factor: Factor to control the intensity of the white noise.
     """
 
-    def __init__(self, sr, f_min, f_max, pink_noise_factor=0.05, white_noise_factor=0.02, p_pink=0.5, p_white=0.5, name='spect_noise'):
+    def __init__(self, sr, f_min, f_max, pink_noise_factor=0.05, white_noise_factor=0.02, p_pink=1, p_white=1, name='spect_noise'):
         super().__init__(name=name)
         self.sr = sr
         self.n_mels = None
