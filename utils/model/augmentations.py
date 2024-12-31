@@ -2,6 +2,37 @@ import tensorflow as tf
 import numpy as np
 
 
+def tf_interp(x, xp, fp):
+    """
+    TensorFlow equivalent of np.interp for 1D interpolation.
+
+    Args:
+        x: Query points (tensor).
+        xp: Sample points (tensor, must be sorted).
+        fp: Sample values corresponding to xp (tensor).
+
+    Returns:
+        Interpolated values at x.
+    """
+    # Find indices of the two closest points
+    idx = tf.searchsorted(xp, x, side='left')
+
+    # Clip indices to avoid out-of-bounds errors
+    idx = tf.clip_by_value(idx, 1, tf.shape(xp)[0] - 1)
+
+    # Get x0, x1, y0, y1
+    x0 = tf.gather(xp, idx - 1)
+    x1 = tf.gather(xp, idx)
+    y0 = tf.gather(fp, idx - 1)
+    y1 = tf.gather(fp, idx)
+
+    # Linear interpolation formula
+    slope = (y1 - y0) / (x1 - x0)
+    result = y0 + slope * (x - x0)
+    return result
+
+
+
 class MelSpectrogramAugmenter(tf.keras.layers.Layer):
     """
     Applies pink and white noise augmentation directly in the mel-spectrogram domain using TensorFlow.
@@ -17,7 +48,6 @@ class MelSpectrogramAugmenter(tf.keras.layers.Layer):
 
     def __init__(self, sr, n_mels, f_min, f_max, pink_noise_factor=0.05, white_noise_factor=0.02, seed=None, name='spect_noise'):
         super().__init__(name=name)
-        import librosa
         self.sr = sr
         self.n_mels = n_mels
         self.f_min = f_min
@@ -25,9 +55,14 @@ class MelSpectrogramAugmenter(tf.keras.layers.Layer):
         self.pink_noise_factor = pink_noise_factor
         self.white_noise_factor = white_noise_factor
 
+        # Interpolate pink noise PSD to mel-frequencies
+        self.mel_pink_noise_psd = None
+
+    def build(self, input_shape):
+        import librosa
+
         # Calculate and store mel frequencies once
-        mel_bins = tf.constant(librosa.mel_frequencies(n_mels=self.n_mels, fmin=self.f_min, fmax=self.f_max),
-                                    dtype=tf.float32)
+        mel_bins = librosa.mel_frequencies(n_mels=self.n_mels, fmin=self.f_min, fmax=self.f_max)
 
         # Calculate and store pink noise PSD once
         nyquist_rate = self.sr / 2
@@ -35,22 +70,16 @@ class MelSpectrogramAugmenter(tf.keras.layers.Layer):
         freqs = np.linspace(0.0, nyquist_rate, num_bins)
         freqs = np.maximum(freqs, 1e-6)  # Avoid division by zero
         pink_noise_psd = 1 / np.sqrt(freqs)
-        self.mel_pink_noise_psd_numpy = np.interp(mel_bins, freqs, pink_noise_psd)
+        mel_pink_noise_psd_numpy = np.interp(mel_bins, freqs, pink_noise_psd)
 
-        # Interpolate pink noise PSD to mel-frequencies
-        self.mel_pink_noise_psd = None
-
-        self.seed_generator = tf.keras.random.SeedGenerator(seed)
-
-    def build(self, input_shape):
-        current_mel_shape_len = len(self.mel_pink_noise_psd_numpy.shape)
+        current_mel_shape_len = len(mel_pink_noise_psd_numpy.shape)
         assert current_mel_shape_len <= len(input_shape)
         while current_mel_shape_len < len(input_shape):
-            self.mel_pink_noise_psd_numpy = self.mel_pink_noise_psd_numpy[..., None]
-            current_mel_shape_len = len(self.mel_pink_noise_psd_numpy.shape)
+            mel_pink_noise_psd_numpy = mel_pink_noise_psd_numpy[..., None]
+            current_mel_shape_len = len(mel_pink_noise_psd_numpy.shape)
         self.mel_pink_noise_psd = self.add_weight(
-            shape=self.mel_pink_noise_psd_numpy.shape,
-            initializer=lambda shape, dtype=None: self.mel_pink_noise_psd_numpy if dtype is None else tf.cast(self.mel_pink_noise_psd_numpy, dtype=dtype),
+            shape=mel_pink_noise_psd_numpy.shape,
+            initializer=lambda shape, dtype=None: mel_pink_noise_psd_numpy if dtype is None else tf.cast(mel_pink_noise_psd_numpy, dtype=dtype),
             trainable=False,
         )
 
@@ -68,11 +97,11 @@ class MelSpectrogramAugmenter(tf.keras.layers.Layer):
             return inputs
 
         # Generate pink noise
-        noise = tf.random.normal(shape=tf.shape(inputs), mean=0.0, stddev=1.0, dtype=inputs.dtype, seed=self.seed_generator)
+        noise = tf.random.normal(shape=tf.shape(inputs), mean=0.0, stddev=1.0, dtype=inputs.dtype)
         pink_noise = noise * self.mel_pink_noise_psd[None]
 
         # Generate white noise
-        white_noise = tf.random.normal(shape=tf.shape(inputs), mean=0.0, stddev=1.0, dtype=inputs.dtype, seed=self.seed_generator)
+        white_noise = tf.random.normal(shape=tf.shape(inputs), mean=0.0, stddev=1.0, dtype=inputs.dtype)
 
         # Add noise to the mel-spectrogram
         augmented_mel = inputs + self.pink_noise_factor * pink_noise + self.white_noise_factor * white_noise
