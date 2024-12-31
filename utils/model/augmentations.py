@@ -35,16 +35,22 @@ class MelSpectrogramAugmenter(tf.keras.layers.Layer):
         freqs = np.linspace(0.0, nyquist_rate, num_bins)
         freqs = np.maximum(freqs, 1e-6)  # Avoid division by zero
         pink_noise_psd = 1 / np.sqrt(freqs)
+        self.mel_pink_noise_psd_numpy = np.interp(mel_bins, freqs, pink_noise_psd)
 
         # Interpolate pink noise PSD to mel-frequencies
-        self.mel_pink_noise_psd = tf.constant(np.interp(mel_bins, freqs, pink_noise_psd))
+        self.mel_pink_noise_psd = None
 
     def build(self, input_shape):
-        current_mel_shape_len = len(self.mel_pink_noise_psd.shape)
+        current_mel_shape_len = len(self.mel_pink_noise_psd_numpy.shape)
         assert current_mel_shape_len <= len(input_shape)
         while current_mel_shape_len < len(input_shape):
-            self.mel_pink_noise_psd = self.mel_pink_noise_psd[..., None]
-            current_mel_shape_len = len(self.mel_pink_noise_psd.shape)
+            self.mel_pink_noise_psd_numpy = self.mel_pink_noise_psd_numpy[..., None]
+            current_mel_shape_len = len(self.mel_pink_noise_psd_numpy.shape)
+        self.mel_pink_noise_psd = self.add_weight(
+            shape=self.mel_pink_noise_psd_numpy.shape,
+            initializer=lambda *args: self.mel_pink_noise_psd,
+            trainable=False,
+        )
 
     def call(self, inputs, training=None):
         """
