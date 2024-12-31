@@ -60,6 +60,7 @@ class MelSpectrogramAugmenter(tf.keras.layers.Layer):
         self.gaus = tf.keras.layers.GaussianNoise(1)
 
     def build(self, input_shape):
+        print(input_shape)
         import librosa
 
         # Calculate and store mel frequencies once
