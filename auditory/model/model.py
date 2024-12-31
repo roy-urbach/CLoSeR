@@ -44,7 +44,7 @@ def create_model(input_shape, name='auditory_model', encoder='TimeAgnosticMLP',
     pink_noise_w = augmentation_kwargs.get('pink_noise_w', 0)
     white_noise_w = augmentation_kwargs.get('white_noise_w', 0)
     if pink_noise_w or white_noise_w:
-        augmentation_kwargs['augmentations'] = [MelSpectrogramAugmenter(sr=SR, n_mels=N_FREQS, f_min=FMIN, f_max=FMAX,
+        augmentation_kwargs['augmentations'] = [MelSpectrogramAugmenter(sr=SR, f_min=FMIN, f_max=FMAX,
                                                                         pink_noise_factor=pink_noise_w,
                                                                         white_noise_factor=white_noise_w)]
     labels = [eval(label) if isinstance(label, str) else label for label in labels]
