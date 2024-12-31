@@ -46,10 +46,10 @@ class MelSpectrogramAugmenter(tf.keras.layers.Layer):
         white_noise_factor: Factor to control the intensity of the white noise.
     """
 
-    def __init__(self, sr, n_mels, f_min, f_max, pink_noise_factor=0.05, white_noise_factor=0.02, seed=None, name='spect_noise'):
+    def __init__(self, sr, f_min, f_max, pink_noise_factor=0.05, white_noise_factor=0.02, seed=None, name='spect_noise'):
         super().__init__(name=name)
         self.sr = sr
-        self.n_mels = n_mels
+        self.n_mels = None
         self.f_min = f_min
         self.f_max = f_max
         self.pink_noise_factor = pink_noise_factor
@@ -60,7 +60,10 @@ class MelSpectrogramAugmenter(tf.keras.layers.Layer):
         self.gaus = tf.keras.layers.GaussianNoise(1)
 
     def build(self, input_shape):
-        print(input_shape)
+        actual_shape = input_shape[1:]
+        dims = len(actual_shape)
+        self.n_mels = actual_shape[0]
+
         import librosa
 
         # Calculate and store mel frequencies once
@@ -74,11 +77,10 @@ class MelSpectrogramAugmenter(tf.keras.layers.Layer):
         pink_noise_psd = 1 / np.sqrt(freqs)
         mel_pink_noise_psd_numpy = np.interp(mel_bins, freqs, pink_noise_psd)
 
-        current_mel_shape_len = len(mel_pink_noise_psd_numpy.shape)
-        assert current_mel_shape_len <= len(input_shape)
-        while current_mel_shape_len < len(input_shape):
+        assert len(mel_pink_noise_psd_numpy.shape) <= dims
+        while len(mel_pink_noise_psd_numpy.shape) < dims:
             mel_pink_noise_psd_numpy = mel_pink_noise_psd_numpy[..., None]
-            current_mel_shape_len = len(mel_pink_noise_psd_numpy.shape)
+
         self.mel_pink_noise_psd = self.add_weight(
             shape=mel_pink_noise_psd_numpy.shape,
             initializer=lambda shape, dtype=None: mel_pink_noise_psd_numpy if dtype is None else tf.cast(mel_pink_noise_psd_numpy, dtype=dtype),
