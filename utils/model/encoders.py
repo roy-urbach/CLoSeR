@@ -211,7 +211,7 @@ class TemporalConvNet:
                     tf.keras.layers.MaxPooling1D(pool_size=2, strides=2, name=name + f"_maxpool{i}",
                                                  data_format=data_format)
                 )
-        self.global_avg_pool = tf.keras.layers.GlobalAveragePooling1D(name=name + "_avgpool", )
+        self.global_avg_pool = tf.keras.layers.GlobalAveragePooling1D(name=name + "_avgpool", data_format=data_format)
         self.flatten = tf.keras.layers.Flatten(name=name + "_flatten", activity_regularizer=None if out_linear else out_regularizer)
         self.output_layer = tf.keras.layers.Dense(out_dim, name=name + "_out",
                                                   kernel_regularizer=kernel_regularizer,
