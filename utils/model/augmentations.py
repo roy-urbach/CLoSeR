@@ -91,7 +91,7 @@ class MelSpectrogramAugmenter(tf.keras.layers.Layer):
     def get_noise(self, shape, p=1., dtype=None):
         noise = tf.random.normal(shape, dtype=dtype, mean=0, stddev=1)
         if p < 1.:
-            noise = tf.cast(tf.random.rand(shape[0]) <= p, dtype=noise.dtype) * noise
+            noise = tf.cast(tf.random.uniform(shape[0], maxval=1.) <= p, dtype=noise.dtype) * noise
         return noise
 
     def call(self, inputs, training=None):
