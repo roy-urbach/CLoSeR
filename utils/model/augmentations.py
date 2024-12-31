@@ -84,8 +84,10 @@ class MelSpectrogramAugmenter(tf.keras.layers.Layer):
             trainable=False,
         )
 
+        self.zeros = self.add_weight(shape=input_shape, initializer='zeros', trainable=False)
+
     def get_noise(self, shape, dtype=None):
-        return self.gaus(tf.zeros(shape, dtype=dtype))
+        return self.gaus(tf.tile(self.zeros[None], [shape[0]] + [1] * len(self.zeros.shape)))
 
     def call(self, inputs, training=None):
         """
