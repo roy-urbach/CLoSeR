@@ -151,7 +151,7 @@ class BirdGenerator(GeneratorDataset):
             self.num_spects = np.array([len(self.spects[bird]) for bird in self.birds])
 
     def get_config(self):
-        return dict(**super().get_config(), birds=self.birds, bins_per_sample=self.bins_per_sample)
+        return dict(**super().get_config(), birds=self.birds, bins_per_sample=self.bins_per_sample, normalize=self.normalize)
 
     def __iter__(self):
         while True:
