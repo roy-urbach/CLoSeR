@@ -931,7 +931,7 @@ class LPL(tf.keras.losses.Loss):
 
         if push_w:
             if logpush:
-                push_mse = tf.math.log(mse)
+                push_mse = tf.math.log(tf.maximum(mse, 1e-6))
             else:
                 push_mse = mse
             push_loss = tf.tensordot(push_mse, tf.cast(self.pullpush_graph[1], dtype=embd.dtype), axes=[[0,1], [0,1]])
