@@ -38,7 +38,7 @@ class SplitPathwaysNeuronal(SplitPathways):
 
 
 def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
-                 classifier=False, l2=False, kernel_regularizer=None,
+                 classifier=False, l2=False, kernel_regularizer=None, kernel_regularizer_sup=None,
                  encoder='BasicRNN', encoder_per_path=False, random_rotation=False, random_rotations=False,
                  pathway_classification=True, pathway_classification_allpaths=False,
                  ensemble_classification=True, classifier_pathways=True,
@@ -156,7 +156,8 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
                 if label_to_dim is not None and label.value.name in label_to_dim:
                     dim = label_to_dim[label.value.name]
                 pathway_logits = layers.Dense(dim, activation=None,
-                                              kernel_regularizer=kernel_regularizer, name=cur_name)(cur_embd)
+                                              kernel_regularizer=kernel_regularizer_sup if kernel_regularizer_sup else kernel_regularizer,
+                                              name=cur_name)(cur_embd)
                 outputs.append(pathway_logits)
     if ensemble_classification:
         for label in labels:
@@ -166,7 +167,7 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
                 dim = label_to_dim[label.value.name]
             ens_pred = layers.Dense(dim,
                                     activation=None,
-                                    kernel_regularizer=kernel_regularizer,
+                                    kernel_regularizer=kernel_regularizer_sup if kernel_regularizer_sup else kernel_regularizer,
                                     name=f'ensemble_logits_{label.value.name}')(ens_inp)
             outputs.append(ens_pred)
 
