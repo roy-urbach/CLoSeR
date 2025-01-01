@@ -53,7 +53,7 @@ def measure_model(model, module:Modules, iterations=50, b=128):
     if issubclass(dataset.__class__, GeneratorDataset):
         dataset = dataset.to_regular_dataset()
     test_embd = model.predict(dataset.get_x_test())[0]
-    if module == Modules.NEURONAL:
+    if module in (Modules.NEURONAL, Modules.AUDITORY):
         encoder_removed_bins = model.get_layer("pathways").output_shape[-1] != model.get_layer("embedding").output_shape[1]
         if encoder_removed_bins:
             last_step_embedding = test_embd[:, -1]
