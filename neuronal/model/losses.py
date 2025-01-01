@@ -914,8 +914,8 @@ class LPL(tf.keras.losses.Loss):
             pull_graph = (tf.random.uniform(shape=(num_pathways, num_pathways), maxval=1) < ppull) & ~tf.eye(num_pathways, dtype=tf.bool)
             if push_w:
                 push_graph = ~pull_graph & ~tf.eye(num_pathways, dtype=tf.bool)
-            self.pullpush_graph = [tf.cast(pull_graph, tf.float64) / num_pathways * (num_pathways - 1),
-                                   tf.cast(push_graph, tf.float64) / num_pathways * (num_pathways - 1) if push_w else None]
+            self.pullpush_graph = [tf.cast(pull_graph, tf.float64) / (num_pathways * (num_pathways - 1)),
+                                   tf.cast(push_graph, tf.float64) / (num_pathways * (num_pathways - 1)) if push_w else None]
 
     def pullpush(self, embd, pull_w=1, push_w=1, logpush=False, **kwargs):
         # (B, DIM, P)
