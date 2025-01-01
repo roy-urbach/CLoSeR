@@ -1,3 +1,4 @@
+from utils.data import GeneratorDataset
 from utils.model.model import load_model_from_json
 from utils.modules import Modules
 from utils.io_utils import load_json, save_json, get_file_time
@@ -47,9 +48,10 @@ def measure_model(model, module:Modules, iterations=50, b=128):
 
     if isinstance(model, str):
         model = load_model_from_json(model, module)
-
     kwargs = module.load_json(model.name, config=True)
     dataset = module.get_class_from_data(kwargs.get('dataset', 'Cifar10'))(module=module, **kwargs.get("data_kwargs", {}))
+    if issubclass(dataset.__class__, GeneratorDataset):
+        dataset = dataset.to_regular_dataset()
     test_embd = model.predict(dataset.get_x_test())[0]
     if module == Modules.NEURONAL:
         encoder_removed_bins = model.get_layer("pathways").output_shape[-1] != model.get_layer("embedding").output_shape[1]
