@@ -911,11 +911,11 @@ class LPL(tf.keras.losses.Loss):
 
     def set_pullpush_graph(self, num_pathways=10, ppull=0.5, push_w=None, **kwargs):
         if self.pullpush_graph is None:
-            pull_w = (tf.random.uniform(shape=(num_pathways, num_pathways), maxval=1) < ppull) & ~tf.eye(num_pathways, dtype=tf.bool)
+            pull_graph = (tf.random.uniform(shape=(num_pathways, num_pathways), maxval=1) < ppull) & ~tf.eye(num_pathways, dtype=tf.bool)
             if push_w:
-                push_w = ~pull_w & ~tf.eye(num_pathways, dtype=tf.bool)
-            self.pullpush_graph = [tf.cast(pull_w, tf.float64) / num_pathways * (num_pathways - 1) * 2,
-                                   tf.cast(push_w, tf.float64) / num_pathways * (num_pathways - 1) * 2 if push_w else None]
+                push_graph = ~pull_graph & ~tf.eye(num_pathways, dtype=tf.bool)
+            self.pullpush_graph = [tf.cast(pull_graph, tf.float64) / num_pathways * (num_pathways - 1) * 2,
+                                   tf.cast(push_graph, tf.float64) / num_pathways * (num_pathways - 1) * 2 if push_w else None]
 
     def pullpush(self, embd, pull_w=1, push_w=1, logpush=False, **kwargs):
         # (B, DIM, P)
