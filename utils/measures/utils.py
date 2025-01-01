@@ -50,15 +50,17 @@ def measure_model(model, module:Modules, iterations=50, b=128):
         model = load_model_from_json(model, module)
     kwargs = module.load_json(model.name, config=True)
     dataset = module.get_class_from_data(kwargs.get('dataset', 'Cifar10'))(module=module, **kwargs.get("data_kwargs", {}))
+    bins_per_frame = dataset.bins_per_frame if hasattr(dataset, 'bins_per_frame') else (
+        dataset.bins_per_sample if hasattr(dataset, 'bins_per_sample') else None)
     if issubclass(dataset.__class__, GeneratorDataset):
         dataset = dataset.to_regular_dataset()
     test_embd = model.predict(dataset.get_x_test())[0]
+
     if module in (Modules.NEURONAL, Modules.AUDITORY):
         encoder_removed_bins = model.get_layer("pathways").output_shape[-1] != model.get_layer("embedding").output_shape[1]
         if encoder_removed_bins:
             last_step_embedding = test_embd[:, -1]
         else:
-            bins_per_frame = dataset.bins_per_frame
             last_step_embedding = test_embd[:, -bins_per_frame:]  # (B, bins_per_frame, DIM, P)
             last_step_embedding = last_step_embedding.reshape(last_step_embedding.shape[0],
                                                               last_step_embedding.shape[-2] * bins_per_frame,
