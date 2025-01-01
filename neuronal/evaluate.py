@@ -116,11 +116,11 @@ def evaluate_predict(dct, masked_ds, masked_ds_union, embd_alltime_noflat_ds, en
 
 def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labels.STIMULUS], simple_norm=False,
              knn=False, linear=True, ensemble=True, save_results=False, override=False, override_linear=False,
-             override_predict=False, inp=True, ks=[1] + list(range(5, 21, 5)),
+             override_predict=False, inp=True, ks=[1] + list(range(5, 21, 5)), model_kwargs=None,
              predict=False, only_input=False, pcs=[32, 64], generator_n_kwargs={}, **kwargs):
 
     if isinstance(model, str):
-        model_kwargs = module.load_json(model, config=True)
+        model_kwargs = module.load_json(model, config=True) if model_kwargs is None else model_kwargs
         assert model_kwargs is not None
         printd("loading model...", end='\t')
         model = load_model_from_json(model, module, load=not only_input)
@@ -132,7 +132,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
                 dataset = dataset.to_regular_dataset(**generator_n_kwargs)
             printd("done")
     else:
-        model_kwargs = module.load_json(model.name, config=True)
+        model_kwargs = module.load_json(model.name, config=True) if model_kwargs is None else model_kwargs
     assert dataset is not None
 
     bins_per_frame = model.bins_per_frame if hasattr(model, "bins_per_frame") else (dataset.bins_per_frame if hasattr(dataset, 'bins_per_frame') else 1)
