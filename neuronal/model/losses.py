@@ -682,6 +682,7 @@ class NonLocalContrastive(tf.keras.losses.Loss):
 class LPL(tf.keras.losses.Loss):
     def __init__(self, cont_w=1, std_w=1, corr_w=10, cross_w=None, wcross_w=None, vjepa_w=None,
                  dino_w=None, cov_sqr=True, alpha=0.1, l1=False, pe_w=None, pe_w_absolute=False,
+                 pullpush_w=None, pullpush_kwargs={},
                  cross_cov_w=None, local=True, center=False, eps=1e-4, name='LPL', flatten_paths=False, crosspred_w=None):
         super().__init__(name=name)
         self.eps = streval(eps)
@@ -706,6 +707,9 @@ class LPL(tf.keras.losses.Loss):
         self.wcross_w = wcross_w
         self.cross_cov_w = cross_cov_w
         self.crosspred_w = crosspred_w
+        self.pullpush_w = pullpush_w
+        self.pullpush_kwargs = pullpush_kwargs
+        self.pullpush_graph = None
 
         losses = []
         if self.cont_w:
@@ -725,6 +729,10 @@ class LPL(tf.keras.losses.Loss):
             losses.append("dino")
         if self.crosspred_w:
             losses.append("crosspred")
+        if self.pullpush_w:
+            self.set_pullpush_graph(**self.pullpush_kwargs)
+            losses.append("pull")
+            losses.append("push")
         self.monitor = LossMonitors(*losses, name="")
 
     def update_estimation(self, x):
@@ -901,6 +909,37 @@ class LPL(tf.keras.losses.Loss):
         crosspred_loss = tf.reduce_mean(tf.reduce_mean(dist, axis=(0, 1))[~tf.eye(embd.shape[-1], dtype=tf.bool)])
         return crosspred_loss
 
+    def set_pullpush_graph(self, num_pathways=10, ppull=0.5, push_w=None, **kwargs):
+        if self.pullpush_graph is None:
+            pull_w = (tf.random.uniform(shape=(num_pathways, num_pathways), maxval=1) < ppull) & ~tf.eye(num_pathways, dtype=tf.bool)
+            if push_w:
+                push_w = ~pull_w & ~tf.eye(num_pathways, dtype=tf.bool)
+            self.pullpush_graph = [tf.cast(pull_w, tf.float64) / num_pathways * (num_pathways - 1) * 2,
+                                   tf.cast(push_w, tf.float64) / num_pathways * (num_pathways - 1) * 2 if push_w else None]
+
+    def pullpush(self, embd, pull_w=1, push_w=1, logpush=False, **kwargs):
+        # (B, DIM, P)
+        total_loss = 0.
+
+        embd_i = embd
+        embd_j = tf.stop_gradient(embd)
+        mse = tf.reduce_mean((embd_i[..., None] - embd_j[..., None, :])**2, axis=(0, 1))    # (P, P)
+        if pull_w:
+            pull_loss = tf.tensordot(mse, tf.cast(self.pullpush_graph[0], dtype=embd.dtype), axes=[[0,1], [0,1]])
+            total_loss = total_loss + pull_w * pull_loss
+            self.monitor.update_monitor("pull", pull_loss)
+
+        if push_w:
+            if logpush:
+                push_mse = tf.math.log(logpush)
+            else:
+                push_mse = mse
+            push_loss = tf.tensordot(push_mse, tf.cast(self.pullpush_graph[1], dtype=embd.dtype), axes=[[0,1], [0,1]])
+            total_loss = total_loss + push_w * push_loss
+            self.monitor.update_monitor("push", push_loss)
+
+        return total_loss
+
     def call(self, y_true, y_pred):
         # (B, T, DIM, P)
         if self.flatten_paths:
@@ -951,6 +990,8 @@ class LPL(tf.keras.losses.Loss):
                                                   embd2=None if not self.crosspred_w else tf.stop_gradient(embd))
         if self.crosspred_w and not self.dino_w:
             loss = loss + self.crosspred_w * crosspred_loss
+        if self.pullpush_w:
+            loss = loss + self.pullpush_w * self.pullpush(embd, **self.pullpush_kwargs)
         return loss
 
 
@@ -984,4 +1025,3 @@ class CrossVJEPA(tf.keras.losses.Loss):
         mean_dist = tf.reduce_mean(dist, axis=0)
         mean_over_paths = tf.reduce_mean(mean_dist[~tf.eye(last_embd.shape[-1], dtype=tf.bool)])
         return mean_over_paths
-
