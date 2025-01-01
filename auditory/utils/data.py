@@ -93,7 +93,7 @@ class BirdDataset(ComplicatedData):
 class BirdGenerator(GeneratorDataset):
     PATH = os.path.join(Modules.AUDITORY.value, 'data', 'train_spect')
 
-    def __init__(self, birds=ALL_BIRDS, bins_per_sample=32, **kwargs):
+    def __init__(self, birds=ALL_BIRDS, bins_per_sample=32, normalize=False, **kwargs):
         self.bins_per_sample = bins_per_sample
         birds = streval(birds)
         if not isinstance(birds[0], str):
@@ -105,6 +105,7 @@ class BirdGenerator(GeneratorDataset):
         self.spects = None
         self.spects_length = None
         self.num_spects = None
+        self.normalize = normalize
 
         super().__init__(**kwargs)
 
@@ -119,6 +120,11 @@ class BirdGenerator(GeneratorDataset):
 
     def get_shape(self):
         return self.spects[self.birds[0]][0].shape[0], self.bins_per_sample
+
+    def _normalize(self, spect):
+        spect -= np.nanmin(spect)
+        spect /= np.quantile(spect, 0.95)
+        return spect
 
     def _set(self):
         if self.spects is None:
@@ -140,7 +146,7 @@ class BirdGenerator(GeneratorDataset):
                     assert False, "train or val or test should be True"
 
                 self.spects[bird] = [spect.reshape(N_FREQS, -1) for i, spect in enumerate(self.spects[bird]) if mask[i]]
-                self.spects[bird] = [spect for spect in self.spects[bird] if spect.shape[-1] > self.bins_per_sample]
+                self.spects[bird] = [self._normalize(spect) if self.normalize else spect for spect in self.spects[bird] if spect.shape[-1] > self.bins_per_sample]
                 self.spects_length[bird] = np.array([spect.shape[-1] for spect in self.spects[bird]])
             self.num_spects = np.array([len(self.spects[bird]) for bird in self.birds])
 
