@@ -117,7 +117,7 @@ def evaluate_predict(dct, masked_ds, masked_ds_union, embd_alltime_noflat_ds, en
 def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labels.STIMULUS], simple_norm=False,
              knn=False, linear=True, ensemble=True, save_results=False, override=False, override_linear=False,
              override_predict=False, inp=True, ks=[1] + list(range(5, 21, 5)), model_kwargs=None,
-             predict=False, only_input=False, pcs=[32, 64], generator_n_kwargs={}, **kwargs):
+             predict=False, only_input=False, pcs=[32, 64], generator_n_kwargs={}, alltime=None, **kwargs):
 
     if isinstance(model, str):
         model_kwargs = module.load_json(model, config=True) if model_kwargs is None else model_kwargs
@@ -219,7 +219,8 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
         results = {}
 
     save_res = lambda *inputs: module.save_evaluation_json(model.name, results) if save_results else None
-    alltime = (hasattr(dataset, "frames_per_sample") and dataset.frames_per_sample > 1) or (issubclass(dataset.__class__, TemporalData) and dataset.samples_per_example > 1)
+    if alltime is None:
+        alltime = (hasattr(dataset, "frames_per_sample") and dataset.frames_per_sample > 1) or (issubclass(dataset.__class__, TemporalData) and dataset.samples_per_example > 1)
 
     for label in labels:
         y_train = dataset.get_y_train(labels=label.value.name)
