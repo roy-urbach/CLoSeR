@@ -68,7 +68,7 @@ def get_cmd():
         dct['model_kwargs']['pathways_kwargs']['d'] = args.masking_ratio
         model_name = re.sub(r"_d0\.\d+_", f"_d{args.masking_ratio}_", model_name)
         if pretrained_model_name:
-            pretrained_model_name = re.sub(r"seed\d+", f"seed{args.seed}", pretrained_model_name)
+            pretrained_model_name = re.sub(r"_d0\.\d+_", f"_d{args.masking_ratio}_", pretrained_model_name)
 
     if pretrained_model_name:
         dct['pretrained_name'] = pretrained_model_name
