@@ -54,15 +54,24 @@ def get_cmd():
     new_config = False
     dct = module.load_json(model_name, config=True)
 
+    pretrained_model_name = dct.get("pretrained_name", None)
+
     if args.seed is not None:
         new_config = True
         dct['model_kwargs']['pathways_kwargs']['seed'] = args.seed
         model_name = re.sub(r"seed\d+", f"seed{args.seed}", model_name)
+        if pretrained_model_name:
+            pretrained_model_name = re.sub(r"seed\d+", f"seed{args.seed}", pretrained_model_name)
 
     if args.masking_ratio is not None:
         new_config = True
         dct['model_kwargs']['pathways_kwargs']['d'] = args.masking_ratio
         model_name = re.sub(r"_d0\.\d+_", f"_d{args.masking_ratio}_", model_name)
+        if pretrained_model_name:
+            pretrained_model_name = re.sub(r"seed\d+", f"seed{args.seed}", pretrained_model_name)
+
+    if pretrained_model_name:
+        dct['pretrained_name'] = pretrained_model_name
 
     if new_config:
         module.save_json(model_name, dct, config=True)
