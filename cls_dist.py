@@ -80,7 +80,7 @@ if __name__ == "__main__":
 
     kwargs = unknown_args_to_dict(unknown_args, warning=True)
 
-    model_name = args.model
+    model_name = args.json
     module = Modules.VISION
     model = load_model_from_json(model_name, module=module)
     ds = Cifar10()
