@@ -229,7 +229,7 @@ def gather_results_over_all_args_pathways_mean(model_format, args, module=Module
 
 
 def plot_lines_different_along_d(model_format, module:Modules, seeds, args, ds, name="logistic", save=False, measure=False, mask=None,
-                                 arg=None, mean=False, legend=True, fig=None, c_shift=0, train=False, baseline=0.41, **kwargs):
+                                 arg=None, mean=False, legend=True, fig=None, c_shift=0, train=False, baseline=0.41, sem=False, **kwargs):
     if isinstance(args, str):
         args = eval(args)
     if isinstance(ds, str):
@@ -260,7 +260,11 @@ def plot_lines_different_along_d(model_format, module:Modules, seeds, args, ds, 
                                                                                          for s in range(res.shape[2])], axis=0)
                                                                                for i_d in range(len(res[ind]))], axis=0)
                 mean = np.nanmean(relevant_part, axis=(-2, -1))
-                CI = stats.norm.interval(0.975, loc=mean, scale=np.nanstd(relevant_part, ddof=1, axis=(-2, -1)) / np.sqrt(np.sum(~np.isnan(relevant_part), axis=(-2, -1))))
+                std_err_mean = np.nanstd(relevant_part, ddof=1, axis=(-2, -1)) / np.sqrt(np.sum(~np.isnan(relevant_part), axis=(-2, -1)))
+                if sem:
+                    CI = mean + std_err_mean[None] * np.array([-1, 1])[..., None]
+                else:
+                    CI = stats.norm.interval(0.975, loc=mean, scale=std_err_mean)
                 plt.plot(ds, mean, label=(legend + ' ' if isinstance(legend, str) else "") + str(identity), c=f"C{ind+c_shift}")
                 if len(seeds) > 1:
                     plt.fill_between(ds, CI[0], CI[1][ind, ..., i], color=f"C{ind+c_shift}", alpha=0.3)
