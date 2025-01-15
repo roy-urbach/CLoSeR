@@ -229,7 +229,7 @@ def gather_results_over_all_args_pathways_mean(model_format, args, module=Module
 
 
 def plot_lines_different_along_d(model_format, module:Modules, seeds, args, ds, name="logistic", save=False, measure=False, mask=None,
-                                 arg=None, mean=False, legend=True, fig=None, c_shift=0, train=False, baseline=0.41, sem=False, **kwargs):
+                                 arg=None, mean=False, legend=True, fig=None, c_shift=0, train=False, baseline=0.41, sem=False, c=None, **kwargs):
     if isinstance(args, str):
         args = eval(args)
     if isinstance(ds, str):
@@ -265,22 +265,28 @@ def plot_lines_different_along_d(model_format, module:Modules, seeds, args, ds, 
                     CI = mean + std_err_mean[None] * np.array([-1, 1])[..., None]
                 else:
                     CI = stats.norm.interval(0.975, loc=mean, scale=std_err_mean)
-                plt.plot(ds, mean, label=(legend + ' ' if isinstance(legend, str) else "") + str(identity), c=f"C{ind+c_shift}")
+
+                color = f"C{ind+c_shift}" if c is None else c
+
+                plt.plot(ds, mean, label=(legend + ' ' if isinstance(legend, str) else "") + str(identity), c=color)
                 if len(seeds) > 1:
-                    plt.fill_between(ds, CI[0], CI[1][ind, ..., i], color=f"C{ind+c_shift}", alpha=0.3)
+                    plt.fill_between(ds, CI[0], CI[1][ind, ..., i], color=color, alpha=0.3)
         else:
+            color = f"C{c_shift}" if c is None else c
             relevant_part = res[..., i] if not measure else np.stack([np.stack([res[i_d, s][mask if mask is not None else ~np.eye(res.shape[-1], dtype=bool)]
                                                                                 for s in range(res.shape[1])], axis=0)
                                                                       for i_d in range(len(res))], axis=0)
             over_axes = (-2, -1) if measure else (-1, )
             mean = np.nanmean(relevant_part, axis=over_axes)
-            CI = stats.norm.interval(0.975, loc=mean, scale=np.nanstd(relevant_part, ddof=1, axis=over_axes) / np.sqrt(
-                np.sum(~np.isnan(relevant_part), axis=over_axes)))
+            std_err_mean = np.nanstd(relevant_part, ddof=1, axis=over_axes) / np.sqrt(np.sum(~np.isnan(relevant_part), axis=over_axes))
+            if sem:
+                CI = mean + std_err_mean[None] * np.array([-1, 1])[..., None]
+            else:
+                CI = stats.norm.interval(0.975, loc=mean, scale=std_err_mean)
 
-            plt.plot(ds, mean, label=(legend + ' ') if isinstance(legend, str) else "",
-                     c=f"C{c_shift}")
+            plt.plot(ds, mean, label=(legend + ' ') if isinstance(legend, str) else "", c=color)
             if len(seeds) > 1:
-                plt.fill_between(ds, CI[0], CI[1], color=f"C{c_shift}", alpha=0.3)
+                plt.fill_between(ds, CI[0], CI[1], color=color, alpha=0.3)
         if i:
             plt.xlabel('d')
         else:
