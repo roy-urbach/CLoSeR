@@ -65,7 +65,7 @@ def violinplot_with_CI(arr, x, c='C0', widths=0.5, bar=False, scatter=False, **k
     CI = np.abs(scipy.stats.t.ppf(0.025, n - 1) * std / np.sqrt(n))
     plt.errorbar([x], mean, yerr=CI, marker='o', capsize=10, c=c)
     if scatter:
-        plt.scatter(x, arr, alpha=kwargs.get("alpha", 0.8), c=c)
+        plt.scatter(np.full_like(arr, x), arr, alpha=kwargs.get("alpha", 0.8), c=c)
 
 
 def multiviolin(arr, xshift=0, xs=None, fig=None, **kwargs):
