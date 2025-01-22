@@ -158,3 +158,25 @@ def plot_CDF(arr, xlabel=None, **kwargs):
     plt.ylabel("CDF")
     if xlabel:
         plt.xlabel(xlabel)
+
+
+def pvalue_to_str(p):
+    string = ''
+    if p < 0.05:
+        string += '*'
+    if p < 0.01:
+        string += '*'
+    if p < 1e-3:
+        string += '*'
+    return string
+
+
+def plot_significance(x1, x2, y, p, dist=0.1, ax=None, **kwargs):
+    string = pvalue_to_str(p)
+    if ax is None:
+        ax = plt
+    if string:
+        ax.plot([x1, x2], [y]*2, c='k', **kwargs)
+        ax.plot([x1]*2, [y-dist, y], c='k', **kwargs)
+        ax.plot([x2]*2, [y-dist, y], c='k', **kwargs)
+        ax.text((x1+x2)/2, y + dist, string, ha='center', va='center')
