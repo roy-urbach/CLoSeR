@@ -52,7 +52,7 @@ def savefig(fn):
     print(f"saved figure as {fn}")
 
 
-def violinplot_with_CI(arr, x, c='C0', widths=0.5, bar=False, scatter=False, **kwargs):
+def violinplot_with_CI(arr, x, c='C0', widths=0.5, bar=False, scatter=False, sem=False, **kwargs):
     if bar:
        plt.bar(x, arr.mean(), color=c, **kwargs)
     else:
@@ -62,7 +62,11 @@ def violinplot_with_CI(arr, x, c='C0', widths=0.5, bar=False, scatter=False, **k
     mean = arr.mean()
     std = arr.std(ddof=1)
     n = arr.size
-    CI = np.abs(scipy.stats.t.ppf(0.025, n - 1) * std / np.sqrt(n))
+    SEM = std / np.sqrt(n)
+    if sem:
+        CI = SEM
+    else:
+        CI = np.abs(scipy.stats.t.ppf(0.025, n - 1) * SEM)
     plt.errorbar([x], mean, yerr=CI, marker='o', capsize=10, c=c)
     if scatter:
         plt.scatter(np.full_like(arr, x), arr, alpha=kwargs.get("alpha", 0.8), c=c)
