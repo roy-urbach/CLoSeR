@@ -68,13 +68,13 @@ def violinplot_with_CI(arr, x, c='C0', widths=0.5, bar=False, scatter=False, **k
         plt.scatter(np.full_like(arr, x), arr, alpha=kwargs.get("alpha", 0.8), c=c)
 
 
-def multiviolin(arr, xshift=0, xs=None, fig=None, **kwargs):
+def multiviolin(arr, xshift=0, xs=None, fig=None, c=None, **kwargs):
     if fig is None:
         fig = plt.figure()
     for i in range(len(arr)):
         if (isinstance(arr[i], np.ndarray) and arr[i].size) or (not isinstance(arr[i], np.ndarray) and arr):
             if np.isnan(arr[i]).all(): continue
-            violinplot_with_CI(arr[i][~np.isnan(arr[i])], [i + xshift] if xs is None else xs[i], c=f"C{i}", **kwargs)
+            violinplot_with_CI(arr[i][~np.isnan(arr[i])], [i + xshift] if xs is None else xs[i], c=f"C{i}" if c is None else c, **kwargs)
 
 
 def dct_to_multiviolin(dct, rotation=0, xs=None, **kwargs):
