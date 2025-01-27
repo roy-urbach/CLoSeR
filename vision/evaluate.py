@@ -126,8 +126,8 @@ def evaluate_k(model, module, k, repeats, **kwargs):
     from utils.evaluation.evaluation import classify_head_eval
     results = {}
     for rep in counter(range(repeats)):
-        chosen_ps = np.random.permutation(P)[:k]
-        results.setdefault('k', []).append(list(chosen_ps))
+        chosen_ps = np.random.permutation(P)[:k].astype(np.int32)
+        results.setdefault('k', []).append([int(num) for num in chosen_ps])
         cur_ds = Data(embd_dataset.get_x_train()[..., chosen_ps], dataset.get_y_train(),
                       embd_dataset.get_x_test()[..., chosen_ps], dataset.get_y_test(),
                       x_val=embd_dataset.get_x_val()[..., chosen_ps], y_val=dataset.get_y_val(), normalize=False)
