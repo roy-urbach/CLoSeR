@@ -100,7 +100,7 @@ def evaluate_subset_main():
             f.write("Yes!")
 
     try:
-        evaluate_k(args.json, module=module, k=args.k, repeats=args.repeats)
+        evaluate_k(args.json, module=module, k=args.k_pathways, repeats=args.repeats)
     finally:
         os.remove(evaluating_fn)
 
