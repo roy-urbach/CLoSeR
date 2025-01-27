@@ -26,11 +26,11 @@ def get_evaluation_time(model_name, raw=True):
 
 
 @Modules.add_method
-def save_evaluation_k(model_name, dct, k):
+def save_evaluation_json_k(model_name, dct, k):
     save_json(os.path.join(model_name, RESULTS_FILE_NAME_K.format(k=k)), dct)
 
 
 @Modules.add_method
-def load_evaluation_k(model_name, k):
+def load_evaluation_json_k(model_name, k):
     results = load_json(os.path.join(model_name, RESULTS_FILE_NAME_K.format(k=k)))
     return results
