@@ -87,17 +87,17 @@ def dct_to_multiviolin(dct, rotation=0, xs=None, **kwargs):
     plt.xticks(np.arange(len(keys)) if xs is None else xs, keys, rotation=rotation)
 
 
-def get_CI(arr, conf=0.975, of_the_mean=True, axis=0):
+def get_CI(arr, conf=0.975, of_the_mean=True, axis=0, sem=False):
     std = np.nanstd(arr, axis=axis, ddof=1)
     n = (~np.isnan(arr)).sum(axis=axis)
-    t = scipy.stats.t.ppf(conf, df=n - 1)
+    t = 1 if sem else scipy.stats.t.ppf(conf, df=n - 1)
     ci = std * t / (np.sqrt(n) if of_the_mean else 1)
     return ci
 
 
-def plot_with_CI(vals, x=None, label=None, fill_between=True, err=True, conf=0.975, axis=0, **kwargs):
+def plot_with_CI(vals, x=None, label=None, fill_between=True, err=True, conf=0.975, axis=0, sem=False, **kwargs):
     m = np.nanmean(vals, axis=axis)
-    ci = get_CI(vals, conf=conf, axis=axis)
+    ci = get_CI(vals, conf=conf, axis=axis, sem=sem)
     if x is None:
         x = np.arange(m.size)
     mask = ~np.isnan(m)
