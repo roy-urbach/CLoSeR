@@ -34,6 +34,9 @@ class Modules(Enum):
     def evaluate(self, *args, **kwargs):
         return import_variable(self.value, "evaluate", "evaluate")(*args, **kwargs)
 
+    def evaluate_k(self, *args, **kwargs):
+        return import_variable(self.value, "evaluate", "evaluate_k")(*args, **kwargs)
+
     def get_label(self, label):
         if isinstance(label, str):
             return import_variable(self.value + "/utils", "data", "Labels").get(label)
