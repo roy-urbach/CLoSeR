@@ -6,5 +6,6 @@ def run():
     from utils.io_utils import load_json, save_json, load_output, get_file_time, get_output_time
     from utils.measures.utils import load_measures_json, save_measures_json, get_measuring_time
     from utils.tf_utils import load_checkpoint, history_fn_name, load_history
+    from evaluate_subset import save_evaluation_k, load_evaluation_k
 
     return
