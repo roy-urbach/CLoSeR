@@ -67,9 +67,9 @@ class ContrastiveSoftmaxLoss(Loss):
         reduce_f = tf.reduce_mean if mean else tf.reduce_sum
         if stop_grad:
             if self_only:
-                dist = reduce_f(tf.pow(embedding[:, None] - tf.stop_gradient(embedding)[None, :], 2), axis=2)
+                dist = reduce_f(tf.pow(tf.stop_gradient(embedding[:, None]) - embedding[None, :], 2), axis=2)
             else:
-                dist = reduce_f(tf.pow(embedding[:, None, ..., :, None] - tf.stop_gradient(embedding)[None, :, ..., None, :], 2),
+                dist = reduce_f(tf.pow(tf.stop_gradient(embedding[:, None, ..., :, None]) - embedding[None, :, ..., None, :], 2),
                                      axis=2)
         else:
             if self_only:
