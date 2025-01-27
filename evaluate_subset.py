@@ -26,7 +26,7 @@ def evaluate_subset_main():
     module = Modules.get_module(args.module)
     if module != Modules.VISION:
         raise NotImplementedError("didn't implement it for non-vision tasks yet")
-    evaluating_fn = os.path.join(module.get_models_path(), args.json, 'is_evaluating_k')
+    evaluating_fn = os.path.join(module.get_models_path(), args.json, f'is_evaluating_{args.k_pathways}')
 
     if os.path.exists(os.path.join(module.get_models_path(), args.json, StopIfNaN.FILENAME)):
         print(f"NaN issue, not evaluating")
