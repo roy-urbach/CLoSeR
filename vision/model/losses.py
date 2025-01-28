@@ -342,6 +342,13 @@ class CommunitiesLoss(GeneralPullPushGraphLoss):
             a_push /= a_push.sum()
         super(CommunitiesLoss, self).__init__(*args, a_pull=a_pull, a_push=a_push, **kwargs)
 
+
+class CirculantGraphLoss(GeneralPullPushGraphLoss):
+    def __init__(self, num_pathways, num_lateral=3, *args, **kwargs):
+        a_pull = scipy.linalg.circulant(np.concatenate([[0], np.zeros(num_pathways - num_lateral - 1), np.ones(num_lateral)])) / (num_lateral * num_pathways)
+        a_push = scipy.linalg.circulant(np.concatenate([[0], np.ones(num_pathways - num_lateral - 1), np.zeros(num_lateral)])) / ((num_pathways - num_lateral - 1) * num_pathways)
+        super(CirculantGraphLoss, self).__init__(*args, a_pull=a_pull, a_push=a_push, **kwargs)
+
 # class BasicBatchContrastiveLoss(tf.keras.losses.Loss):
 #     def __init__(self, temperature=10, partition_along_axis=1):
 #         super(BasicBatchContrastiveLoss, self).__init__()
