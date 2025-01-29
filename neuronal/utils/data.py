@@ -383,7 +383,7 @@ class SessionDataGenerator(ComplicatedData):
             self.possible_trials[stimulus] = np.where(trial_mask)[0]
 
             self.num_units = {area: None for area in self.areas} if self.areas_in_spikes() else None
-            assert len(set([len(ses_trials) for ses_trials in trials])) == 1
+            assert len(set([len(ses_trials) for ses_trials in trials])) == 1, f"lengths - {[len(ses_trials) for ses_trials in trials]}"
             trials_by_order = list(map(list, zip(*trials)))
 
             for i, aligned_trials in enumerate(trials_by_order):
