@@ -133,7 +133,7 @@ class Session:
         for stim, trials in self.get_trials().items():
             for trial in trials:
                 invalid = trial.get_invalid_times()
-                if invalid.size:
+                if invalid is not None and invalid.size:
                     if invalid.shape[0] > 1:
                         raise NotImplementedError()
                     else:
