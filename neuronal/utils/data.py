@@ -294,7 +294,9 @@ class SessionDataGenerator(ComplicatedData):
                  stimuli=NATURAL_MOVIES, areas=None, binary=False, random=False,
                  split_scheme=SplitScheme.LAST, **kwargs):
         super(SessionDataGenerator, self).__init__(module=module, **kwargs)
-        if session_id == 'valid':
+        if session_id == 'all':
+            session_ids = SESSIONS
+        elif session_id == 'valid':
             session_ids = VALID_SESSIONS
         else:
             session_ids = streval(session_id)

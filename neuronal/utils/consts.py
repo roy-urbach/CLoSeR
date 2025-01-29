@@ -47,8 +47,21 @@ SESSIONS = (715093703,
             798911424,
             799864342)
 
+PREVIOUS_SESSIONS = (758798717,
+            756029989,
+            737581020,
+            715093703,
+            757216464,
+            719161530,
+            754312389,
+            732592105,
+            739448407,
+            797828357,
+            743475441,
+            721123822,
+            742951821)
 INVALID_SESSIONS = (2, 6)
-VALID_SESSIONS = set(range(len(SESSIONS))) - set(INVALID_SESSIONS)
+VALID_SESSIONS = set(range(len(PREVIOUS_SESSIONS))) - set(INVALID_SESSIONS)
 
 NATURAL_MOVIES = ("natural_movie_one", "natural_movie_three")
 NATURAL_MOVIES_FRAMES = {NATURAL_MOVIES[0]: 900,
