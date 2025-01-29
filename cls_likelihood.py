@@ -26,9 +26,10 @@ def calculate_class_mean_likelihood(model, module, pred=None, save=False, exampl
 
             for p in range(pred_x.shape[-1]):
                 sim = np.exp(-(np.linalg.norm(cur_examples[:, None, ..., p] - cur_examples[None,..., p], axis=-1)**2)/temp)
-                likelihood = sim / sim.sum(axis=1)  # (B, B)
-                mean_example_cls_likelihood = likelihood.reshape(len(likelihood), C, examples_per_class).mean(axis=-1)   # (B, C)
-                mean_cls_cls_likelihood_p.append(mean_example_cls_likelihood.reshape(C, examples_per_class, C).mean(axis=1))
+                np.fill_diagonal(sim, np.nan)
+                likelihood = sim / np.nansum(sim, axis=1, keepdims=True)  # (B, B)
+                mean_example_cls_likelihood = np.nanmean(likelihood.reshape(len(likelihood), C, examples_per_class), axis=-1)   # (B, C)
+                mean_cls_cls_likelihood_p.append(np.nanmean(mean_example_cls_likelihood.reshape(C, examples_per_class, C), axis=1))
             mean_cls_cls_likelihood.append(np.stack(mean_cls_cls_likelihood_p, axis=-1))
         mean_cls_cls_likelihood = np.mean(mean_cls_cls_likelihood, axis=0)
         if save:
