@@ -114,7 +114,7 @@ if __name__ == "__main__":
     printd("running ensemble...")
     calculate_class_mean_likelihood_ens(model, module, pred=embd, save=True,
                                         repeats=args.repeats, examples_per_class=args.examples, temp=args.temp,
-                                        args=args.inp, **kwargs)
+                                        inp=args.inp, **kwargs)
     printd("done")
 
 
