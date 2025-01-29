@@ -3,7 +3,7 @@ import numpy as np
 import os
 
 from vision.utils.data import Cifar10
-from utils.utils import flatten_but_batch, unknown_args_to_dict
+from utils.utils import flatten_but_batch, unknown_args_to_dict, printd
 
 
 def calculate_class_mean_likelihood(model, module, pred=None, save=False, examples_per_class=50, repeats=100, temp=10, **kwargs):
@@ -89,23 +89,23 @@ if __name__ == "__main__":
 
     model_name = args.json
     module = Modules.VISION
-    print(f"running {model_name}. Loading model...")
+    printd(f"running {model_name}. Loading model...")
     model = load_model_from_json(model_name, module=module)
-    print("done")
+    printd("done")
     ds = Cifar10()
-    print("predicting test")
+    printd("predicting test")
     pred = model.predict(ds.get_x_test())[0]
-    print("done")
+    printd("done")
 
-    print("running individual pathways...")
+    printd("running individual pathways...")
     calculate_class_mean_likelihood(model, module, pred=pred, save=True,
                                     repeats=args.repeats, examples_per_class=args.example, temp=args.temperature,
                                     **kwargs)
-    print("done")
-    print("running ensemble...")
+    printd("done")
+    printd("running ensemble...")
     calculate_class_mean_likelihood_ens(model, module, pred=pred, save=True,
                                         repeats=args.repeats, examples_per_class=args.example, temp=args.temperature,
                                         **kwargs)
-    print("done")
+    printd("done")
 
 
