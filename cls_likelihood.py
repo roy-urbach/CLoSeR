@@ -6,12 +6,12 @@ from vision.utils.data import Cifar10
 from utils.utils import flatten_but_batch, unknown_args_to_dict, printd
 
 
-def calculate_class_mean_likelihood(model, module, pred=None, save=False, examples_per_class=50, repeats=100, temp=10, **kwargs):
+def calculate_class_mean_likelihood(model, module, pred=None, save=False, examples_per_class=50, repeats=100, temp=10, inp=False, **kwargs):
     ds = Cifar10()
     C = len(ds.LABELS)
 
     from tqdm import tqdm as counter
-    path_to_save = f"{module.value}/models/{model.name}/cls_mean_likelihood.npy"
+    path_to_save = f"{module.value}/models/{model.name}/cls_mean_likelihood{'_inp' if inp else ''}.npy"
     if os.path.exists(path_to_save):
         with open(path_to_save, 'rb') as f:
             mean_cls_cls_likelihood = np.load(path_to_save)
