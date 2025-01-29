@@ -411,9 +411,10 @@ class SessionDataGenerator(ComplicatedData):
 
                 if self.areas_in_spikes():
                     for area in self.areas:
-                        self.spikes[stimulus][area].append(np.concatenate(aligned_trials_spikes[area], axis=0))
-                        if self.num_units[area] is None:
-                            self.num_units[area] = aligned_trials_units[area]
+                        if aligned_trials_spikes[area]:
+                            self.spikes[stimulus][area].append(np.concatenate(aligned_trials_spikes[area], axis=0))
+                            if self.num_units[area] is None:
+                                self.num_units[area] = aligned_trials_units[area]
                 else:
                     self.spikes[stimulus].append(np.concatenate(aligned_trials_spikes, axis=0))
                     if self.num_units is None:
