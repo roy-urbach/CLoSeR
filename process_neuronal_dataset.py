@@ -38,8 +38,11 @@ def process_session(index):
                                          k in spikes_mask}
             filtered_running_speed = session.running_speed[
                 ~ ((session.running_speed.start_time > end) | (start > session.running_speed.end_time))]
-            filtered_invalid_times = session.invalid_times[
-                ~ ((session.invalid_times.start_time > end) | (start > session.invalid_times.stop_time))]
+            if hasattr(session.invalid_times, 'start_time'):
+                filtered_invalid_times = session.invalid_times[
+                    ~ ((session.invalid_times.start_time > end) | (start > session.invalid_times.stop_time))]
+            else:
+                filtered_invalid_times = None
 
             path = [DATA_DIR, session_dir, name, str(repeat)]
             os.makedirs(os.path.join(*path), exist_ok=True)
@@ -54,8 +57,9 @@ def process_session(index):
             filtered_running_speed.to_csv(os.path.join(*path, "running_speed.csv"))
             print("saved running speed")
 
-            filtered_invalid_times.to_csv(os.path.join(*path, "invalid_times.csv"))
-            print("saved invalid times")
+            if filtered_invalid_times is not None:
+                filtered_invalid_times.to_csv(os.path.join(*path, "invalid_times.csv"))
+                print("saved invalid times")
 
             stimulus_rows = (movie_stim.start_time >= start) & (movie_stim.start_time < end)
             frames_start = movie_stim.start_time[stimulus_rows].to_numpy()
