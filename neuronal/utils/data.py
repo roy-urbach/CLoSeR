@@ -410,7 +410,7 @@ class SessionDataGenerator(ComplicatedData):
                         aligned_trials_spikes.append(trial.get_spike_bins(area=self.single_area if self.single_area else None,
                                                                           bins_per_frame=self.bins_per_frame,
                                                                           as_matrix=True)[unit_mask])
-                        print(session, trial, aligned_trials_spikes[-1].shape)
+                        # print(session, trial, aligned_trials_spikes[-1].shape)
                         if aligned_trials_units is not None:
                             aligned_trials_units += len(aligned_trials_spikes[-1])
 
