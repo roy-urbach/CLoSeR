@@ -77,6 +77,7 @@ def parse():
     parser.add_argument('-r', '--repeats', type=int, default=250, help='number of repeats')
     parser.add_argument('-e', '--examples', type=int, default=50, help='examples per label')
     parser.add_argument('-t', '--temp', type=float, default=10., help='temperature')
+    parser.add_argument('--inp', action=argparse.BooleanOptionalAction, default=False, help='use input')
     return parser.parse_known_args()
 
 
@@ -95,19 +96,25 @@ if __name__ == "__main__":
     model = load_model_from_json(model_name, module=module)
     printd("done")
     ds = Cifar10()
-    printd("predicting test")
-    pred = model.predict(ds.get_x_test())[0]
-    printd("done")
+    if args.inp:
+        printd("using input")
+        from vision.evaluate import get_masked_ds
+        masked_ds = get_masked_ds(model, dataset=ds)
+        embd = masked_ds.get_x_test()
+    else:
+        printd("predicting test")
+        embd = model.predict(ds.get_x_test())[0]
+        printd("done")
 
     printd("running individual pathways...")
-    calculate_class_mean_likelihood(model, module, pred=pred, save=True,
+    calculate_class_mean_likelihood(model, module, pred=embd, save=True,
                                     repeats=args.repeats, examples_per_class=args.examples, temp=args.temp,
-                                    **kwargs)
+                                    inp=args.inp, **kwargs)
     printd("done")
     printd("running ensemble...")
-    calculate_class_mean_likelihood_ens(model, module, pred=pred, save=True,
+    calculate_class_mean_likelihood_ens(model, module, pred=embd, save=True,
                                         repeats=args.repeats, examples_per_class=args.examples, temp=args.temp,
-                                        **kwargs)
+                                        args=args.inp, **kwargs)
     printd("done")
 
 
