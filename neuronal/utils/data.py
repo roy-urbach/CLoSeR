@@ -5,7 +5,7 @@ from enum import Enum
 import abc
 
 from neuronal.utils.consts import NEURONAL_BASE_DIR, NATURAL_MOVIES, NATURAL_MOVIES_FRAMES, \
-    NATURAL_MOVIES_TRIALS, SESSIONS, BLOCKS, VALID_SESSIONS
+    NATURAL_MOVIES_TRIALS, SESSIONS, BLOCKS, VALID_SESSIONS, VALID_SESSIONS_PREV
 import tensorflow as tf
 
 from utils.data import Label, ComplicatedData, CONTINUOUS, CATEGORICAL, TemporalData
@@ -295,9 +295,9 @@ class SessionDataGenerator(ComplicatedData):
                  split_scheme=SplitScheme.LAST, **kwargs):
         super(SessionDataGenerator, self).__init__(module=module, **kwargs)
         if session_id == 'all':
-            session_ids = SESSIONS
-        elif session_id == 'valid':
             session_ids = VALID_SESSIONS
+        elif session_id == 'valid':
+            session_ids = VALID_SESSIONS_PREV
         else:
             session_ids = streval(session_id)
             if isinstance(session_ids, int):
