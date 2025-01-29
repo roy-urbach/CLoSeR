@@ -14,7 +14,7 @@ def calculate_class_mean_likelihood(model, module, pred=None, save=False, exampl
     path_to_save = f"{module.value}/models/{model.name}/cls_mean_likelihood.npy"
     if os.path.exists(path_to_save):
         with open(path_to_save, 'rb') as f:
-            mean_dists = np.load(path_to_save)
+            mean_cls_cls_likelihood = np.load(path_to_save)
     else:
         pred_x = model.predict(ds.get_x_test())[0] if pred is None else pred
         inds_by_class = [np.where(ds.get_y_test() == i)[0] for i in range(C)]
@@ -35,7 +35,7 @@ def calculate_class_mean_likelihood(model, module, pred=None, save=False, exampl
         if save:
             with open(path_to_save, 'wb') as f:
                 np.save(f, mean_cls_cls_likelihood)
-    return mean_dists
+    return mean_cls_cls_likelihood
 
 
 def calculate_class_mean_likelihood_ens(model, module, pred=None, save=False, examples_per_class=50, repeats=100, temp=10, **kwargs):
@@ -46,7 +46,7 @@ def calculate_class_mean_likelihood_ens(model, module, pred=None, save=False, ex
     path_to_save = f"{module.value}/models/{model.name}/cls_mean_likelihood_ens.npy"
     if os.path.exists(path_to_save):
         with open(path_to_save, 'rb') as f:
-            mean_dists = np.load(path_to_save)
+            mean_cls_cls_likelihood = np.load(path_to_save)
     else:
         pred_x = model.predict(ds.get_x_test())[0] if pred is None else pred
         inds_by_class = [np.where(ds.get_y_test() == i)[0] for i in range(C)]
@@ -57,14 +57,15 @@ def calculate_class_mean_likelihood_ens(model, module, pred=None, save=False, ex
             cur_examples = flatten_but_batch(pred_x[cur_examples_inds])  # (B, DIM*P)
 
             sim = np.exp(-(np.linalg.norm(cur_examples[:, None] - cur_examples[None], axis=-1) ** 2) / temp)
-            likelihood = sim / sim.sum(axis=1)  # (B, B)
-            mean_example_cls_likelihood = likelihood.reshape(len(likelihood), C, examples_per_class).mean(axis=-2)  # (B, C)
-            mean_cls_cls_likelihood.append(mean_example_cls_likelihood.reshape(C, examples_per_class, C).mean(axis=1))
+            np.fill_diagonal(sim, np.nan)
+            likelihood = sim / np.nansum(sim, axis=1, keepdims=True)  # (B, B)
+            mean_example_cls_likelihood = np.nanmean(likelihood.reshape(len(likelihood), C, examples_per_class), axis=-1)  # (B, C)
+            mean_cls_cls_likelihood.append(np.nanmean(mean_example_cls_likelihood.reshape(C, examples_per_class, C), axis=1))
         mean_cls_cls_likelihood = np.mean(mean_cls_cls_likelihood, axis=0)
         if save:
             with open(path_to_save, 'wb') as f:
                 np.save(f, mean_cls_cls_likelihood)
-    return mean_dists
+    return mean_cls_cls_likelihood
 
 
 import argparse
