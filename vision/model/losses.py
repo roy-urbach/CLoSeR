@@ -344,10 +344,22 @@ class CommunitiesLoss(GeneralPullPushGraphLoss):
 
 
 class CirculantGraphLoss(GeneralPullPushGraphLoss):
-    def __init__(self, num_pathways, num_lateral=3, *args, **kwargs):
-        a_pull = scipy.linalg.circulant(np.concatenate([[0], np.zeros(num_pathways - num_lateral - 1), np.ones(num_lateral)])) / (num_lateral * num_pathways)
-        a_push = scipy.linalg.circulant(np.concatenate([[0], np.ones(num_pathways - num_lateral - 1), np.zeros(num_lateral)])) / ((num_pathways - num_lateral - 1) * num_pathways)
+    def __init__(self, num_pathways, num_lateral=3, symmetric=False, *args, **kwargs):
+        if symmetric:
+            a_pull = scipy.linalg.circulant(
+                np.concatenate([[0], np.ones(num_lateral), np.zeros(num_pathways - 2*num_lateral - 1), np.ones(num_lateral)])) / (
+                                 2*num_lateral * num_pathways)
+            a_push = scipy.linalg.circulant(
+                np.concatenate([[0], np.zeros(num_lateral), np.ones(num_pathways - 2 * num_lateral - 1),
+                                np.zeros(num_lateral)])) / (
+                    (num_pathways - 2 * num_lateral - 1) * num_pathways)
+        else:
+            a_pull = scipy.linalg.circulant(np.concatenate([[0], np.zeros(num_pathways - num_lateral - 1), np.ones(num_lateral)])) / (num_lateral * num_pathways)
+            a_push = scipy.linalg.circulant(np.concatenate([[0], np.ones(num_pathways - num_lateral - 1), np.zeros(num_lateral)])) / ((num_pathways - num_lateral - 1) * num_pathways)
         super(CirculantGraphLoss, self).__init__(*args, a_pull=a_pull, a_push=a_push, **kwargs)
+        self.symmetric = symmetric
+        self.num_lateral = num_lateral
+
 
 # class BasicBatchContrastiveLoss(tf.keras.losses.Loss):
 #     def __init__(self, temperature=10, partition_along_axis=1):
