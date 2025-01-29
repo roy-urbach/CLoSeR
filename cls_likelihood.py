@@ -24,7 +24,7 @@ def calculate_class_mean_likelihood(model, module, pred=None, save=False, exampl
             cur_examples_inds = np.concatenate([inds[np.random.permutation(len(inds))[:examples_per_class]] for inds in inds_by_class])
             cur_examples = pred_x[cur_examples_inds]    # (B, DIM, P)
 
-            for p in counter(range(pred_x.shape[-1])):
+            for p in range(pred_x.shape[-1]):
                 sim = np.exp(-(np.linalg.norm(cur_examples[:, None, ..., p] - cur_examples[None,..., p], axis=-1)**2)/temp)
                 likelihood = sim / sim.sum(axis=1)  # (B, B)
                 mean_example_cls_likelihood = likelihood.reshape(len(likelihood), C, examples_per_class).mean(axis=-1)   # (B, C)
