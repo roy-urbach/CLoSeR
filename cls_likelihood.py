@@ -72,9 +72,9 @@ import argparse
 def parse():
     parser = argparse.ArgumentParser(description='Evaluate a model')
     parser.add_argument('-j', '--json', type=str, help='name of the config json')
-    parser.add_argument('-r', '--repeats', type=int, deafult=250, help='number of repeats')
-    parser.add_argument('-e', '--examples', type=int, deafult=50, help='examples per label')
-    parser.add_argument('-t', '--temp', type=float, deafult=10., help='temperature')
+    parser.add_argument('-r', '--repeats', type=int, default=250, help='number of repeats')
+    parser.add_argument('-e', '--examples', type=int, default=50, help='examples per label')
+    parser.add_argument('-t', '--temp', type=float, default=10., help='temperature')
     return parser.parse_known_args()
 
 
