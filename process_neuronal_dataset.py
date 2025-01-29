@@ -3,6 +3,7 @@ import numpy as np
 
 from neuronal.utils.consts import NATURAL_MOVIES
 from neuronal.utils.data import DATA_DIR
+from utils.utils import printd
 
 
 def process_session(index):
@@ -15,23 +16,23 @@ def process_session(index):
     manifest_path = os.path.join(cache_dir, "manifest.json")
 
     cache = EcephysProjectCache.from_warehouse(manifest=manifest_path)
-    print("got cache")
+    printd("got cache")
 
     session = cache.get_session_data(index)
 
-    print("got session")
+    printd("got session")
 
     session_dir = str(session.ecephys_session_id)
 
     for name in NATURAL_MOVIES:
-        print(f"running {name}")
+        printd(f"running {name}")
         stim = session.stimulus_presentations
         movie_stim = stim[stim.stimulus_name == name]
         starts = movie_stim.start_time[movie_stim.frame == 0]
         ends = movie_stim.stop_time[
             movie_stim.frame == (np.where(movie_stim.frame.to_numpy() == 'null', 0, movie_stim.frame.to_numpy())).max()]
         for repeat, (start, end) in enumerate(zip(starts, ends)):
-            print(f"running {repeat} repeat")
+            printd(f"running {repeat} repeat")
             spikes_mask = {k: (v >= start) & (v <= end) for k, v in session.spike_times.items()}
             filtered_spike_times = {str(k): v[spikes_mask[k]] for k, v in session.spike_times.items()}
             filtered_spike_amplitudes = {str(k): v[spikes_mask[k]] for k, v in session.spike_amplitudes.items() if
@@ -48,18 +49,18 @@ def process_session(index):
             os.makedirs(os.path.join(*path), exist_ok=True)
             with open(os.path.join(*path, "spike_times.npz"), 'wb') as f:
                 np.savez(f, **filtered_spike_times)
-            print("saved spike times")
+            printd("saved spike times")
 
             with open(os.path.join(*path, "spike_amplitudes.npz"), 'wb') as f:
                 np.savez(f, **filtered_spike_amplitudes)
-            print("saved spike amplitudes")
+            printd("saved spike amplitudes")
 
             filtered_running_speed.to_csv(os.path.join(*path, "running_speed.csv"))
-            print("saved running speed")
+            printd("saved running speed")
 
             if filtered_invalid_times is not None:
                 filtered_invalid_times.to_csv(os.path.join(*path, "invalid_times.csv"))
-                print("saved invalid times")
+                printd("saved invalid times")
 
             stimulus_rows = (movie_stim.start_time >= start) & (movie_stim.start_time < end)
             frames_start = movie_stim.start_time[stimulus_rows].to_numpy()
@@ -67,21 +68,21 @@ def process_session(index):
 
             with open(os.path.join(*path, "frame_times.npz"), 'wb') as f:
                 np.savez(f, start=frames_start, end=frames_end)
-            print("printed frame times")
+            printd("printed frame times")
 
     session.units.to_csv(os.path.join(DATA_DIR, session_dir, "units.csv"))
-    print("saved units")
+    printd("saved units")
     session.probes.to_csv(os.path.join(DATA_DIR, session_dir, "probes.csv"))
-    print("saved probes")
+    printd("saved probes")
 
     import json
     with open(os.path.join(DATA_DIR, session_dir, "metadata.json"), 'w') as f:
         json.dump({k: v for k, v in session.metadata.items() if "start_time" not in k}, f, indent=4)
-    print("saved metadata")
+    printd("saved metadata")
 
     with open(os.path.join(DATA_DIR, session_dir, "start_time.txt"), 'w') as f:
         f.write(str(session.session_start_time))
-    print("saved start time")
+    printd("saved start time")
 
 
 if __name__ == "__main__":
