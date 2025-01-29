@@ -292,7 +292,7 @@ class Trial:
 class SessionDataGenerator(ComplicatedData):
     def __init__(self, module:Modules, session_id, frames_per_sample=10, bins_per_frame=1, num_units=None,
                  stimuli=NATURAL_MOVIES, areas=None, binary=False, random=False,
-                 split_scheme=SplitScheme.LAST, **kwargs):
+                 split_scheme=SplitScheme.LAST, delete_sessions=False, **kwargs):
         super(SessionDataGenerator, self).__init__(module=module, **kwargs)
         if session_id == 'all':
             session_ids = VALID_SESSIONS
@@ -330,6 +330,9 @@ class SessionDataGenerator(ComplicatedData):
 
         self.__total_samples = None
         self.__load_spikes()
+
+        if delete_sessions:
+            self.sessions = None
 
     def _set_label_to_dim(self):
         self.label_to_dim = None
