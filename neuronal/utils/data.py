@@ -323,6 +323,7 @@ class SessionDataGenerator(ComplicatedData):
         self.binary = binary
         self.possible_trials = {}
         self.random = random
+        self.delete_sessions = delete_sessions
 
         self.split_scheme = SplitScheme.get_split_scheme(split_scheme)
 
@@ -349,7 +350,8 @@ class SessionDataGenerator(ComplicatedData):
                     stimuli=self.stimuli,
                     areas=self.areas,
                     num_units=self.max_num_units,
-                    split_scheme=self.split_scheme)
+                    split_scheme=self.split_scheme,
+                    delete_sessions=self.delete_sessions)
 
     # def __len__(self):
     #     if self.__total_samples is None:
