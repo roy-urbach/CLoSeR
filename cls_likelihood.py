@@ -99,12 +99,12 @@ if __name__ == "__main__":
 
     printd("running individual pathways...")
     calculate_class_mean_likelihood(model, module, pred=pred, save=True,
-                                    repeats=args.repeats, examples_per_class=args.examples, temp=args.temperature,
+                                    repeats=args.repeats, examples_per_class=args.examples, temp=args.temp,
                                     **kwargs)
     printd("done")
     printd("running ensemble...")
     calculate_class_mean_likelihood_ens(model, module, pred=pred, save=True,
-                                        repeats=args.repeats, examples_per_class=args.examples, temp=args.temperature,
+                                        repeats=args.repeats, examples_per_class=args.examples, temp=args.temp,
                                         **kwargs)
     printd("done")
 
