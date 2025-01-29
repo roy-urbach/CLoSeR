@@ -200,7 +200,9 @@ class Trial:
 
     def _load_invalid_times(self):
         if self.invalid_times is None:
-            self.invalid_times = pd.read_csv(os.path.join(self._path, "invalid_times.csv"))
+            fn = os.path.join(self._path, "invalid_times.csv")
+            if os.path.exists(fn):
+                self.invalid_times = pd.read_csv(fn)
 
     def _load_frame_start(self):
         if self.frame_start is None:
