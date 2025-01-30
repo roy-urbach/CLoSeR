@@ -15,7 +15,7 @@ def basic_scatterplot(x, y, identity=True, fig=None, c='k', corr=False, t=False,
     mask = np.isnan(x) | np.isnan(y)
     x, y = x[~mask], y[~mask]
     if isinstance(c, np.ndarray) and len(c) == mask.size:
-        c = c[mask]
+        c = c[~mask]
 
     x_ = np.log(x) if log_x else x
     y_ = np.log(y) if log_y else y
