@@ -8,7 +8,7 @@ mpl.rc('image', cmap='gray')
 def basic_scatterplot(x, y, identity=True, fig=None, c='k', corr=False, t=False,
                       regress=False, mean_diff=False, label=None, regress_color='r',
                       regress_label=None, add_r_squared_to_regress_label=True,
-                      log_x=False, log_y=False, min_=None, max_=None):
+                      log_x=False, log_y=False, min_=None, max_=None, alpha=0.6, **kwargs):
     x = np.array(x)
     y = np.array(y)
 
@@ -21,7 +21,7 @@ def basic_scatterplot(x, y, identity=True, fig=None, c='k', corr=False, t=False,
     y_ = np.log(y) if log_y else y
 
     if fig is None: fig = plt.figure()
-    plt.scatter(x, y, c=c, alpha=0.6, label=label)
+    plt.scatter(x, y, c=c, alpha=alpha, label=label, **kwargs)
     if corr:
         plt.title(f"r={correlation(x_, y_):.3f}")
     if t:
