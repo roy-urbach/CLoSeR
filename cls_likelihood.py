@@ -38,12 +38,12 @@ def calculate_class_mean_likelihood(model, module, pred=None, save=False, exampl
     return mean_cls_cls_likelihood
 
 
-def calculate_class_mean_likelihood_ens(model, module, pred=None, save=False, examples_per_class=50, repeats=100, temp=10, **kwargs):
+def calculate_class_mean_likelihood_ens(model, module, pred=None, save=False, examples_per_class=50, repeats=100, temp=10, inp=False, **kwargs):
     ds = Cifar10()
     C = len(ds.LABELS)
 
     from tqdm import tqdm as counter
-    path_to_save = f"{module.value}/models/{model.name}/cls_mean_likelihood_ens.npy"
+    path_to_save = f"{module.value}/models/{model.name}/cls_mean_likelihood_ens{'_inp' if inp else ''}.npy"
     if os.path.exists(path_to_save):
         with open(path_to_save, 'rb') as f:
             mean_cls_cls_likelihood = np.load(path_to_save)
@@ -96,25 +96,31 @@ if __name__ == "__main__":
     model = load_model_from_json(model_name, module=module)
     printd("done")
     ds = Cifar10()
+
+    printd("predicting test")
+    embd = model.predict(ds.get_x_test())[0]
+    printd("done")
+
     if args.inp:
         printd("using input")
         from vision.evaluate import get_masked_ds
-        masked_ds = get_masked_ds(model, dataset=ds)
-        embd = masked_ds.get_x_test()
-    else:
-        printd("predicting test")
-        embd = model.predict(ds.get_x_test())[0]
+        masked_inp = get_masked_ds(model, dataset=ds).get_x_test()
+
+        printd("running masked inputs...")
+        calculate_class_mean_likelihood(model, module, pred=masked_inp, save=True,
+                                        repeats=args.repeats, examples_per_class=args.examples, temp=args.temp,
+                                        inp=True, **kwargs)
         printd("done")
 
     printd("running individual pathways...")
     calculate_class_mean_likelihood(model, module, pred=embd, save=True,
                                     repeats=args.repeats, examples_per_class=args.examples, temp=args.temp,
-                                    inp=args.inp, **kwargs)
+                                    inp=False, **kwargs)
     printd("done")
     printd("running ensemble...")
     calculate_class_mean_likelihood_ens(model, module, pred=embd, save=True,
                                         repeats=args.repeats, examples_per_class=args.examples, temp=args.temp,
-                                        inp=args.inp, **kwargs)
+                                        inp=False, **kwargs)
     printd("done")
 
 
