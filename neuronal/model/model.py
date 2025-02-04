@@ -53,7 +53,7 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
         areas = sorted(list(input_shape.keys()))
         units = {area: units for area, (units, bins_per_sample) in input_shape.items()}
         bins_per_sample = list(input_shape.values())[0][-1]
-        inputs = [layers.Input(shape=input_shape[area], name=f'inp_{area}') for area in areas] # [(B, N, T)]
+        inputs = [layers.Input(shape=input_shape[area], name=area) for area in areas] # [(B, N, T)]
     else:
         different_areas = False
         units, bins_per_sample = input_shape
