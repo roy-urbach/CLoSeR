@@ -48,26 +48,31 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
     if isinstance(kernel_regularizer, str) and kernel_regularizer.startswith("tf."):
         kernel_regularizer = eval(kernel_regularizer)
 
-    inputs = layers.Input(shape=input_shape)        # (B, N, T)
     if isinstance(input_shape, dict):
         different_areas = True
         areas = sorted(list(input_shape.keys()))
         units = {area: units for area, (units, bins_per_sample) in input_shape.items()}
         bins_per_sample = list(input_shape.values())[0][-1]
+        inputs = [layers.Inputs(shape=input_shape[area], name=f'inp_{area}') for area in areas] # [(B, N, T)]
+
     else:
         different_areas = False
         units, bins_per_sample = input_shape
+        inputs = layers.Input(shape=input_shape, name='inp')  # (B, N, T)
 
     frames = int(bins_per_sample / bins_per_frame)
 
     # Augment data.
-    augmented = get_neuronal_data_augmentation(bins_per_frame, **augmentation_kwargs)(inputs)
+    if different_areas:
+        augmented = [get_neuronal_data_augmentation(bins_per_frame, **augmentation_kwargs)(inp) for inp in inputs]
+    else:
+        augmented = get_neuronal_data_augmentation(bins_per_frame, **augmentation_kwargs)(inputs)
 
     # divide to different pathways
     if classifier and not classifier_pathways:
         pathways = [augmented]
     elif different_areas:
-        pathways = [inputs[area] for area in areas]
+        pathways = augmented
     else:
         pathways = SplitClass(units, name='pathways', **pathways_kwargs)(augmented)  # (B, d*S, N, T)
         pathways = tf.unstack(pathways, axis=-2)  # List[(B, d*S, T)]
