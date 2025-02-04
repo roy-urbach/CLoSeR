@@ -511,14 +511,14 @@ class SessionDataGenerator(ComplicatedData):
                             y[Labels.STIMULUS.value.name].append(stim_ind)
                             y[Labels.TRIAL.value.name].append(self.possible_trials[stim_name][trial_num])
                             y[Labels.FRAME.value.name].append(frame_num / NATURAL_MOVIES_FRAMES[stim_name])
-                            next_bin_activity = self.get_activity_window(stim_name, trial_num, frame_num+self.frames_per_sample)[..., 0]
+                            next_bin_activity = self.get_activity_window(stim_name, trial_num, frame_num+self.frames_per_sample)
                             if self.areas_in_spikes():
                                 if not y[Labels.NEXT.value.name]:
                                     y[Labels.NEXT.value.name] = {area: [] for area in self.areas}
                                 for area in self.areas:
-                                    y[Labels.NEXT.value.name][area].append(next_bin_activity)
+                                    y[Labels.NEXT.value.name][area].append(next_bin_activity[area][..., 0])
                             else:
-                                y[Labels.NEXT.value.name].append(next_bin_activity)
+                                y[Labels.NEXT.value.name].append(next_bin_activity[..., 0])
 
             if self.areas_in_spikes():
                 spikes = {area: np.stack(activity, axis=0) for area, activity in spikes.items()}
