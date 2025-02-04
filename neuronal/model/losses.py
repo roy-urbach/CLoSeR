@@ -846,7 +846,7 @@ class LPL(tf.keras.losses.Loss):
             return mean_cov
 
     def pe_weighted_crossdist(self, embd, pe):
-        pe_diff = (pe[..., None] - pe[..., None, :])**2     # (B, P, P)
+        pe_diff = tf.maximum((pe[..., None] - pe[..., None, :])**2, self.eps)     # (B, P, P)
         # pe_diff = pe_diff - tf.reduce_min(pe_diff, axis=-1, keepdims=True)    # diagonal is min
         exp_pe = tf.linalg.set_diag(tf.exp(-pe_diff),
                                     tf.tile(tf.zeros(embd.shape[-1], dtype=embd.dtype)[None],
