@@ -16,7 +16,7 @@ DATA_DIR = f"{NEURONAL_BASE_DIR}/data"
 
 
 class Labels(Enum):
-    NEXT = Label("next", CONTINUOUS, None)
+    # NEXT = Label("next", CONTINUOUS, None)
     STIMULUS = Label("stimulus", CATEGORICAL, 1 if len(NATURAL_MOVIES) <= 2 else len(NATURAL_MOVIES), NATURAL_MOVIES)
     TRIAL = Label("trial", CATEGORICAL, max(NATURAL_MOVIES_TRIALS.values()))
     FRAME = Label("normedframe", CONTINUOUS, 1)
@@ -511,14 +511,14 @@ class SessionDataGenerator(ComplicatedData):
                             y[Labels.STIMULUS.value.name].append(stim_ind)
                             y[Labels.TRIAL.value.name].append(self.possible_trials[stim_name][trial_num])
                             y[Labels.FRAME.value.name].append(frame_num / NATURAL_MOVIES_FRAMES[stim_name])
-                            next_bin_activity = self.get_activity_window(stim_name, trial_num, frame_num+self.frames_per_sample)
-                            if self.areas_in_spikes():
-                                if not y[Labels.NEXT.value.name]:
-                                    y[Labels.NEXT.value.name] = {area: [] for area in self.areas}
-                                for area in self.areas:
-                                    y[Labels.NEXT.value.name][area].append(next_bin_activity[area][..., 0])
-                            else:
-                                y[Labels.NEXT.value.name].append(next_bin_activity[..., 0])
+                            # next_bin_activity = self.get_activity_window(stim_name, trial_num, frame_num+self.frames_per_sample)
+                            # if self.areas_in_spikes():
+                            #     if not y[Labels.NEXT.value.name]:
+                            #         y[Labels.NEXT.value.name] = {area: [] for area in self.areas}
+                            #     for area in self.areas:
+                            #         y[Labels.NEXT.value.name][area].append(next_bin_activity[area][..., 0])
+                            # else:
+                            #     y[Labels.NEXT.value.name].append(next_bin_activity[..., 0])
 
             if self.areas_in_spikes():
                 spikes = {area: np.stack(activity, axis=0) for area, activity in spikes.items()}
@@ -531,10 +531,7 @@ class SessionDataGenerator(ComplicatedData):
         self._set_x()
 
     def get_y(self, labels=None, **kwargs):
-        if self.areas_in_spikes():
-            raise NotImplementedError()
-        else:
-            return super().get_y(labels=labels, **kwargs)
+        return super().get_y(labels=labels, **kwargs)
         # if self.y is None:
         #     self.get_x()
         #
