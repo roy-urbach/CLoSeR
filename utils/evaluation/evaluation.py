@@ -4,7 +4,7 @@ from sklearn.decomposition import PCA
 from utils.data import Data
 from utils.evaluation.ensemble import EnsembleModel, EnsembleVotingMethods
 from utils.evaluation.utils import CS
-from utils.utils import printd
+from utils.utils import printd, run_on_dict
 
 
 def linear_head_eval(svm=True, C=1e-2, categorical=False, **kwargs):
@@ -77,7 +77,7 @@ def classify_head_eval_ensemble(dataset, linear=True, k=10, base_name='',
                                 categorical=False,
                                 voting_methods=EnsembleVotingMethods, C=1, individual_ys=False, **kwargs):
     (x_train, y_train), (x_test, y_test) = dataset.get_all()
-    print(f"classify shape: {x_train.shape=}, {y_train.shape=}")
+    print(f"classify shape: x={run_on_dict(x_train, lambda x: x.shape)}, y={y_train.shape}")
     if linear:
         model = linear_head_eval(C=C, categorical=categorical, **kwargs)
         name = 'linear'
