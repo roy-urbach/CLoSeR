@@ -291,7 +291,7 @@ class Trial:
 
 class SessionDataGenerator(ComplicatedData):
     def __init__(self, module:Modules, session_id, frames_per_sample=10, bins_per_frame=1, num_units=None,
-                 stimuli=NATURAL_MOVIES, areas=None, binary=False, random=False,
+                 stimuli=NATURAL_MOVIES, areas=None, binary=False, random=False, ignore_areas=False,
                  split_scheme=SplitScheme.LAST, delete_sessions=False, **kwargs):
         super(SessionDataGenerator, self).__init__(module=module, **kwargs)
         if session_id == 'all':
@@ -309,6 +309,7 @@ class SessionDataGenerator(ComplicatedData):
                 ses_id = SESSIONS[ses_id]
             self.session_ids.append(ses_id)
         self.sessions = [Session(ses_id) for ses_id in self.session_ids]
+        self.ignore_areas = ignore_areas or (areas is None)
 
         self.frames_per_sample = frames_per_sample
         self.bins_per_frame = bins_per_frame
@@ -454,7 +455,7 @@ class SessionDataGenerator(ComplicatedData):
             return self.num_units, self.bins_per_sample
 
     def areas_in_spikes(self):
-        return self.areas is not None and not self.single_area
+        return not self.ignore_areas and not self.single_area
 
     def get_activity_window(self, stim_name, trial_num, frame_num):
 
