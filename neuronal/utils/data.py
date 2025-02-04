@@ -337,7 +337,7 @@ class SessionDataGenerator(ComplicatedData):
 
     def __len__(self):
         if self.areas_in_spikes():
-            return {k: len(v) for k, v in self.get_x().items()}
+            return len(list(self.get_x().values())[0])
         else:
             return len(self.get_x())
 
