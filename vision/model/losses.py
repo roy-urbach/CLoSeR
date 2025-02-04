@@ -790,24 +790,23 @@ class AgreementAndSTD(tf.keras.losses.Loss):
 
 
 class HarmonicContrastive(tf.keras.losses.Loss):
-    def __init__(self, eps=None, **kwargs):
+    def __init__(self, eps=None, n=2, **kwargs):
         super().__init__(**kwargs)
         self.eps = eps
+        self.n = n
 
     def call(self, y_true, y_pred):
         B = tf.shape(y_pred)[0]
         P = y_pred.shape[-1]
         embedding = y_pred   # (B, DIM, P)
-        dist_sqr = tf.reduce_sum(tf.pow(tf.stop_gradient(embedding[:, None, ..., :, None]) - embedding[None, :, ..., None, :], 2), axis=2)  # (B, B, P, P)
+        dist = tf.linalg.norm(tf.stop_gradient(embedding[:, None, ..., :, None]) - embedding[None, :, ..., None, :], axis=2)  # (B, B, P, P)
         if self.eps:
-            dist_sqr = tf.maximum(dist_sqr, self.eps)
-        sim = 1/dist_sqr
+            dist = tf.maximum(dist, self.eps)
+        sim = 1/dist**self.n
         p = sim / tf.reduce_sum(sim, axis=0, keepdims=True) # (B, B, P, P)
 
         indices = tf.stack([tf.range(B), tf.range(B)], axis=-1)
-        pii = tf.gather_nd(p, indices)
-        print(pii.shape)
-        # pii = p[tf.range(B), tf.range(B)]   # (B, P, P)
+        pii = tf.gather_nd(p, indices)  # (B, P, P)
         minus_log_pii = -tf.math.log(pii)
         mean_log_pii = tf.reduce_mean(minus_log_pii, axis=0)
         return tf.reduce_mean(mean_log_pii[~tf.eye(P, dtype=bool)])
