@@ -335,6 +335,12 @@ class SessionDataGenerator(ComplicatedData):
         if delete_sessions:
             self.sessions = None
 
+    def __len__(self):
+        if self.areas_in_spikes():
+            return {k: len(v) for k, v in self.get_x().items()}
+        else:
+            return len(self.get_x())
+
     def _set_label_to_dim(self):
         self.label_to_dim = None
 
