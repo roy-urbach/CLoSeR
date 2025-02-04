@@ -53,7 +53,7 @@ def get_masked_ds(model, dataset, union=False, bins_per_frame=1, last_frame=True
                 [pca.transform(x_val[..., t]) for t in range(times)], axis=-1)
         else:
             if dct_out:
-                times = list(x_train.value())[0].shape[-1]
+                times = list(x_train.values())[0].shape[-1]
                 pcas = {k: PCA(pcs) for k in x_train}
                 for k, pca in pcas.items():
                     pca.fit(np.concatenate([x_train[k][..., t] for t in range(times)], axis=0))
