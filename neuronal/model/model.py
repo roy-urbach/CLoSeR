@@ -50,9 +50,12 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
 
     inputs = layers.Input(shape=input_shape)        # (B, N, T)
     if isinstance(input_shape, dict):
+        different_areas = True
+        areas = sorted(list(input_shape.keys()))
         units = {area: units for area, (units, bins_per_sample) in input_shape.items()}
         bins_per_sample = list(input_shape.values())[0][-1]
     else:
+        different_areas = False
         units, bins_per_sample = input_shape
 
     frames = int(bins_per_sample / bins_per_frame)
@@ -63,6 +66,8 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
     # divide to different pathways
     if classifier and not classifier_pathways:
         pathways = [augmented]
+    elif different_areas:
+        pathways = [inputs[area] for area in areas]
     else:
         pathways = SplitClass(units, name='pathways', **pathways_kwargs)(augmented)  # (B, d*S, N, T)
         pathways = tf.unstack(pathways, axis=-2)  # List[(B, d*S, T)]
@@ -94,7 +99,7 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
     enc_init = lambda i: Encoder(name=f'enc{i if i is not None else ""}',
                                  kernel_regularizer=kernel_regularizer,
                                  out_regularizer=out_reg, **encoder_kwargs)
-    encoders = [enc_init(i) for i in range(len(pathways))] if encoder_per_path else [enc_init(None)] * len(pathways)
+    encoders = [enc_init(i if not different_areas else areas[i]) for i in range(len(pathways))] if encoder_per_path else [enc_init(None)] * len(pathways)
     if split_frames:
         encoders = [SplitFramesEncoderWrapper(encoder, frames=frames, split_axis=-1, stack_axis=1) for encoder in encoders]
 
