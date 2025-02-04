@@ -174,6 +174,6 @@ def unknown_args_to_dict(args, warning=False):
 
 def run_on_dict(dct, f):
     if isinstance(dct, dict):
-        return {k: f(v) for k, v in dct.keys()}
+        return {k: f(v) for k, v in dct.items()}
     else:
         return f(dct)
