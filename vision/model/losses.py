@@ -808,6 +808,6 @@ class HarmonicContrastive(tf.keras.losses.Loss):
         pii = tf.gather_nd(p, indices)
         print(pii.shape)
         # pii = p[tf.range(B), tf.range(B)]   # (B, P, P)
-        minus_log_pii = -tf.math.log2(pii)
+        minus_log_pii = -tf.math.log(pii)
         mean_log_pii = tf.reduce_mean(minus_log_pii, axis=0)
         return tf.reduce_mean(mean_log_pii[~tf.eye(P, dtype=bool)])
