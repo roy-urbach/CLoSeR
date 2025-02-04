@@ -136,8 +136,8 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
     assert dataset is not None
 
     bins_per_frame = model.bins_per_frame if hasattr(model, "bins_per_frame") else (dataset.bins_per_frame if hasattr(dataset, 'bins_per_frame') else 1)
-    encoder_removed_bins = model.get_layer("pathways").output_shape[-1] not in (model.get_layer("embedding").output_shape[1],
-                                                                                model.get_layer("embedding").output_shape[1] // 2)
+    encoder_removed_bins = model.layers[0].output_shape[-1] not in (model.get_layer("embedding").output_shape[1],
+                                                                    model.get_layer("embedding").output_shape[1] // 2)
     if not only_input:
         with_pred = "predictions" in [l.name for l in model.layers]
 
