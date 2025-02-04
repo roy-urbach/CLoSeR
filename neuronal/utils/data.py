@@ -358,7 +358,8 @@ class SessionDataGenerator(ComplicatedData):
                     areas=self.areas,
                     num_units=self.max_num_units,
                     split_scheme=self.split_scheme,
-                    delete_sessions=self.delete_sessions)
+                    delete_sessions=self.delete_sessions,
+                    ignore_areas=self.ignore_areas)
 
     # def __len__(self):
     #     if self.__total_samples is None:
