@@ -48,7 +48,6 @@ class EnsembleModel:
                 self.scores_train = {k: None for k in X_train}
                 self.scores_test = {k: None for k in X_train}
                 self.best_CS = {k: None for k in X_train}
-                self.models = {}
                 for C in self.CS:
                     print(f"{C=}")
                     if C == 0:
@@ -98,11 +97,12 @@ class EnsembleModel:
         if voting_method is not None:
 
             for C in self.CS:
-                ens_score = self.score(X_val, y_val, CS=[C]*len(self.models), voting_method=voting_method)
+                cur_CS = {k: C for k in self.models} if self.is_dct else [C] * len(self.models)
+                ens_score = self.score(X_val, y_val, CS=cur_CS, voting_method=voting_method)
                 if ensemble_score_val is None or ens_score > ensemble_score_val:
                     ensemble_score_val = ens_score
-                    ensemble_score_test = self.score(X_test, y_test, voting_method=voting_method, CS=[C]*len(self.models))
-                    ensemble_score_train = self.score(X_train, y_train, voting_method=voting_method, CS=[C]*len(self.models))
+                    ensemble_score_test = self.score(X_test, y_test, voting_method=voting_method, CS=cur_CS)
+                    ensemble_score_train = self.score(X_train, y_train, voting_method=voting_method, CS=cur_CS)
 
             if np.unique(self.best_CS).size > 1:
                 ens_score = self.score(X_val, y_val, voting_method=voting_method)
