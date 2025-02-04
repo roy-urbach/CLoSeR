@@ -32,7 +32,7 @@ class Data:
             self.x_train = run_on_dict(self.x_train, lambda arr: arr[train_idx])
             self.y_train = run_on_dict(self.y_train, lambda arr: arr[train_idx])
 
-        self.shape = x_train[0].shape
+        self.shape = run_on_dict(x_train, lambda x: x[0].shape)
         if img_normalize:
             self.image_normalize_data()
         if normalize:
