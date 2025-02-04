@@ -100,8 +100,12 @@ def classify_head_eval_ensemble(dataset, linear=True, k=10, base_name='',
                                                                                                           voting_method=voting_method,
                                                                                                           individual_ys=individual_ys)
             if not i:
-                for p, pathway in enumerate(ensemble.models):
-                    res[base_name + f'pathway{p}_{name}'] = (ind_train[p], ind_val[p], ind_test[p])
+                if ensemble.is_dct:
+                    for p, k in enumerate(sorted(list(ensemble.models.keys()))):
+                        res[base_name + f'pathway{p}_{name}'] = (ind_train[k], ind_val[k], ind_test[k])
+                else:
+                    for p, pathway in enumerate(ensemble.models):
+                        res[base_name + f'pathway{p}_{name}'] = (ind_train[p], ind_val[p], ind_test[p])
                 res[base_name + f'pathways_mean_{name}'] = np.mean(list(res.values()), axis=0).tolist()
             if voting_method is not None:
                 res[base_name + f"ensemble_{name}_" + voting_method.name] = (ens_train, ens_val, ens_test)
