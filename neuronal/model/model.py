@@ -12,12 +12,12 @@ from utils.utils import get_class
 import numpy as np
 
 
-def get_neuronal_data_augmentation(bins_per_frame, augmentations=[], **kwargs):
+def get_neuronal_data_augmentation(bins_per_frame, augmentations=[], name='data_augmentation', **kwargs):
     data_augmentation = tf.keras.Sequential(
         [
             layers.Normalization(),
         ] + augmentations,
-        name="data_augmentation",
+        name=name,
     )
     return data_augmentation
 
@@ -54,7 +54,6 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
         units = {area: units for area, (units, bins_per_sample) in input_shape.items()}
         bins_per_sample = list(input_shape.values())[0][-1]
         inputs = [layers.Input(shape=input_shape[area], name=f'inp_{area}') for area in areas] # [(B, N, T)]
-
     else:
         different_areas = False
         units, bins_per_sample = input_shape
@@ -64,7 +63,7 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
 
     # Augment data.
     if different_areas:
-        augmented = [get_neuronal_data_augmentation(bins_per_frame, **augmentation_kwargs)(inp) for inp in inputs]
+        augmented = [get_neuronal_data_augmentation(bins_per_frame, **augmentation_kwargs, name=f'data_augmentation_{area}')(inp) for area, inp in zip(areas, inputs)]
     else:
         augmented = get_neuronal_data_augmentation(bins_per_frame, **augmentation_kwargs)(inputs)
 
