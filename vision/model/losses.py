@@ -787,3 +787,22 @@ class AgreementAndSTD(tf.keras.losses.Loss):
             corr = (self.decorrelate if self.local else self.decorrelate_nonlocal)(y_pred)
             loss = loss + self.corr_w * corr
         return loss
+
+
+class HarmonicContrastive(tf.keras.losses.Loss):
+    def __init__(self, eps=None):
+        self.eps = eps
+
+    def call(self, y_true, y_pred):
+        B = tf.shape(y_pred)[0]
+        P = y_pred.shape[-1]
+        embedding = y_pred   # (B, DIM, P)
+        dist_sqr = tf.reduce_sum(tf.pow(tf.stop_gradient(embedding[:, None, ..., :, None]) - embedding[None, :, ..., None, :], 2), axis=2)  # (B, B, P, P)
+        if self.eps:
+            dist_sqr = tf.maximum(dist_sqr, self.eps)
+        sim = 1/dist_sqr
+        p = sim / tf.reduce_sum(sim, axis=0, keepdims=True) # (B, B, P, P)
+        pii = p[tf.range(B), tf.range(B)]   # (B, P, P)
+        minus_log_pii = -tf.math.log2(pii)
+        mean_log_pii = tf.reduce_mean(minus_log_pii, axis=0)
+        return tf.reduce_mean(mean_log_pii[~tf.eye(P, dtype=bool)])
