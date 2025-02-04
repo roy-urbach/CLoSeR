@@ -57,7 +57,7 @@ def get_masked_ds(model, dataset, union=False, bins_per_frame=1, last_frame=True
                 pcas = {k: PCA(pcs) for k in x_train}
                 for k, pca in pcas.items():
                     pca.fit(np.concatenate([x_train[k][..., t] for t in range(times)], axis=0))
-                pca_pred = lambda arr: {k: np.stack([pcas[k].transform(arr[k][..., t]) for t in range(x_train.shape[-2])], axis=-1)
+                pca_pred = lambda arr: {k: np.stack([pcas[k].transform(arr[k][..., t]) for t in range(arr[k].shape[-1])], axis=-1)
                                        for k in pcas}
                 x_train = pca_pred(x_train)
                 x_val = pca_pred(x_val)
