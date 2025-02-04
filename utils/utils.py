@@ -170,3 +170,10 @@ def streval(w, warning=False):
 
 def unknown_args_to_dict(args, warning=False):
     return {args[2*i].split("--")[-1]: streval(args[2*i+1], warning=warning) for i in range(len(args)//2)}
+
+
+def run_on_dict(dct, f):
+    if isinstance(dct, dict):
+        return {k: f(v) for k, v in dct.keys()}
+    else:
+        return f(dct)

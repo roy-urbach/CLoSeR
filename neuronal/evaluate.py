@@ -6,22 +6,34 @@ from utils.evaluation.ensemble import EnsembleVotingMethods
 from utils.evaluation.evaluation import classify_head_eval_ensemble, classify_head_eval
 from utils.model.model import load_model_from_json
 from utils.modules import Modules
-from utils.utils import printd, streval
+from utils.utils import printd, streval, run_on_dict, flatten_but_batch
 import numpy as np
 
 
-def get_masked_ds(model, dataset, union=False, bins_per_frame=1, last_frame=True, pcs=None, normalize=False, flatten=True, simple_norm=False):
+def get_masked_ds(model, dataset, union=False, bins_per_frame=1, last_frame=True, pcs=None, normalize=False,
+                  flatten=True, simple_norm=False, module=Modules.NEURONAL):
     if isinstance(model, str):
-        model = load_model_from_json(model, Modules.NEURONAL)
-    aug_layer = model.get_layer("data_augmentation")
-    pathways = model.get_layer('pathways')
-    pathway_indices = pathways.indices.numpy()
-    if union:
-        union_inds = np.unique(pathway_indices) - model.get_layer("pathways").shift
-        setup_func = lambda x: aug_layer(x).numpy()[:, union_inds, ..., -bins_per_frame if last_frame else 0:]   # (B, N, T)
+        model = load_model_from_json(model, module)
+
+    dct_out = False
+
+    if isinstance(dataset.get_x_train(), dict) and 'pathways' not in [l.name for l in model.layers]:
+        if union:
+            setup_func = lambda x: np.concatenate([arr[..., -bins_per_frame if last_frame else 0:] for arr in x.values()], axis=-2)
+        else:
+            dct_out = True
+            setup_func = lambda x: run_on_dict(x, lambda a: a[..., -bins_per_frame if last_frame else 0:])  # still dict
+
     else:
-        setup_func = lambda x: np.transpose(aug_layer(x).numpy()[:, pathway_indices - pathways.shift, ..., -bins_per_frame if last_frame else 0:], [0, 1, 3, 2]).reshape(
-            x.shape[0], -1, bins_per_frame if last_frame else x.shape[-1], pathway_indices.shape[-1])       # (B, N, T, P)
+        aug_layer = model.get_layer("data_augmentation")
+        pathways = model.get_layer('pathways')
+        pathway_indices = pathways.indices.numpy()
+        if union:
+            union_inds = np.unique(pathway_indices) - model.get_layer("pathways").shift
+            setup_func = lambda x: aug_layer(x).numpy()[:, union_inds, ..., -bins_per_frame if last_frame else 0:]   # (B, N, T)
+        else:
+            setup_func = lambda x: np.transpose(aug_layer(x).numpy()[:, pathway_indices - pathways.shift, ..., -bins_per_frame if last_frame else 0:], [0, 1, 3, 2]).reshape(
+                x.shape[0], -1, bins_per_frame if last_frame else x.shape[-1], pathway_indices.shape[-1])       # (B, N, T, P)
 
     x_train = setup_func(dataset.get_x_train())
     x_test = setup_func(dataset.get_x_test())
@@ -31,31 +43,47 @@ def get_masked_ds(model, dataset, union=False, bins_per_frame=1, last_frame=True
         from sklearn.decomposition import PCA
         pca = PCA(pcs)
         if union:
-            pca.fit(np.concatenate([x_train[..., t] for t in range(x_train.shape[-1])], axis=0))
+            times = x_train.shape[-1]
+            pca.fit(np.concatenate([x_train[..., t] for t in range(times)], axis=0))
             x_train = np.stack(
-                [pca.transform(x_train[..., t]) for t in range(x_train.shape[-1])], axis=-1)
+                [pca.transform(x_train[..., t]) for t in range(times)], axis=-1)
             x_test = np.stack(
-                [pca.transform(x_test[..., t]) for t in range(x_test.shape[-1])], axis=-1)
+                [pca.transform(x_test[..., t]) for t in range(times)], axis=-1)
             x_val = np.stack(
-                [pca.transform(x_val[..., t]) for t in range(x_val.shape[-1])], axis=-1)
+                [pca.transform(x_val[..., t]) for t in range(times)], axis=-1)
         else:
-            pca.fit(np.concatenate([x_train[...,t, i] for i in range(x_train.shape[-1]) for t in range(x_val.shape[-2])], axis=0))
-            x_train = np.stack([np.stack([pca.transform(x_train[..., t, i])
-                                          for t in range(x_train.shape[-2])], axis=-1)
-                                for i in range(x_train.shape[-1])], axis=-1)
-            x_test = np.stack([np.stack([pca.transform(x_test[..., t, i])
-                                          for t in range(x_test.shape[-2])], axis=-1)
-                                for i in range(x_test.shape[-1])], axis=-1)
+            if dct_out:
+                times = list(x_train.value())[0].shape[-1]
+                pcas = {k: PCA(pcs) for k in x_train}
+                for k, pca in pcas.items():
+                    pca.fit(np.concatenate([x_train[k][..., t] for t in range(times)], axis=0))
+                pca_pred = lambda arr: {k: np.stack([pcas[k].transform(arr[k][..., t]) for t in range(x_train.shape[-2])], axis=-1)
+                                       for k in pcas}
+                x_train = pca_pred(x_train)
+                x_val = pca_pred(x_val)
+                x_test = pca_pred(x_test)
+            else:
+                pca.fit(np.concatenate([x_train[...,t, i] for i in range(x_train.shape[-1]) for t in range(x_val.shape[-2])], axis=0))
+                x_train = np.stack([np.stack([pca.transform(x_train[..., t, i])
+                                              for t in range(x_train.shape[-2])], axis=-1)
+                                    for i in range(x_train.shape[-1])], axis=-1)
+                x_test = np.stack([np.stack([pca.transform(x_test[..., t, i])
+                                              for t in range(x_test.shape[-2])], axis=-1)
+                                    for i in range(x_test.shape[-1])], axis=-1)
 
-            x_val = np.stack([np.stack([pca.transform(x_val[..., t, i])
-                                          for t in range(x_val.shape[-2])], axis=-1)
-                                for i in range(x_val.shape[-1])], axis=-1)
+                x_val = np.stack([np.stack([pca.transform(x_val[..., t, i])
+                                              for t in range(x_val.shape[-2])], axis=-1)
+                                    for i in range(x_val.shape[-1])], axis=-1)
 
     if flatten:
         if union:
-            x_train = x_train.reshape(len(x_train), -1)
-            x_val = x_val.reshape(len(x_val), -1)
-            x_test = x_test.reshape(len(x_test), -1)
+            x_train = flatten_but_batch(x_train)
+            x_val = flatten_but_batch(x_val)
+            x_test = flatten_but_batch(x_test)
+        elif dct_out:
+            x_train = run_on_dict(x_train, flatten_but_batch)
+            x_val = run_on_dict(x_val, flatten_but_batch)
+            x_test = run_on_dict(x_test, flatten_but_batch)
         else:
             x_train = x_train.reshape((len(x_train), -1, x_train.shape[-1]))
             x_val = x_val.reshape((len(x_val), -1, x_val.shape[-1]))
@@ -188,7 +216,7 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
                 ds = cache[nonflattened_name]
             else:
                 ds = get_masked_ds(model, dataset=dataset, bins_per_frame=bins_per_frame,
-                                   pcs=pc, union=union,
+                                   pcs=pc, union=union, module=module,
                                    last_frame=last_frame, normalize=True, simple_norm=simple_norm, flatten=False)
                 cache[nonflattened_name] = ds
             cur_x_train, cur_x_test, cur_x_val = ds.get_x_train(), ds.get_x_test(), ds.get_x_val()
@@ -198,6 +226,10 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
                     cur_x_train = cur_x_train.reshape(len(cur_x_train), -1)
                     cur_x_val = cur_x_val.reshape(len(cur_x_val), -1)
                     cur_x_test = cur_x_test.reshape(len(cur_x_test), -1)
+                elif isinstance(cur_x_train, dict):
+                    cur_x_train = run_on_dict(cur_x_train, flatten_but_batch)
+                    cur_x_val = run_on_dict(cur_x_val, flatten_but_batch)
+                    cur_x_test = run_on_dict(cur_x_test, flatten_but_batch)
                 else:
                     cur_x_train = cur_x_train.reshape((len(cur_x_train), -1, cur_x_train.shape[-1]))
                     cur_x_val = cur_x_val.reshape((len(cur_x_val), -1, cur_x_val.shape[-1]))

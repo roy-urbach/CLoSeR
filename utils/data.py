@@ -2,6 +2,7 @@ import numpy as np
 import abc
 
 from utils.modules import Modules
+from utils.utils import run_on_dict
 
 CATEGORICAL = "categorical"
 CONTINUOUS = 'continuous'
@@ -21,15 +22,15 @@ class Data:
 
         if val_split and self.x_val is None and split:
             print("splitting randomly")
-            perm = np.random.permutation(len(self.x_train))
+            perm = np.random.permutation(len(self.x_train if not isinstance(self.x_train, dict) else list(self.x_train.value())[0]))
             split_idx = int(len(self.x_train) * self.val_split)
             val_idx = perm[:split_idx]
             train_idx = perm[split_idx:]
-            self.x_val = self.x_train[val_idx]
-            self.y_val = {k: v[val_idx] for k, v in self.y_train.items()} if isinstance(self.y_train, dict) else self.y_train[val_idx]
+            self.x_val = run_on_dict(self.x_train, lambda arr: arr[val_idx])
+            self.y_val = run_on_dict(self.y_train, lambda arr: arr[val_idx])
 
-            self.x_train = self.x_train[train_idx]
-            self.y_train = {k: v[train_idx] for k, v in self.y_train.items()} if isinstance(self.y_train, dict) else self.y_train[train_idx]
+            self.x_train = run_on_dict(self.x_train, lambda arr: arr[train_idx])
+            self.y_train = run_on_dict(self.y_train, lambda arr: arr[train_idx])
 
         self.shape = x_train[0].shape
         if img_normalize:
@@ -37,27 +38,54 @@ class Data:
         if normalize:
             self.normalize_data(simple=simple_norm)
         if flatten_y:
-            self.y_train = {k: v.flatten() for k, v in self.y_train.items()} if isinstance(self.y_train, dict) else self.y_train.flatten()
-            self.y_test = {k: v.flatten() for k, v in self.y_test.items()} if isinstance(self.y_test, dict) else self.y_test.flatten()
+            self.y_train = run_on_dict(self.y_train, lambda y: y.flatten())
+            self.y_test = run_on_dict(self.y_test, lambda y: y.flatten())
             if self.y_val is not None:
-                self.y_val = {k: v.flatten() for k, v in self.y_val.items()} if isinstance(self.y_val, dict) else self.y_val.flatten()
+                self.y_val = run_on_dict(self.y_val, lambda y: y.flatten())
 
     @staticmethod
     def is_generator():
         return False
 
     def image_normalize_data(self):
-        self.x_train = self.x_train / 255
-        self.x_test = self.x_test / 255
+        self.x_train = run_on_dict(self.x_train, lambda a: a / 255)
+        self.x_test = run_on_dict(self.x_test, lambda a: a / 255)
+        if self.x_val is not None:
+            self.x_val = run_on_dict(self.x_val, lambda a: a / 255)
 
     def normalize_data(self, simple=False):
-        mean = self.x_train.mean(axis=None if simple else 0, keepdims=True)
-        std = self.x_train.std(ddof=1, axis=None if simple else 0, keepdims=True)
-        self.x_train = np.true_divide(self.x_train - mean, std, where=(std > 0) & ~np.isnan(std), out=np.zeros(self.x_train.shape, dtype=std.dtype))
-        self.x_test = np.true_divide(self.x_test - mean, std, where=(std > 0) & ~np.isnan(std), out=np.zeros(self.x_test.shape, dtype=std.dtype))
-        if self.x_val is not None:
-            self.x_val = np.true_divide(self.x_val - mean, std, where=(std > 0) & ~np.isnan(std),
-                                        out=np.zeros(self.x_val.shape, dtype=std.dtype))
+        def normalize(arr_train, arr_test, arr_val=None):
+            m = arr_train.mean(None if simple else 0, keepdims=True)
+            std = arr_train.std(ddof=1, axis=None if simple else 0, keepdims=True)
+            mask = (std > 0) & ~np.isnan(std)
+            def to_z(arr):
+                return np.true_divide(arr - m, std, where=mask, out=np.zeros(arr.shape, dtype=std.dtype))
+            if arr_val is None:
+                return to_z(arr_train), to_z(arr_test)
+            else:
+                return to_z(arr_train), to_z(arr_test), to_z(arr_val)
+
+        if isinstance(self.x_train, dict):
+            if self.x_val is None:
+                new_x_train, new_x_test = {}, {}
+                for k in self.x_train:
+                    new_x_train[k], new_x_test[k] = normalize(self.x_train[k], self.x_test[k])
+                self.x_train = new_x_train
+                self.x_test = new_x_test
+            else:
+                new_x_train, new_x_test, new_x_val = {}, {}, {}
+                for k in self.x_train:
+                    new_x_train[k], new_x_test[k], new_x_val[k] = normalize(self.x_train[k], self.x_test[k], self.x_val[k])
+                self.x_train = new_x_train
+                self.x_test = new_x_test
+                self.x_val = new_x_val
+
+        else:
+
+            if self.x_val is None:
+                self.x_train, self.x_test = normalize(self.x_train, self.x_test)
+            else:
+                self.x_train, self.x_test, self.x_val = normalize(self.x_train, self.x_test, self.x_val)
 
     def get_all(self):
         return self.get_train(), self.get_test()
