@@ -218,9 +218,10 @@ def compile_model(model, dataset, loss=CrossPathwayTemporalContrastiveLoss, loss
 
     label_kwargs = {label.value.name: dict(from_logits=True) if label.value.is_categorical() else {} for label in labels}
 
+    P = model.get_layer("pathways").n if 'pathways' in [l.name for l in model.layers] else model.get_layer("embedding").output_shape[-1]
     if pathway_classification:
         if pathway_classification_allpaths:
-            for path in range(model.get_layer("pathways").n):
+            for path in range(P):
                 for label in labels:
                     dataset.update_name_to_label(f'logits{path}_{label.value.name}', label)
                     losses[f'logits{path}_{label.value.name}'] = label_class_loss[label.value.name](**label_kwargs[label.value.name])
