@@ -57,7 +57,9 @@ def measure_model(model, module:Modules, iterations=50, b=128):
     test_embd = model.predict(dataset.get_x_test())[0]
 
     if module in (Modules.NEURONAL, Modules.AUDITORY):
-        encoder_removed_bins = model.get_layer("pathways").output_shape[-1] != model.get_layer("embedding").output_shape[1]
+        encoder_removed_bins = model.layers[0].output_shape[-1] not in (model.get_layer("embedding").output_shape[1],
+                                                                        model.get_layer("embedding").output_shape[1] // 2)
+
         if encoder_removed_bins:
             last_step_embedding = test_embd[:, -1]
         else:
