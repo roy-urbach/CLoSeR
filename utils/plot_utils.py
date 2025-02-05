@@ -195,7 +195,7 @@ def plot_significance(x1, x2, y, p, dist=0.1, ax=None, horizontal=False, **kwarg
     if ax is None:
         ax = plt
     if string:
-        if horizontal:
+        if not horizontal:
             ax.plot([x1, x2], [y]*2, c='k', **kwargs)
             ax.plot([x1]*2, [y-dist, y], c='k', **kwargs)
             ax.plot([x2]*2, [y-dist, y], c='k', **kwargs)
