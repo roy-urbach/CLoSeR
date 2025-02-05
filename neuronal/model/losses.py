@@ -1028,7 +1028,7 @@ class CrossVJEPA(tf.keras.losses.Loss):
 
 
 class NonLocalContrastive(tf.keras.losses.Loss):
-    def __init__(self, eps=None, tau=10, **kwargs):
+    def __init__(self, eps=1e-4, tau=10, **kwargs):
         super().__init__(**kwargs)
         self.eps = eps
         self.tau = tau
@@ -1046,6 +1046,6 @@ class NonLocalContrastive(tf.keras.losses.Loss):
 
         indices = tf.stack([tf.range(B), tf.range(B)], axis=-1)
         pii = tf.gather_nd(p, indices)  # (B, P, P)
-        minus_log_pii = -tf.math.log(pii)
+        minus_log_pii = -tf.math.log(tf.maximum(pii, self.eps) if self.eps else pii)
         mean_log_pii = tf.reduce_mean(minus_log_pii, axis=0)
         return tf.reduce_mean(mean_log_pii[~tf.eye(P, dtype=bool)])
