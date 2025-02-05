@@ -648,35 +648,35 @@ class DinoLoss(tf.keras.losses.Loss):
         return {"cross_entropy": self.cross_entropy, "koleo": self.koleo}
 
 
-class NonLocalContrastive(tf.keras.losses.Loss):
-    def __init__(self, temperature=10., eps=1e-4, name='nonlocal_contrastive'):
-        super().__init__(name=name)
-        self.temperature = temperature
-        self.cross_path_agreement = None
-        self.eps = eps
-
-    # def calculate_cross_path_agreement(self, dists):
-    #     argmin = tf.math.argmin(dists, axis=1)
-    #     where = argmin == tf.range(tf.shape(dists)[0])[..., None, None, None]
-    #     self.cross_path_agreement = tf.reduce_mean(tf.cast(where, dtype=dists.dtype), axis=0)
-
-    def call(self, y_true, y_pred):
-        # y_pred shape (B, T, DIM, P)
-
-        # (B, B, T, P, P)
-        dists = tf.maximum(tf.linalg.norm(y_pred[:, None, ..., None] - y_pred[None, ..., None, :], axis=-3), self.eps)
-
-        # self.calculate_cross_path_agreement(dists)
-        sim = tf.maximum(tf.math.exp(-(dists**2)/self.temperature), self.eps)
-        log_z = tf.reduce_logsumexp(sim, axis=1)
-        all_pair_loss = log_z - tf.math.log(sim[tf.eye(tf.shape(sim)[0]) != 0])   # -log(pi)=-log(simii/zi)=-log(simii)+log(zi)
-        mask = tf.tile(~tf.eye(tf.shape(all_pair_loss)[-1], dtype=tf.bool)[None, None],
-                       [tf.shape(all_pair_loss)[0], tf.shape(all_pair_loss)[1], 1, 1])
-        relevant_pairs_loss = all_pair_loss[mask]
-        return tf.reduce_mean(relevant_pairs_loss)
-
-    def get_metrics(self):
-        return {"cross_path_agreement": self.cross_path_agreement}
+# class NonLocalContrastive(tf.keras.losses.Loss):
+#     def __init__(self, temperature=10., eps=1e-4, name='nonlocal_contrastive'):
+#         super().__init__(name=name)
+#         self.temperature = temperature
+#         self.cross_path_agreement = None
+#         self.eps = eps
+#
+#     # def calculate_cross_path_agreement(self, dists):
+#     #     argmin = tf.math.argmin(dists, axis=1)
+#     #     where = argmin == tf.range(tf.shape(dists)[0])[..., None, None, None]
+#     #     self.cross_path_agreement = tf.reduce_mean(tf.cast(where, dtype=dists.dtype), axis=0)
+#
+#     def call(self, y_true, y_pred):
+#         # y_pred shape (B, T, DIM, P)
+#
+#         # (B, B, T, P, P)
+#         dists = tf.maximum(tf.linalg.norm(y_pred[:, None, ..., None] - y_pred[None, ..., None, :], axis=-3), self.eps)
+#
+#         # self.calculate_cross_path_agreement(dists)
+#         sim = tf.maximum(tf.math.exp(-(dists**2)/self.temperature), self.eps)
+#         log_z = tf.reduce_logsumexp(sim, axis=1)
+#         all_pair_loss = log_z - tf.math.log(sim[tf.eye(tf.shape(sim)[0]) != 0])   # -log(pi)=-log(simii/zi)=-log(simii)+log(zi)
+#         mask = tf.tile(~tf.eye(tf.shape(all_pair_loss)[-1], dtype=tf.bool)[None, None],
+#                        [tf.shape(all_pair_loss)[0], tf.shape(all_pair_loss)[1], 1, 1])
+#         relevant_pairs_loss = all_pair_loss[mask]
+#         return tf.reduce_mean(relevant_pairs_loss)
+#
+#     def get_metrics(self):
+#         return {"cross_path_agreement": self.cross_path_agreement}
 
 
 class LPL(tf.keras.losses.Loss):
@@ -1025,3 +1025,27 @@ class CrossVJEPA(tf.keras.losses.Loss):
         mean_dist = tf.reduce_mean(dist, axis=0)
         mean_over_paths = tf.reduce_mean(mean_dist[~tf.eye(last_embd.shape[-1], dtype=tf.bool)])
         return mean_over_paths
+
+
+class NonLocalContrastive(tf.keras.losses.Loss):
+    def __init__(self, eps=None, tau=10, **kwargs):
+        super().__init__(**kwargs)
+        self.eps = eps
+        self.tau = tau
+
+    def call(self, y_true, y_pred):
+        # (B, T, DIM, P)
+        B = tf.shape(y_pred)[0]
+        P = y_pred.shape[-1]
+        embedding = y_pred[:, -1]
+        dist_sq = tf.reduce_sum(tf.pow(tf.stop_gradient(embedding[:, None, ..., :, None]) - embedding[None, :, ..., None, :], 2), axis=2) # (B, B, P, P)
+        if self.eps:
+            dist_sq = dist_sq + self.eps
+        sim = tf.exp(-dist_sq / self.tau)
+        p = sim / tf.reduce_sum(sim, axis=0, keepdims=True)  # (B, B, P, P)
+
+        indices = tf.stack([tf.range(B), tf.range(B)], axis=-1)
+        pii = tf.gather_nd(p, indices)  # (B, P, P)
+        minus_log_pii = -tf.math.log(pii)
+        mean_log_pii = tf.reduce_mean(minus_log_pii, axis=0)
+        return tf.reduce_mean(mean_log_pii[~tf.eye(P, dtype=bool)])
