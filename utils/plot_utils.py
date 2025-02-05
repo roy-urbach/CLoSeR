@@ -61,8 +61,10 @@ def violinplot_with_CI(arr, x, c='C0', widths=0.5, bar=False, scatter=False, sem
     if bar:
        plt.bar(x, arr.mean(), color=c, **kwargs)
     else:
+        if horizontal:
+            kwargs['orientation'] = 'horizontal'
         vi = plt.violinplot(arr, [x], showextrema=False, showmeans=False, widths=widths,
-                            orientation='horizontal' if horizontal else 'vertical', **kwargs)
+                            **kwargs)
         for pc in vi['bodies']:
             pc.set_facecolor(c)
     mean = arr.mean()
