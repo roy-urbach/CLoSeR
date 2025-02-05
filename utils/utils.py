@@ -54,6 +54,26 @@ def ind_t_test(x, y, **kwargs):
     return scipy.stats.ttest_ind(x[mask], y[mask], **kwargs).pvalue
 
 
+def ind_permutation_test(arr1, arr2, n_permutations=10000, **kwargs):
+    def statistic(x, y):
+        return np.mean(x) - np.mean(y)
+
+    result = scipy.stats.permutation_test((arr1[~np.isnan(arr1)], arr2[~np.isnan(arr2)]), statistic,
+                                          n_resamples=n_permutations, **kwargs)
+    return result.pvalue
+
+
+def paired_permutation_test(arr1, arr2, n_permutations=10000, **kwargs):
+    def statistic(x, y):
+        return np.mean(x - y)
+    assert arr1.size == arr2.size, "sizes should be the same"
+    mask = np.isnan(arr1) | np.isnan(arr2)
+
+    result = scipy.stats.permutation_test((arr1[~mask], arr2[~mask]), statistic,
+                                          n_resamples=n_permutations, **kwargs)
+    return result.pvalue
+
+
 def get_min_max(*arrs):
     return min([np.nanmin(arr) for arr in arrs]), max([np.nanmax(arr) for arr in arrs])
 
