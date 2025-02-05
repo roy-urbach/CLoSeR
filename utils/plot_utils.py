@@ -57,11 +57,12 @@ def savefig(fn):
     print(f"saved figure as {fn}")
 
 
-def violinplot_with_CI(arr, x, c='C0', widths=0.5, bar=False, scatter=False, sem=False, **kwargs):
+def violinplot_with_CI(arr, x, c='C0', widths=0.5, bar=False, scatter=False, sem=False, horizontal=False, **kwargs):
     if bar:
        plt.bar(x, arr.mean(), color=c, **kwargs)
     else:
-        vi = plt.violinplot(arr, [x], showextrema=False, showmeans=False, widths=widths, **kwargs)
+        vi = plt.violinplot(arr, [x], showextrema=False, showmeans=False, widths=widths,
+                            orientation='horizontal' if horizontal else 'vertical', **kwargs)
         for pc in vi['bodies']:
             pc.set_facecolor(c)
     mean = arr.mean()
@@ -72,9 +73,16 @@ def violinplot_with_CI(arr, x, c='C0', widths=0.5, bar=False, scatter=False, sem
         CI = SEM
     else:
         CI = np.abs(scipy.stats.t.ppf(0.025, n - 1) * SEM)
-    plt.errorbar([x], mean, yerr=CI, marker='o', capsize=10, c=c)
+    err_kwargs = dict(marker='o', capsize=10, c=c)
+    if horizontal:
+        plt.errorbar(mean, [x], xerr=CI, **err_kwargs)
+    else:
+        plt.errorbar([x], mean, yerr=CI, **err_kwargs)
     if scatter:
-        plt.scatter(np.full_like(arr, x), arr, alpha=kwargs.get("alpha", 0.8), c=c)
+        if horizontal:
+            plt.scatter(arr, np.full_like(arr, x), alpha=kwargs.get("alpha", 0.8), c=c)
+        else:
+            plt.scatter(np.full_like(arr, x), arr, alpha=kwargs.get("alpha", 0.8), c=c)
 
 
 def multiviolin(arr, xshift=0, xs=None, fig=None, c=None, **kwargs):
@@ -86,10 +94,10 @@ def multiviolin(arr, xshift=0, xs=None, fig=None, c=None, **kwargs):
             violinplot_with_CI(arr[i][~np.isnan(arr[i])], [i + xshift] if xs is None else xs[i], c=f"C{i}" if c is None else c, **kwargs)
 
 
-def dct_to_multiviolin(dct, rotation=0, xs=None, **kwargs):
-    keys = list(dct.keys())
-    multiviolin([np.array(dct[k]) for k in keys], xs=xs, **kwargs)
-    plt.xticks(np.arange(len(keys)) if xs is None else xs, keys, rotation=rotation)
+def dct_to_multiviolin(dct, rotation=0, xs=None, horizontal=False, keys=None, **kwargs):
+    keys = list(dct.keys()) if keys is None else keys
+    multiviolin([np.array(dct[k]) for k in keys], xs=xs, horizontal=horizontal, **kwargs)
+    (plt.yticks if horizontal else plt.xticks)(np.arange(len(keys)) if xs is None else xs, keys, rotation=rotation)
 
 
 def get_CI(arr, conf=0.975, of_the_mean=True, axis=0, sem=False):
