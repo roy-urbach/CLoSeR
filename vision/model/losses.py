@@ -790,7 +790,7 @@ class AgreementAndSTD(tf.keras.losses.Loss):
 
 
 class HarmonicContrastive(tf.keras.losses.Loss):
-    def __init__(self, eps=None, n=2, **kwargs):
+    def __init__(self, eps=None, n=1, **kwargs):
         super().__init__(**kwargs)
         self.eps = eps
         self.n = n
