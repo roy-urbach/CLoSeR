@@ -64,8 +64,7 @@ def violinplot_with_CI(arr, x, c='C0', widths=0.5, bar=False, scatter=False, sem
         if horizontal:
             kwargs['orientation'] = 'horizontal'
         if box:
-            print([x])
-            bplot = plt.boxplot([arr], positions=[x], **kwargs)
+            bplot = plt.boxplot([arr], positions=x, **kwargs)
             for pc in bplot['boxes']:
                 pc.set_facecolor(c)
         else:
