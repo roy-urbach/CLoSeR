@@ -188,12 +188,18 @@ def pvalue_to_str(p):
     return string
 
 
-def plot_significance(x1, x2, y, p, dist=0.1, ax=None, **kwargs):
+def plot_significance(x1, x2, y, p, dist=0.1, ax=None, horizontal=False, **kwargs):
     string = pvalue_to_str(p)
     if ax is None:
         ax = plt
     if string:
-        ax.plot([x1, x2], [y]*2, c='k', **kwargs)
-        ax.plot([x1]*2, [y-dist, y], c='k', **kwargs)
-        ax.plot([x2]*2, [y-dist, y], c='k', **kwargs)
-        ax.text((x1+x2)/2, y + dist, string, ha='center', va='center')
+        if horizontal:
+            ax.plot([x1, x2], [y]*2, c='k', **kwargs)
+            ax.plot([x1]*2, [y-dist, y], c='k', **kwargs)
+            ax.plot([x2]*2, [y-dist, y], c='k', **kwargs)
+            ax.text((x1+x2)/2, y + dist, string, ha='center', va='center')
+        else:
+            ax.plot([y]*2, [x1, x2], c='k', **kwargs)
+            ax.plot([y-dist, y], [x1]*2, c='k', **kwargs)
+            ax.plot([y-dist, y], [x2]*2, c='k', **kwargs)
+            ax.text(y + dist, (x1+x2)/2, '\n'.join(list(string)), ha='center', va='center')
