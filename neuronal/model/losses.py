@@ -1038,7 +1038,7 @@ class NonLocalContrastive(tf.keras.losses.Loss):
         B = tf.shape(y_pred)[0]
         P = y_pred.shape[-1]
         embedding = y_pred[:, -1]
-        dist_sq = tf.reduce_sum(tf.pow(tf.stop_gradient(embedding[:, None, ..., :, None]) - embedding[None, :, ..., None, :], 2), axis=2) # (B, B, P, P)
+        dist_sq = tf.reduce_mean(tf.pow(tf.stop_gradient(embedding[:, None, ..., :, None]) - embedding[None, :, ..., None, :], 2), axis=2) # (B, B, P, P)
         if self.eps:
             dist_sq = dist_sq + self.eps
         sim = tf.exp(-dist_sq / self.tau)
