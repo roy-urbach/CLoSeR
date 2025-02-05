@@ -57,16 +57,21 @@ def savefig(fn):
     print(f"saved figure as {fn}")
 
 
-def violinplot_with_CI(arr, x, c='C0', widths=0.5, bar=False, scatter=False, sem=False, horizontal=False, **kwargs):
+def violinplot_with_CI(arr, x, c='C0', widths=0.5, bar=False, scatter=False, sem=False, horizontal=False, box=False, **kwargs):
     if bar:
        plt.bar(x, arr.mean(), color=c, **kwargs)
     else:
         if horizontal:
             kwargs['orientation'] = 'horizontal'
-        vi = plt.violinplot(arr, [x], showextrema=False, showmeans=False, widths=widths,
-                            **kwargs)
-        for pc in vi['bodies']:
-            pc.set_facecolor(c)
+        if box:
+            bplot = plt.boxplot(arr, positions=[x], )
+            for pc in bplot['boxes']:
+                pc.set_facecolor(c)
+        else:
+            vi = plt.violinplot(arr, [x], showextrema=False, showmeans=False, widths=widths,
+                                **kwargs)
+            for pc in vi['bodies']:
+                pc.set_facecolor(c)
     mean = arr.mean()
     std = arr.std(ddof=1)
     n = arr.size
