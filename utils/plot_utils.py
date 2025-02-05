@@ -57,7 +57,7 @@ def savefig(fn):
     print(f"saved figure as {fn}")
 
 
-def violinplot_with_CI(arr, x, c='C0', widths=0.5, bar=False, scatter=False, sem=False, horizontal=False, box=False, **kwargs):
+def violinplot_with_CI(arr, x, c='C0', widths=0.5, bar=False, scatter=False, sem=False, horizontal=False, box=False, plot_CI=True, **kwargs):
     if bar:
        plt.bar(x, arr.mean(), color=c, **kwargs)
     else:
@@ -72,19 +72,20 @@ def violinplot_with_CI(arr, x, c='C0', widths=0.5, bar=False, scatter=False, sem
                                 **kwargs)
             for pc in vi['bodies']:
                 pc.set_facecolor(c)
-    mean = arr.mean()
-    std = arr.std(ddof=1)
-    n = arr.size
-    SEM = std / np.sqrt(n)
-    if sem:
-        CI = SEM
-    else:
-        CI = np.abs(scipy.stats.t.ppf(0.025, n - 1) * SEM)
-    err_kwargs = dict(marker='o', capsize=10, c=c)
-    if horizontal:
-        plt.errorbar(mean, [x], xerr=CI, **err_kwargs)
-    else:
-        plt.errorbar([x], mean, yerr=CI, **err_kwargs)
+    if plot_CI:
+        mean = arr.mean()
+        std = arr.std(ddof=1)
+        n = arr.size
+        SEM = std / np.sqrt(n)
+        if sem:
+            CI = SEM
+        else:
+            CI = np.abs(scipy.stats.t.ppf(0.025, n - 1) * SEM)
+        err_kwargs = dict(marker='o', capsize=10, c=c)
+        if horizontal:
+            plt.errorbar(mean, [x], xerr=CI, **err_kwargs)
+        else:
+            plt.errorbar([x], mean, yerr=CI, **err_kwargs)
     if scatter:
         if horizontal:
             plt.scatter(arr, np.full_like(arr, x), alpha=kwargs.get("alpha", 0.8), c=c)
