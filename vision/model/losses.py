@@ -799,11 +799,12 @@ class HarmonicContrastive(tf.keras.losses.Loss):
         B = tf.shape(y_pred)[0]
         P = y_pred.shape[-1]
         embedding = y_pred   # (B, DIM, P)
-        dist = tf.linalg.norm(tf.stop_gradient(embedding[:, None, ..., :, None]) - embedding[None, :, ..., None, :], axis=2)  # (B, B, P, P)
+        dist_sq = tf.linalg.sum(tf.pow(tf.stop_gradient(embedding[:, None, ..., :, None]) - embedding[None, :, ..., None, :], 2), axis=2) # (B, B, P, P)
         if self.eps:
-            dist = tf.maximum(dist, self.eps)
-        sim = 1/dist**self.n
-        p = sim / tf.reduce_sum(sim, axis=0, keepdims=True) # (B, B, P, P)
+            dist_sq = dist_sq + self.eps
+        normalization_factor = tf.reduce_sum(dist_sq, axis=0, keepdims=True)
+        sim = (dist_sq / normalization_factor) ** (-self.n)
+        p = sim / tf.reduce_sum(sim, axis=0, keepdims=True)  # (B, B, P, P)
 
         indices = tf.stack([tf.range(B), tf.range(B)], axis=-1)
         pii = tf.gather_nd(p, indices)  # (B, P, P)
