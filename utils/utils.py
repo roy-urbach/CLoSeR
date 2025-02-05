@@ -44,14 +44,14 @@ def correlation_t_test(corr, n, a=0.95):
     return t, t_cutoff, p
 
 
-def paired_t_test(x, y):
+def paired_t_test(x, y, **kwargs):
     mask = ~(np.isnan(x) | np.isnan(y))
-    return scipy.stats.ttest_rel(x[mask], y[mask]).pvalue
+    return scipy.stats.ttest_rel(x[mask], y[mask], **kwargs).pvalue
 
 
-def ind_t_test(x, y):
+def ind_t_test(x, y, **kwargs):
     mask = ~(np.isnan(x) | np.isnan(y))
-    return scipy.stats.ttest_ind(x[mask], y[mask]).pvalue
+    return scipy.stats.ttest_ind(x[mask], y[mask], **kwargs).pvalue
 
 
 def get_min_max(*arrs):
