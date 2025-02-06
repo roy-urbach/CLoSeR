@@ -229,7 +229,8 @@ def gather_results_over_all_args_pathways_mean(model_format, args, module=Module
 
 
 def plot_lines_different_along_d(model_format, module:Modules, seeds, args, ds, name="logistic", save=False, measure=False, mask=None,
-                                 arg=None, mean=False, legend=True, fig=None, c_shift=0, train=False, baseline=0.41, sem=False, c=None, **kwargs):
+                                 arg=None, mean=False, legend=True, fig=None, c_shift=0, train=False, baseline=0.41, sem=False, c=None,
+                                 xticks=False, **kwargs):
     if isinstance(args, str):
         args = eval(args)
     if isinstance(ds, str):
@@ -293,10 +294,11 @@ def plot_lines_different_along_d(model_format, module:Modules, seeds, args, ds, 
             if legend:
                 plt.legend()
         plt.ylabel("Accuracy") if not measure else plt.ylabel(name)
-        if module is Modules.VISION:
+        if xticks and module is Modules.VISION:
             from vision.utils.figures_utils import ds_to_labels
             plt.xticks(ds, ds_to_labels(ds))
-        plt.grid(alpha=0.3)
+        if xticks:
+            plt.grid(alpha=0.3)
         if not measure and baseline:
             plt.axhline(baseline, linestyle=':', c='k')
     plt.tight_layout()
