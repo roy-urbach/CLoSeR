@@ -131,7 +131,7 @@ def sorted_barplot(model_regex, metric_regex, module=Modules.VISION, sort_by_tra
 
 
 def plot_metrics_along_d(model_regex, module: Modules, metric_regex=("logistic", '.*linear_.*', '.*knn.*'),
-                         name_to_d_naive=False, baseline_name=None, metric_to_label=None):
+                         name_to_d_naive=False, baseline_name=None, metric_to_label=None, xticks=False):
     archive = load_classfications_by_regex(model_regex, module, name_to_d_naive=name_to_d_naive)
     best = max([max([v[-1] for v in val.values()]) for val in archive.values()])
     print(best)
@@ -157,9 +157,10 @@ def plot_metrics_along_d(model_regex, module: Modules, metric_regex=("logistic",
         if not classi.startswith('k'): plot_utils.legend(loc='upper right' if best > 0.5 else "lower right")
         plt.xlabel("d")
         plt.ylabel("accuracy")
-        plt.grid(alpha=0.2)
+        if xticks:
+            plt.grid(alpha=0.2)
+            plt.xlim(0, 1)
         subplot += 1
-        plt.xlim(0, 1)
         plt.xticks(eval_keys, keys_labels)
         simpleaxis(ax)
     plt.tight_layout()
