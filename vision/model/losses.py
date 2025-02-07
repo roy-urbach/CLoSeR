@@ -122,7 +122,7 @@ class ContrastiveSoftmaxLoss(Loss):
 
 class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
     def __init__(self, *args, a_pull, a_push, w_push=1, log_eps=1e-10, log_pull=False, contrastive=True,
-                 remove_diag=True, corr=False, use_dists=False, naive_push=False, naive_push_max=None, naive_djs=False,
+                 remove_diag=True, corr=False, dimdim_cov=False, use_dists=False, naive_push=False, naive_push_max=None, naive_djs=False,
                  top_k=0, stop_grad_dist=False, push_linear_predictivity=None, push_linear_predictivity_normalize=True,
                  linear_predictivity_kwargs={}, entropy_w=0, cka=False, mse=False, **kwargs):
         super().__init__(*args, **kwargs)
@@ -132,12 +132,12 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         A_PULL = tf.constant(eval(a_pull) if isinstance(a_pull, str) else a_pull, dtype=tf.float32)
         A_PUSH = tf.constant(eval_a_push, dtype=tf.float32)
         self.a_pull = A_PULL
-        self.a_push = A_PUSH * w_push
+        self.a_push = A_PUSH
         self.neg_in_pull = tf.reduce_any(self.a_pull < 0)
         self.a_pull_neg_mask = self.a_pull < 0
         self.w_push = w_push
         self.is_pull = tf.reduce_any(self.a_pull != 0).numpy()
-        self.is_push = tf.reduce_any(self.a_push != 0).numpy()
+        self.is_push = tf.reduce_any(self.a_push != 0).numpy() and w_push
         self.log_eps = log_eps
         self.log_pull = log_pull
         self.naive_push = naive_push
@@ -146,12 +146,14 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         self.contrastive = contrastive
         self.remove_diag = remove_diag
         self.corr = corr
+        self.dimdim_cov = dimdim_cov
         self.use_dists = use_dists
         self.top_k = top_k
         self.stop_grad_dist = stop_grad_dist
         self.mse = mse
         self.entropy_w = entropy_w
         self.cka = cka
+        self.monitor = LossMonitors("pull", "push", name="")
         assert (self.entropy_w and self.log_pull) or not self.entropy_w, "entropy loss only for log pull"
         self.push_linear_predictivity = LinearPredictivity([[-w * w_push for w in vec] for vec in eval_a_push],
                                                            normalize=push_linear_predictivity_normalize, **linear_predictivity_kwargs) if push_linear_predictivity else None
@@ -222,6 +224,14 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         cka = hsic / tf.sqrt(tf.linalg.diag_part(hsic)[..., None] * tf.linalg.diag_part(hsic)[None])
         return cka
 
+    def dimdim_cov_sqr_push(self, embd):
+        # (B, DIM, P)
+        means = tf.reduce_mean(tf.stop_gradient(embd), axis=0, keepdims=True)
+        centered = embd - means
+        cov = tf.einsum('idp,iDP->dDpP', centered, tf.stop_gradient(centered))    # (DIM, DIM, P, P)
+        cov_sqr = tf.pow(cov, 2)
+        return tf.reduce_mean(cov_sqr, axis=(0, 1)) # (P, P)
+
     def call(self, y_true, y_pred):
         if not self.cosine or self.is_push:
             dists = self.calculate_dists(y_pred, self_only=not self.is_pull, stop_grad=self.stop_grad_dist, mean=self.mse)
@@ -272,6 +282,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
             else:
                 mean_dist = tf.reduce_mean(self.distance(embedding=y_pred), axis=0)
                 pull_loss = tf.tensordot(self.a_pull, mean_dist, axes=[[0, 1], [0, 1]])
+            self.monitor.update_monitor("pull", pull_loss)
             loss += pull_loss
 
         if self.is_push:
@@ -299,6 +310,8 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
                     paths_loss = -tf.reduce_mean(djs, axis=0)
                 elif self.cka:
                     paths_loss = self.calculate_cka(embedding=y_pred, exp_logits=exp_logits)
+                elif self.dimdim_cov:
+                    paths_loss = self.dimdim_cov_sqr_push(y_pred)
                 else:
                     if self.is_pull:
                         if self.use_dists:
@@ -317,7 +330,8 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
                         mrdev = self.map_rep_dev(exp_logits=exp_logits, logits=logits)   # (b, n)
                         paths_loss = -tf.reduce_mean(mrdev, axis=0)
                 push_loss = tf.tensordot(self.a_push, paths_loss, axes=[[0, 1], [0, 1]])
-                loss += push_loss
+                self.monitor.update_monitor("push", push_loss)
+                loss += self.w_push * push_loss
         return loss
 
 
