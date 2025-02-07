@@ -57,7 +57,7 @@ def load_classfications_by_regex(model_regex, module, name_to_d_naive=False, con
 
 def plot_history(model_regex, module, window=10, name_to_name=lambda m: m, log=True, keys=None, keys_f=None,
                  log_keys={'embedding'}, plot_train=True, plot_val=True, name_to_c=None, save=None, legend=True, title=None):
-    models = regex_models(model_regex, module)
+    models = sorted(regex_models(model_regex, module))
     models_names = []
     orig_names = []
     histories = {}
