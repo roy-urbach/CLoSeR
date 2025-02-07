@@ -231,7 +231,7 @@ def gather_results_over_all_args_pathways_mean(model_format, args, module=Module
 
 def plot_lines_different_along_d(model_format, module:Modules, seeds, args, ds, name="logistic", save=False, measure=False, mask=None,
                                  arg=None, mean=False, legend=True, fig=None, c_shift=0, train=False, baseline=0.41, sem=False, c=None,
-                                 xticks=False, **kwargs):
+                                 xticks=False, marker=None, **kwargs):
     if isinstance(args, str):
         args = eval(args)
     if isinstance(ds, str):
@@ -270,7 +270,7 @@ def plot_lines_different_along_d(model_format, module:Modules, seeds, args, ds, 
 
                 color = f"C{ind+c_shift}" if c is None else c
 
-                plt.plot(ds, mean, label=(legend + ' ' if isinstance(legend, str) else "") + str(identity), c=color)
+                plt.plot(ds, mean, label=(legend + ' ' if isinstance(legend, str) else "") + str(identity), c=color, marker=marker)
                 if len(seeds) > 1:
                     plt.fill_between(ds, CI[0], CI[1][ind, ..., i], color=color, alpha=0.3)
         else:
