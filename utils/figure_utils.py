@@ -10,7 +10,7 @@ import numpy as np
 import os
 import re
 
-from utils.plot_utils import savefig, calculate_square_rows_cols, simpleaxis
+from utils.plot_utils import savefig, calculate_square_rows_cols, simpleaxis, NameAndColor
 from utils.utils import smooth
 
 
@@ -268,7 +268,7 @@ def plot_lines_different_along_d(model_format, module:Modules, seeds, args, ds, 
                 else:
                     CI = stats.norm.interval(0.975, loc=mean, scale=std_err_mean)
 
-                color = f"C{ind+c_shift}" if c is None else c
+                color = f"C{ind+c_shift}" if c is None else (c.get_color() if isinstance(c, NameAndColor) else c)
 
                 plt.plot(ds, mean, label=(legend + ' ' if isinstance(legend, str) else "") + str(identity), c=color, marker=marker)
                 if len(seeds) > 1:

@@ -2,7 +2,40 @@ from matplotlib import pyplot as plt
 from utils.utils import *
 import numpy as np
 import matplotlib as mpl
+from enum import Enum
 mpl.rc('image', cmap='gray')
+
+
+class NameAndColor:
+    def __init__(self, name, color=None, i=None):
+        assert color is not None or i is not None
+        self.name = name
+        self.color = color if color is not None else f"C{i}"
+        self.i = i
+
+    def get_name(self):
+        return self.name
+
+    def get_color(self):
+        return self.color
+
+    def get_i(self):
+        return self.i
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.name
+
+
+class NamesAndColors(Enum):
+    MASKED = NameAndColor("masked raw input", i=0)
+    UNTRAINED = NameAndColor("untrained model", color='gray')
+    FULL_INPUT = NameAndColor("full raw input", i=0)
+    UNSUPERVISED = NameAndColor("CLoSeR", color='g')
+    SUPERVISED = NameAndColor("supervised", color='r')
+
 
 
 def basic_scatterplot(x, y, identity=True, fig=None, c='k', corr=False, t=False,
@@ -99,12 +132,15 @@ def multiviolin(arr, xshift=0, xs=None, fig=None, c=None, **kwargs):
     for i in range(len(arr)):
         if (isinstance(arr[i], np.ndarray) and arr[i].size) or (not isinstance(arr[i], np.ndarray) and arr):
             if np.isnan(arr[i]).all(): continue
-            violinplot_with_CI(arr[i][~np.isnan(arr[i])], [i + xshift] if xs is None else xs[i], c=f"C{i}" if c is None else c, **kwargs)
+            violinplot_with_CI(arr[i][~np.isnan(arr[i])], [i + xshift] if xs is None else xs[i],
+                               c=f"C{i}" if c is None else c[i] if isinstance(c, list) else c, **kwargs)
 
 
-def dct_to_multiviolin(dct, rotation=0, xs=None, horizontal=False, keys=None, **kwargs):
+def dct_to_multiviolin(dct, rotation=0, xs=None, horizontal=False, keys=None, c=None, **kwargs):
     keys = list(dct.keys()) if keys is None else keys
-    multiviolin([np.array(dct[k]) for k in keys], xs=xs, horizontal=horizontal, **kwargs)
+    if c and isinstance(keys[0], NameAndColor):
+            c = [k.get_color() for k in keys]
+    multiviolin([np.array(dct[k]) for k in keys], xs=xs, c=c, horizontal=horizontal, **kwargs)
     (plt.yticks if horizontal else plt.xticks)(np.arange(len(keys)) if xs is None else xs, keys, rotation=rotation)
 
 
