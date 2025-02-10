@@ -28,8 +28,11 @@ def ds_to_labels(ds):
     ds_labels = [r'$\frac{{{0}}}{{{1}}}$'.format(*k.split('/')) for k in ds_labels]
     return ds_labels
 
+def ds_to_perc(ds):
+    return np.array([f'{int(d*PATCHES)/PATCHES:.1f}' for d in ds])
 
-EXTENDED_DS_LABELS = ds_to_labels(EXTENDED_DS)
+EXTENDED_DS_LABELS_FRAC = ds_to_labels(EXTENDED_DS)
+EXTENDED_DS_LABELS = ds_to_perc(EXTENDED_DS)
 
 from enum import Enum
 
