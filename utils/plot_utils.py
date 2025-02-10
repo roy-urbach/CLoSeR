@@ -22,7 +22,7 @@ class NameAndColor:
         return self.color
 
     def get_c(self):
-        return self.c
+        return self.get_color()
 
     def get_i(self):
         return self.i
