@@ -330,6 +330,26 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
                 loss += self.w_push * push_loss
         return loss
 
+    @staticmethod
+    def plot_graph(self, mat, interaction_c='k', nointeraction_c='w', **kwargs):
+        import matplotlib
+        from matplotlib import pyplot as plt
+        from utils.plot_utils import colorbar
+        cmap = matplotlib.colors.ListedColormap([nointeraction_c, interaction_c])
+        plt.figure()
+        cbar = colorbar(plt.imshow(mat > 0, cmap=cmap, vmax=1, vmin=0), **kwargs)
+        cbar.set_ticks([0.25, 0.75])
+        cbar.set_ticklabels(['no interaction', 'interaction'])
+
+        plt.xlabel(r"encoder $j$")
+        plt.ylabel(r"encoder $i$")
+
+    def plot_pull(self, interaction_c=(0, 0.5, 0, 0.6), nointeraction_c=(0, 0.5, 0, 0.1), **kwargs):
+        self.plot_graph(self.a_pull.numpy(), interaction_c=interaction_c, nointeraction_c=nointeraction_c, **kwargs)
+
+    def plot_push(self, interaction_c=(0.8, 0, 0, 0.6), nointeraction_c=(0.8, 0, 0, 0.1), **kwargs):
+        self.plot_graph(self.a_push.numpy(), interaction_c=interaction_c, nointeraction_c=nointeraction_c, **kwargs)
+
 
 class ProbabilisticPullPushGraphLoss(GeneralPullPushGraphLoss):
     def __init__(self, num_pathways, *args, p_pull=1., p_push=0., depend=False, **kwargs):
