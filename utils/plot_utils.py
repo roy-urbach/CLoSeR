@@ -7,11 +7,13 @@ mpl.rc('image', cmap='gray')
 
 
 class NameAndColor:
-    def __init__(self, name, color=None, i=None):
-        assert color is not None or i is not None
+    def __init__(self, name, c=None, color=None, i=None, **kwargs):
+        assert c is not None or color is not None or i is not None
         self.name = name
-        self.color = color if color is not None else f"C{i}"
+        self.color = (color or c) if (color or c) is not None else f"C{i}"
+        self. c = color
         self.i = i
+        self.kwargs = kwargs
 
     def get_name(self):
         return self.name
@@ -19,8 +21,14 @@ class NameAndColor:
     def get_color(self):
         return self.color
 
+    def get_c(self):
+        return self.c
+
     def get_i(self):
         return self.i
+
+    def get_kwargs(self):
+        return self.kwargs
 
     def __str__(self):
         return self.name
@@ -30,7 +38,7 @@ class NameAndColor:
 
 
 class NamesAndColors(Enum):
-    CHANCE = NameAndColor("chance level", color='k')
+    CHANCE = NameAndColor("chance level", color='k', linestyle=':')
     MASKED = NameAndColor("masked raw input", i=0)
     UNTRAINED = NameAndColor("untrained model", color='gray')
     FULL_INPUT = NameAndColor("full raw input", i=0)
