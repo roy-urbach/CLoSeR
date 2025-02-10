@@ -45,6 +45,12 @@ class NamesAndColors(Enum):
     UNSUPERVISED = NameAndColor("CLoSeR", color='g')
     SUPERVISED = NameAndColor("supervised", color='r')
 
+    def __getattribute__(self, item):
+        if hasattr(self, item):
+            return super().__getattribute__(item)
+        else:
+            return getattr(self.value, item)
+
 
 
 def basic_scatterplot(x, y, identity=True, fig=None, c='k', corr=False, t=False,
