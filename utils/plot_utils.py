@@ -43,7 +43,7 @@ class NamesAndColors(Enum):
     UNTRAINED = NameAndColor("untrained model", color='gray')
     FULL_INPUT = NameAndColor("full raw input", i=0)
     UNSUPERVISED = NameAndColor("CLoSeR", color='g')
-    SUPERVISED = NameAndColor("supervised", color='r')
+    SUPERVISED = NameAndColor("supervised", i=3)
 
 
 def basic_scatterplot(x, y, identity=True, fig=None, c='k', corr=False, t=False,
