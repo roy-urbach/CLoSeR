@@ -5,6 +5,12 @@ import matplotlib as mpl
 from enum import Enum
 mpl.rc('image', cmap='gray')
 
+YLABEL_CLASS = "Classification accuracy"
+XLABEL_PERC = "% of {inp} seen by encoder"
+YLABEL_CLASS_F = lambda ax=None, inp_name='image': (ax.set_ylabel if ax else plt.ylabel)(YLABEL_CLASS.format(inp=inp_name))
+XLABEL_PERC_F = lambda ax=None: (ax.set_xlabel(XLABEL_PERC) if ax else plt.xlabel(XLABEL_PERC))
+XTICKS_PERC_F = lambda ax=None: (ax.set_xticks if ax else plt.xticks)(np.linspace(0, 1, 11), [f"{d if d else ''}0%" for d in range(0,11)])
+
 
 class NameAndColor:
     def __init__(self, name, c=None, color=None, i=None, **kwargs):
