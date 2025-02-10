@@ -196,10 +196,6 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
 
         return correlation
 
-    def distance(self, embedding):
-        dist = tf.reduce_sum(tf.pow(embedding[..., None, :] - embedding[..., None], 2), axis=-3)
-        return dist
-
     def calculate_cka(self, embedding=None, logits=None, exp_logits=None):
         """
         A measure of independence. 0 means independent.
@@ -234,11 +230,11 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
 
     def call(self, y_true, y_pred):
         if not self.cosine or self.is_push:
-            dists = self.calculate_dists(y_pred, self_only=not self.is_pull, stop_grad=self.stop_grad_dist, mean=self.mse)
+            dists = self.calculate_dists(y_pred, self_only=not self.is_pull or not self.contrastive, stop_grad=self.stop_grad_dist, mean=self.mse)
         else:
             dists = None
         logits = exp_logits = None
-        if self.is_pull or not self.use_dists:
+        if (self.is_pull and self.contrastive) or not self.use_dists:
             logits = self.calculate_logits(y_pred, dist=dists, self_only=not self.is_pull)
             if self.stable and (self.is_pull and not self.log_pull) and self.is_push:
                 exp_logits = self.calculate_exp_logits(None, logits=logits)
@@ -280,7 +276,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
                 mean_gain = tf.reduce_mean(gain, axis=0)
                 pull_loss = tf.tensordot(self.a_pull, (0 if self.log_pull else 1) - mean_gain, axes=[[0, 1], [0, 1]])
             else:
-                mean_dist = tf.reduce_mean(self.distance(embedding=y_pred), axis=0)
+                mean_dist = tf.reduce_mean(dists, axis=0)
                 pull_loss = tf.tensordot(self.a_pull, mean_dist, axes=[[0, 1], [0, 1]])
             self.monitor.update_monitor("pull", pull_loss)
             loss += pull_loss
