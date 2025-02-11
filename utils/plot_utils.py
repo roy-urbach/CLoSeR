@@ -18,7 +18,7 @@ class NameAndColor:
         assert c is not None or color is not None or i is not None
         self.name = name
         self.color = (color or c) if (color or c) is not None else f"C{i}"
-        self.c = color
+        self.c = self.color
         self.i = i
         self.kwargs = kwargs
 
