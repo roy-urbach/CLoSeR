@@ -10,7 +10,7 @@ import numpy as np
 import os
 import re
 
-from utils.plot_utils import savefig, calculate_square_rows_cols, simpleaxis, NameAndColor
+from utils.plot_utils import savefig, calculate_square_rows_cols, simpleaxis, NameAndColor, YLABEL_CLASS_F
 from utils.utils import smooth
 
 
@@ -271,9 +271,9 @@ def plot_lines_different_along_d(model_format, module:Modules, seeds, args, ds, 
 
                 color = f"C{ind+c_shift}" if c is None else (c.get_color() if isinstance(c, NameAndColor) else c)
 
-                ax.plot(ds, mean, label=(legend + ' ' if isinstance(legend, str) else "") + str(identity), c=color, marker=marker)
+                (ax if ax is not None else plt).plot(ds, mean, label=(legend + ' ' if isinstance(legend, str) else "") + str(identity), c=color, marker=marker)
                 if len(seeds) > 1:
-                    ax.fill_between(ds, CI[0], CI[1][ind, ..., i], color=color, alpha=0.3)
+                    (ax if ax is not None else plt).fill_between(ds, CI[0], CI[1][ind, ..., i], color=color, alpha=0.3)
         else:
             color = f"C{c_shift}" if c is None else c
             relevant_part = res[..., i] if not measure else np.stack([np.stack([res[i_d, s][mask if mask is not None else ~np.eye(res.shape[-1], dtype=bool)]
@@ -287,22 +287,23 @@ def plot_lines_different_along_d(model_format, module:Modules, seeds, args, ds, 
             else:
                 CI = stats.norm.interval(0.975, loc=mean, scale=std_err_mean)
 
-            ax.plot(ds, mean, label=(legend + ' ') if isinstance(legend, str) else "", c=color)
+            (ax if ax is not None else plt).plot(ds, mean, label=(legend + ' ') if isinstance(legend, str) else "", c=color)
             if len(seeds) > 1:
-                ax.fill_between(ds, CI[0], CI[1], color=color, alpha=0.3)
+                (ax if ax is not None else plt).fill_between(ds, CI[0], CI[1], color=color, alpha=0.3)
         if i:
-            ax.set_xlabel('d')
+            (ax.set_xlabel if ax is not None else plt.xlabel)('d')
         else:
             if legend:
                 plt.legend()
-        plt.ylabel("Accuracy") if not measure else plt.ylabel(name)
+        (ax.set_xlabel if ax is not None else plt.xlabel)('d')
+        YLABEL_CLASS_F() if not measure else (ax.set_ylabel if ax is not None else plt.ylabel)(name)
         if xticks and module is Modules.VISION:
             from vision.utils.figures_utils import ds_to_labels
-            ax.set_xticks(ds, ds_to_labels(ds))
+            (ax.set_xticks if ax is not None else plt.xticks)(ds, ds_to_labels(ds))
         if xticks:
-            ax.grid(alpha=0.3)
+            (ax if ax is not None else plt).grid(alpha=0.3)
         if not measure and baseline:
-            ax.axhline(baseline, linestyle=':', c='k')
+            (ax if ax is not None else plt).axhline(baseline, linestyle=':', c='k')
     plt.tight_layout()
     if save:
         savefig(f"figures/{model_format}_along_d_{arg}")
