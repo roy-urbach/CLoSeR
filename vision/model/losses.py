@@ -343,8 +343,8 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
             cbar = colorbar(im)
             cbar.set_ticks([0.25, 0.75])
             cbar.set_ticklabels(['no interaction', 'interaction'])
-            for sp in cbar.ax:
-                cbar.ax.spikes[sp].set_color(interaction_c)
+            for sp in cbar.ax.spines:
+                cbar.ax.spines[sp].set_color(interaction_c)
 
         if labels:
             ax.set_xlabel(r"encoder $j$")
