@@ -337,7 +337,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         from utils.plot_utils import colorbar
         cmap = matplotlib.colors.ListedColormap([nointeraction_c, interaction_c])
         plt.figure()
-        cbar = colorbar(plt.imshow(mat > 0, cmap=cmap, vmax=1, vmin=0), **kwargs)
+        cbar = colorbar(plt.imshow(mat > 0, cmap=cmap, vmax=1, vmin=0, **kwargs))
         cbar.set_ticks([0.25, 0.75])
         cbar.set_ticklabels(['no interaction', 'interaction'])
 
