@@ -154,7 +154,9 @@ def multiviolin(arr, xshift=0, xs=None, fig=None, c=None, **kwargs):
 def dct_to_multiviolin(dct, rotation=0, xs=None, horizontal=False, keys=None, c=None, **kwargs):
     keys = list(dct.keys()) if keys is None else keys
     if c and isinstance(keys[0], NameAndColor):
-            c = [k.get_color() for k in keys]
+        c = [k.get_color() for k in keys]
+    elif c and isinstance(c, dict):
+        c = [c[k] for k in keys]
     multiviolin([np.array(dct[k]) for k in keys], xs=xs, c=c, horizontal=horizontal, **kwargs)
     (plt.yticks if horizontal else plt.xticks)(np.arange(len(keys)) if xs is None else xs, keys, rotation=rotation)
 
