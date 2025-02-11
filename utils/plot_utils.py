@@ -28,6 +28,8 @@ class NameAndColor:
         self.c = self.color
         self.i = i
         self.kwargs = kwargs
+        for k, v in kwargs.items():
+            setattr(self, k, v)
 
     def get_name(self):
         return self.name
