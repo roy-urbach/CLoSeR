@@ -283,3 +283,7 @@ def plot_significance_anchor(dct, k, keys=None, test=paired_t_test, significance
             p = test(dct[k], dct[alter], alternative='greater')
             plot_significance(i, ind_k, np.quantile(dct[k], 0.75)+significance_dist*(len(dct) - 1 - i), dist=dist, p=p, linewidth=1)
 
+
+def remove_spines(ax):
+    for sp in ax.spines:
+        ax.spines[sp].set_visible(False)
