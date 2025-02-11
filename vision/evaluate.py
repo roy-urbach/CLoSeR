@@ -10,6 +10,9 @@ from vision.utils.data import Cifar10
 import numpy as np
 from tqdm import tqdm as counter
 
+EVAL_IND_LIN = 'pathways_mean_linear'
+EVAL_ENS_LIN = 'logistic'
+
 
 def get_masked_ds(model, dataset=Cifar10()):
     if isinstance(model, str):
@@ -71,7 +74,7 @@ def evaluate(model, module: Modules=Modules.VISION, knn=False, linear=True, ense
     if linear:
         if 'logistic' not in results or override_linear:
             printd("running logistic")
-            results['logistic'] = classify_head_eval(embd_dataset, linear=True, svm=False, categorical=True, **kwargs)
+            results[EVAL_ENS_LIN] = classify_head_eval(embd_dataset, linear=True, svm=False, categorical=True, **kwargs)
             save_res()
 
     if ensemble:
