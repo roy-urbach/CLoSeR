@@ -11,13 +11,13 @@ MEASURES_FILE_NAME = 'measures'
 
 
 class CrossPathMeasures(Enum):
-    Acc = auto()
+    Acc = "Agreement score"
     LikeSelf = auto()
     Entropy = auto()
     MaxLikeNoSelf = auto()
     EntropyNoSelf = auto()
     Distance = auto()
-    Correlation = auto()
+    Correlation = "Alignment of embedding maps"
     DKL = auto()
     CKA = auto()
 
