@@ -230,7 +230,7 @@ def gather_results_over_all_args_pathways_mean(model_format, args, module=Module
 
 
 def plot_lines_different_along_d(model_format, module:Modules, seeds, args, ds, name="logistic", save=False, measure=False, mask=None,
-                                 arg=None, mean=False, legend=True, fig=None, c_shift=0, train=False, baseline=0.41, sem=False, c=None,
+                                 arg=None, mean=False, legend=True, fig=None, c_shift=0, train=False, baseline=None, sem=False, c=None,
                                  xticks=False, marker=None, ax=None, **kwargs):
     if isinstance(args, str):
         args = eval(args)
