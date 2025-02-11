@@ -182,7 +182,7 @@ def plot_with_CI(vals, x=None, label=None, fill_between=True, err=True, conf=0.9
         x = np.arange(m.size)
     mask = ~np.isnan(m)
     if fill_between:
-        plt.fill_between(x[mask], m[mask] - ci[mask], m[mask] + ci[mask], alpha=0.3, c=c, **kwargs)
+        plt.fill_between(x[mask], m[mask] - ci[mask], m[mask] + ci[mask], alpha=0.3, color=c, **kwargs)
     if err:
         plt.errorbar(x[mask], m[mask], yerr=ci[mask], label=label, alpha=0.8, capsize=10 if not fill_between else 0,
                      c=c, **kwargs)
