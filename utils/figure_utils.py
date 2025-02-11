@@ -256,7 +256,7 @@ def plot_lines_different_along_d(model_format, module:Modules, seeds, args, ds, 
         if not measure and only_test and i != (res.shape[-1] - 1): continue
         if not given_ax and not only_test:
             ax = plt.subplot(1 if measure or only_test else res.shape[-1], 1, 1 if measure or only_test else i+1, sharey=ax)
-        ax.set_title((["Train", "Test"] if res.shape[-1] == 2 else ['Train', 'Val', 'Test'][i]) if not measure else 'Test')
+        (ax.set_title if ax is not None else plt.title)((["Train", "Test"] if res.shape[-1] == 2 else ['Train', 'Val', 'Test'][i]) if not measure else 'Test')
         if arg:
             for ind, identity in enumerate(args):
                 relevant_part = res[ind, ..., i] if not measure else np.stack([np.stack([res[ind, i_d, s][mask if mask is not None else ~np.eye(res.shape[-1], dtype=bool)]
