@@ -331,18 +331,26 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         return loss
 
     @staticmethod
-    def plot_graph(mat, ax=None, interaction_c='k', nointeraction_c='w', **kwargs):
+    def plot_graph(mat, ax=None, interaction_c='k', nointeraction_c='w', ticks=True, cbar=True, labels=True, **kwargs):
         import matplotlib
         from matplotlib import pyplot as plt
         from utils.plot_utils import colorbar
         cmap = matplotlib.colors.ListedColormap([nointeraction_c, interaction_c])
-        plt.figure()
-        cbar = colorbar((ax if ax else plt).imshow(mat > 0, cmap=cmap, vmax=1, vmin=0, **kwargs))
-        cbar.set_ticks([0.25, 0.75])
-        cbar.set_ticklabels(['no interaction', 'interaction'])
+        if ax is None:
+            plt.figure()
+        im = (ax if ax else plt).imshow(mat > 0, cmap=cmap, vmax=1, vmin=0, **kwargs)
+        if cbar:
+            cbar = colorbar(im)
+            cbar.set_ticks([0.25, 0.75])
+            cbar.set_ticklabels(['no interaction', 'interaction'])
 
-        plt.xlabel(r"encoder $j$")
-        plt.ylabel(r"encoder $i$")
+        if labels:
+            (ax.set_xlabel if ax else plt.xlabel)([])(r"encoder $j$")
+            (ax.set_ylabel if ax else plt.ylabel)([])(r"encoder $i$")
+
+        if not ticks:
+            (ax.set_xticks if ax else plt.xticks)([])
+            (ax.set_yticks if ax else plt.yticks)([])
 
     def plot_pull(self, ax=None, interaction_c=(0, 0.5, 0, 0.6), nointeraction_c=(0, 0.5, 0, 0.1), **kwargs):
         self.plot_graph(self.a_pull.numpy(), ax=ax, interaction_c=interaction_c, nointeraction_c=nointeraction_c, **kwargs)
