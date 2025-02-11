@@ -47,7 +47,7 @@ class NameAndColor:
 class NamesAndColors(Enum):
     CHANCE = NameAndColor("chance level", color='k', linestyle=':')
     MASKED = NameAndColor("masked raw input", i=0)
-    UNTRAINED = NameAndColor("untrained model", color='brown')
+    UNTRAINED = NameAndColor("untrained model", color='p')
     FULL_INPUT = NameAndColor("full raw input", i=0)
     UNSUPERVISED = NameAndColor("CLoSeR", color='g')
     SUPERVISED = NameAndColor("supervised", i=3)
