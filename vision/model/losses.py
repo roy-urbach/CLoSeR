@@ -343,6 +343,8 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
             cbar = colorbar(im)
             cbar.set_ticks([0.25, 0.75])
             cbar.set_ticklabels(['no interaction', 'interaction'])
+            for sp in cbar.ax:
+                cbar.ax.spikes[sp].set_color(interaction_c)
 
         if labels:
             ax.set_xlabel(r"encoder $j$")
@@ -355,10 +357,10 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         for sp in ax.spines:
             ax.spines[sp].set_color(interaction_c)
 
-    def plot_pull(self, ax=None, interaction_c=(0, 0.5, 0, 0.6), nointeraction_c=(0, 0.5, 0, 0.1), **kwargs):
+    def plot_pull(self, ax=None, interaction_c=(0, 0.5, 0, 0.8), nointeraction_c=(0, 0.5, 0, 0.1), **kwargs):
         self.plot_graph(self.a_pull.numpy(), ax=ax, interaction_c=interaction_c, nointeraction_c=nointeraction_c, **kwargs)
 
-    def plot_push(self, ax=None, interaction_c=(0.8, 0, 0, 0.6), nointeraction_c=(0.8, 0, 0, 0.1), **kwargs):
+    def plot_push(self, ax=None, interaction_c=(0.8, 0, 0, 0.8), nointeraction_c=(0.8, 0, 0, 0.1), **kwargs):
         self.plot_graph(self.a_push.numpy(), ax=ax, interaction_c=interaction_c, nointeraction_c=nointeraction_c, **kwargs)
 
 
