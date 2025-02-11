@@ -231,7 +231,7 @@ def gather_results_over_all_args_pathways_mean(model_format, args, module=Module
 
 def plot_lines_different_along_d(model_format, module:Modules, seeds, args, ds, name="logistic", save=False, measure=False, mask=None,
                                  arg=None, mean=False, legend=True, fig=None, c_shift=0, train=False, baseline=0.41, sem=False, c=None,
-                                 xticks=False, marker=None, **kwargs):
+                                 xticks=False, marker=None, ax=None, **kwargs):
     if isinstance(args, str):
         args = eval(args)
     if isinstance(ds, str):
@@ -248,14 +248,15 @@ def plot_lines_different_along_d(model_format, module:Modules, seeds, args, ds, 
     # means = np.nanmean(res, axis=2)
     # stds = np.nanstd(res, axis=2, ddof=1)
     # CI = stats.norm.interval(0.975, loc=means, scale=stds / np.sqrt(np.sum(~np.isnan(res), axis=2)))
-    ax = None
     fig = plt.figure(figsize=(8, 4+8*train)) if fig is None else fig
     plt.suptitle(model_format + " " + name + f" different {arg}")
     only_test = measure or not train
+    given_ax = ax is not None
     for i in range(res.shape[-1] if not measure else 1):
         if not measure and only_test and i != (res.shape[-1] - 1): continue
-        ax = plt.subplot(1 if measure or only_test else res.shape[-1], 1, 1 if measure or only_test else i+1, sharey=ax)
-        plt.title((["Train", "Test"] if res.shape[-1] == 2 else ['Train', 'Val', 'Test'][i]) if not measure else 'Test')
+        if not given_ax and not only_test:
+            ax = plt.subplot(1 if measure or only_test else res.shape[-1], 1, 1 if measure or only_test else i+1, sharey=ax)
+        ax.set_title((["Train", "Test"] if res.shape[-1] == 2 else ['Train', 'Val', 'Test'][i]) if not measure else 'Test')
         if arg:
             for ind, identity in enumerate(args):
                 relevant_part = res[ind, ..., i] if not measure else np.stack([np.stack([res[ind, i_d, s][mask if mask is not None else ~np.eye(res.shape[-1], dtype=bool)]
@@ -270,9 +271,9 @@ def plot_lines_different_along_d(model_format, module:Modules, seeds, args, ds, 
 
                 color = f"C{ind+c_shift}" if c is None else (c.get_color() if isinstance(c, NameAndColor) else c)
 
-                plt.plot(ds, mean, label=(legend + ' ' if isinstance(legend, str) else "") + str(identity), c=color, marker=marker)
+                ax.plot(ds, mean, label=(legend + ' ' if isinstance(legend, str) else "") + str(identity), c=color, marker=marker)
                 if len(seeds) > 1:
-                    plt.fill_between(ds, CI[0], CI[1][ind, ..., i], color=color, alpha=0.3)
+                    ax.fill_between(ds, CI[0], CI[1][ind, ..., i], color=color, alpha=0.3)
         else:
             color = f"C{c_shift}" if c is None else c
             relevant_part = res[..., i] if not measure else np.stack([np.stack([res[i_d, s][mask if mask is not None else ~np.eye(res.shape[-1], dtype=bool)]
@@ -286,22 +287,22 @@ def plot_lines_different_along_d(model_format, module:Modules, seeds, args, ds, 
             else:
                 CI = stats.norm.interval(0.975, loc=mean, scale=std_err_mean)
 
-            plt.plot(ds, mean, label=(legend + ' ') if isinstance(legend, str) else "", c=color)
+            ax.plot(ds, mean, label=(legend + ' ') if isinstance(legend, str) else "", c=color)
             if len(seeds) > 1:
-                plt.fill_between(ds, CI[0], CI[1], color=color, alpha=0.3)
+                ax.fill_between(ds, CI[0], CI[1], color=color, alpha=0.3)
         if i:
-            plt.xlabel('d')
+            ax.set_xlabel('d')
         else:
             if legend:
                 plt.legend()
         plt.ylabel("Accuracy") if not measure else plt.ylabel(name)
         if xticks and module is Modules.VISION:
             from vision.utils.figures_utils import ds_to_labels
-            plt.xticks(ds, ds_to_labels(ds))
+            ax.set_xticks(ds, ds_to_labels(ds))
         if xticks:
-            plt.grid(alpha=0.3)
+            ax.grid(alpha=0.3)
         if not measure and baseline:
-            plt.axhline(baseline, linestyle=':', c='k')
+            ax.axhline(baseline, linestyle=':', c='k')
     plt.tight_layout()
     if save:
         savefig(f"figures/{model_format}_along_d_{arg}")
