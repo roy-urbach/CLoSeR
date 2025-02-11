@@ -115,7 +115,7 @@ def savefig(fn):
     print(f"saved figure as {fn}")
 
 
-def violinplot_with_CI(arr, x, c='C0', widths=0.5, bar=False, scatter=False, sem=False, horizontal=False, box=False, plot_CI=True, **kwargs):
+def violinplot_with_CI(arr, x, c='C0', widths=0.5, bar=False, scatter=False, sem=False, horizontal=False, hatch=None, box=False, plot_CI=True, **kwargs):
     if bar:
        plt.bar(x, arr.mean(), color=c, **kwargs)
     else:
@@ -125,11 +125,15 @@ def violinplot_with_CI(arr, x, c='C0', widths=0.5, bar=False, scatter=False, sem
             bplot = plt.boxplot([arr], positions=x, patch_artist=True, medianprops=dict(color='k', linewidth=2.5), **kwargs)
             for pc in bplot['boxes']:
                 pc.set_facecolor(c)
+                if hatch:
+                    pc.set_hatch(hatch)
         else:
             vi = plt.violinplot(arr, [x], showextrema=False, showmeans=False, widths=widths,
                                 **kwargs)
             for pc in vi['bodies']:
                 pc.set_facecolor(c)
+                if hatch:
+                    pc.set_facecolor(hatch)
     if plot_CI:
         mean = arr.mean()
         std = arr.std(ddof=1)
