@@ -360,6 +360,26 @@ class ProbabilisticPullPushGraphLoss(GeneralPullPushGraphLoss):
         super(ProbabilisticPullPushGraphLoss, self).__init__(*args, a_pull=a_pull, a_push=a_push, **kwargs)
 
 
+class NumEdgesPullPushGraphLoss(GeneralPullPushGraphLoss):
+    def __init__(self, num_pathways, *args, p_pull=1., p_push=0., depend=False, **kwargs):
+        max_edges = num_pathways * (num_pathways - 1)
+        num_edges_pull = int(max_edges * p_pull)
+        num_edges_push = int(max_edges * p_push)
+        pull_masked = np.array([True]*num_edges_pull + [False]*(max_edges - num_edges_pull))
+        push_masked = np.array([True]*num_edges_push + [False]*(max_edges - num_edges_push))
+        np.random.shuffle(pull_masked)
+        np.random.shuffle(push_masked)
+
+        a_pull = np.full((num_pathways, num_pathways), False)
+        a_push = np.full((num_pathways, num_pathways), False)
+        a_pull[~np.eye(num_pathways).astype(bool)] = pull_masked
+        a_push[~np.eye(num_pathways).astype(bool)] = push_masked
+
+        if depend:
+            a_push = a_push & ~a_pull
+        super(NumEdgesPullPushGraphLoss, self).__init__(*args, a_pull=a_pull, a_push=a_push, **kwargs)
+
+
 class CommunitiesLoss(GeneralPullPushGraphLoss):
     def __init__(self, num_pathways, num_communities, *args, **kwargs):
         assert not (num_pathways % num_communities)
