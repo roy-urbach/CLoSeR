@@ -345,8 +345,8 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
             cbar.set_ticklabels(['no interaction', 'interaction'])
 
         if labels:
-            (ax.set_xlabel if ax else plt.xlabel)([])(r"encoder $j$")
-            (ax.set_ylabel if ax else plt.ylabel)([])(r"encoder $i$")
+            (ax.set_xlabel if ax else plt.xlabel)(r"encoder $j$")
+            (ax.set_ylabel if ax else plt.ylabel)(r"encoder $i$")
 
         if not ticks:
             (ax.set_xticks if ax else plt.xticks)([])
