@@ -3,6 +3,7 @@ from utils.utils import *
 import numpy as np
 import matplotlib as mpl
 from enum import Enum
+from utils.utils import paired_t_test
 mpl.rc('image', cmap='gray')
 
 YLABEL_CLASS = "Classification accuracy"
@@ -271,3 +272,14 @@ def plot_significance(x1, x2, y, p, dist=0.1, ax=None, horizontal=False, **kwarg
             ax.plot([y-dist, y], [x1]*2, c='k', **kwargs)
             ax.plot([y-dist, y], [x2]*2, c='k', **kwargs)
             ax.text(y + dist, (x1+x2)/2, '\n'.join(list(string)), ha='center', va='center')
+
+
+def plot_significance_anchor(dct, k, keys=None, test=paired_t_test, significance_dist=0.0075, dist=0.002):
+    if keys is None:
+        keys = list(dct.keys())
+    ind_k = keys.index(k)
+    for i, alter in enumerate(keys):
+        if alter != k:
+            p = test(dct[k], dct[alter], alternative='greater')
+            plot_significance(i, ind_k, np.quantile(dct[k], 0.75)+significance_dist*(len(dct) - 1 - i), dist=dist, p=p, linewidth=1)
+
