@@ -11,7 +11,9 @@ import numpy as np
 from tqdm import tqdm as counter
 
 EVAL_IND_LIN = 'pathways_mean_linear'
+EVAL_IND_LIN_NAME = 'Single encoder'
 EVAL_ENS_LIN = 'logistic'
+EVAL_ENS_LIN_NAME = 'Ensemble'
 
 
 def get_masked_ds(model, dataset=Cifar10()):
