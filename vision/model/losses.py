@@ -360,7 +360,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
     def plot_pull(self, ax=None, interaction_c=(0.05, 0.3, 0.15, 0.8), nointeraction_c=(0.05, 0.3, 0.15, 0.1), **kwargs):
         self.plot_graph(self.a_pull.numpy(), ax=ax, interaction_c=interaction_c, nointeraction_c=nointeraction_c, **kwargs)
 
-    def plot_push(self, ax=None, interaction_c=(0.8, 0, 0.05, 0.5), nointeraction_c=(0.8, 0, 0.05, 0.1), **kwargs):
+    def plot_push(self, ax=None, interaction_c=(0.8, 0, 0.2, 0.7), nointeraction_c=(0.8, 0, 0.2, 0.7), **kwargs):
         self.plot_graph(self.a_push.numpy(), ax=ax, interaction_c=interaction_c, nointeraction_c=nointeraction_c, **kwargs)
 
 
