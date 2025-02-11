@@ -357,7 +357,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         for sp in ax.spines:
             ax.spines[sp].set_color(interaction_c)
 
-    def plot_pull(self, ax=None, interaction_c=(0, 0.5, 0, 0.8), nointeraction_c=(0, 0.5, 0, 0.1), **kwargs):
+    def plot_pull(self, ax=None, interaction_c=(0.05, 0.3, 0.15, 0.8), nointeraction_c=(0.05, 0.3, 0.15, 0.1), **kwargs):
         self.plot_graph(self.a_pull.numpy(), ax=ax, interaction_c=interaction_c, nointeraction_c=nointeraction_c, **kwargs)
 
     def plot_push(self, ax=None, interaction_c=(0.8, 0, 0, 0.8), nointeraction_c=(0.8, 0, 0, 0.1), **kwargs):
