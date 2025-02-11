@@ -133,7 +133,7 @@ def violinplot_with_CI(arr, x, c='C0', widths=0.5, bar=False, scatter=False, sem
             for pc in vi['bodies']:
                 pc.set_facecolor(c)
                 if hatch:
-                    pc.set_facecolor(hatch)
+                    pc.set_hatch(hatch)
     if plot_CI:
         mean = arr.mean()
         std = arr.std(ddof=1)
