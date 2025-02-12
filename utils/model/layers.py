@@ -321,6 +321,7 @@ class SplitPathways(tf.keras.layers.Layer):
         self.fixed = fixed
         self.num_signals = num_signals
         self.token_per_path = token_per_path
+        self.pathway_to_cls = None
         if pathway_to_cls is not None:
             if isinstance(pathway_to_cls, str):
                 pathway_to_cls = eval(pathway_to_cls)
