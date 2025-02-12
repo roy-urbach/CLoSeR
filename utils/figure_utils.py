@@ -72,7 +72,7 @@ def plot_history(model_regex, module, window=10, name_to_name=lambda m: m, log=T
     if keys is None and keys_f is not None:
         keys = {key for key in histories.keys() if keys_f(key)}
 
-    smooth = lambda arr, window: (np.arange(len(arr) - min(window, len(arr)) + 1), np.convolve(arr, [1/window]*window, mode='valid'))
+    smooth = lambda arr, window: np.convolve(arr, [1/window]*window, mode='valid')
     for k, v in histories.items():
         if k.startswith("val") or k == "loss": continue
         if keys is not None and k not in keys: continue
@@ -81,12 +81,12 @@ def plot_history(model_regex, module, window=10, name_to_name=lambda m: m, log=T
         for i, (model_name, value) in enumerate(v.items()):
             if plot_train:
                 if value:
-                    plt.plot(*smooth(value, window), label=model_name,
+                    plt.plot(smooth(value, window), label=model_name,
                              c=f"C{i}" if name_to_c is None else name_to_c(orig_names[i]))
             if plot_val:
                 val = histories["val_"+k][model_name]
                 if val:
-                    plt.plot(*smooth(val, window), label=model_name if not plot_train else None,
+                    plt.plot(smooth(val, window), label=model_name if not plot_train else None,
                              c=f"C{i}" if name_to_c is None else name_to_c(orig_names[i]), linestyle=':' if plot_train else '-')
         if log and any([key in k for key in log_keys]):
             plt.yscale("log")
