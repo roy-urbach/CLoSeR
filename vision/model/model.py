@@ -33,7 +33,7 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
                  ensemble_classification=False, classifier_pathways=True,
                  augmentation_kwargs={}, encoder_kwargs={}, pathways_kwargs={},
                  predictive_embedding=None, predictive_embedding_kwargs={}, tokenizer_conv_kwargs=None,
-                 patch_encoder=True, label_to_dim=None):
+                 patch_encoder=True, patch_encoder_after_split=False, label_to_dim=None):
     if isinstance(kernel_regularizer, str) and kernel_regularizer.startswith("tf."):
         kernel_regularizer = eval(kernel_regularizer)
 
@@ -53,17 +53,22 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
     num_patches = (image_size // patch_size) ** 2
 
     # Encode patches.
-    num_class_tokens = pathways_kwargs.get('n', 2) if pathways_kwargs.get('token_per_path', False) else (max(eval(pathways_kwargs.get('pathway_to_cls', '[0]'))) + 1)
-    encoded_patches = PatchEncoder(num_patches, projection_dim, name=name + '_patchenc',
-                                   kernel_regularizer=kernel_regularizer,
-                                   num_class_tokens=num_class_tokens)(patches) if patch_encoder else patches
+    if not patch_encoder_after_split:
+        num_class_tokens = pathways_kwargs.get('n', 2) if pathways_kwargs.get('token_per_path', False) else (max(eval(pathways_kwargs.get('pathway_to_cls', '[0]'))) + 1)
+        patches = PatchEncoder(num_patches, projection_dim, name=name + '_patchenc',
+                                       kernel_regularizer=kernel_regularizer,
+                                       num_class_tokens=num_class_tokens)(patches) if patch_encoder else patches
 
     # divide to different pathways
     if classifier and not classifier_pathways:
-        pathways = [encoded_patches]
+        pathways = [patches]
     else:
-        pathways = SplitPathwaysVision(num_patches, name=name + '_pathways', **pathways_kwargs)(encoded_patches)
+        pathways = SplitPathwaysVision(num_patches, name=name + '_pathways', **pathways_kwargs)(patches)
         pathways = [tf.squeeze(path, axis=-2) for path in tf.split(pathways, pathways.shape[-2], axis=-2)]
+        if patch_encoder and patch_encoder_after_split:
+            pathways = [PatchEncoder(p.shape[1], projection_dim, name=name + f'_patchenc{i}',
+                                     kernel_regularizer=kernel_regularizer, num_class_tokens=1)(p)
+                        for i,p in enumerate(pathways)]
 
     import utils.model.encoders
     Encoder = get_class(encoder, utils.model.encoders)
