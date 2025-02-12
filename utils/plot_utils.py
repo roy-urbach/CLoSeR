@@ -291,7 +291,7 @@ def plot_significance_anchor(dct, k, keys=None, test=paired_t_test, significance
     for i, alter in enumerate(keys):
         if alter != k:
             p = test(dct[k], dct[alter], alternative='greater')
-            plot_significance(i, ind_k, np.nanmax(dct[k])+significance_dist*(len(dct) - 1 - i), dist=dist, p=p, linewidth=1)
+            plot_significance(i, ind_k, np.nanmax(dct[k])+significance_dist*np.abs(ind_k- i), dist=dist, p=p, linewidth=1)
 
 
 def remove_spines(ax):
