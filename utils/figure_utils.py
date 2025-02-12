@@ -80,12 +80,12 @@ def plot_history(model_regex, module, window=10, name_to_name=lambda m: m, log=T
         plt.title((model_regex if title is None else title) + " " + k)
         for i, (model_name, value) in enumerate(v.items()):
             if plot_train:
-                if value:
+                if len(value) > window:
                     plt.plot(smooth(value, window), label=model_name,
                              c=f"C{i}" if name_to_c is None else name_to_c(orig_names[i]))
             if plot_val:
                 val = histories["val_"+k][model_name]
-                if val:
+                if len(val) > window:
                     plt.plot(smooth(val, window), label=model_name if not plot_train else None,
                              c=f"C{i}" if name_to_c is None else name_to_c(orig_names[i]), linestyle=':' if plot_train else '-')
         if log and any([key in k for key in log_keys]):
