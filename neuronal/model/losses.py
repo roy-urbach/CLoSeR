@@ -681,7 +681,7 @@ class DinoLoss(tf.keras.losses.Loss):
 
 class LPL(tf.keras.losses.Loss):
     def __init__(self, cont_w=1, std_w=1, corr_w=10, cross_w=None, wcross_w=None, vjepa_w=None,
-                 dino_w=None, cov_sqr=True, alpha=0.1, l1=False, pe_w=None, pe_w_absolute=False,
+                 dino_w=None, cov_sqr=True, alpha=0.1, l1=False, pe_w=None, pe_kwargs={}, pe_w_absolute=False,
                  pullpush_w=None, pullpush_kwargs={},
                  cross_cov_w=None, local=True, center=False, eps=1e-4, name='LPL', flatten_paths=False, crosspred_w=None):
         super().__init__(name=name)
@@ -691,6 +691,7 @@ class LPL(tf.keras.losses.Loss):
         self.corr_w = corr_w
         self.cov_sqr = cov_sqr
         self.pe_w = pe_w
+        self.pe_kwargs = pe_kwargs
         self.pe_w_absolute = pe_w_absolute
         self.first_moment = None
         self.second_moment = None
@@ -845,10 +846,10 @@ class LPL(tf.keras.losses.Loss):
             self.monitor.update_monitor("cross", mean_cov)
             return mean_cov
 
-    def pe_weighted_crossdist(self, embd, pe):
-        pe_diff = tf.maximum((pe[..., None] - pe[..., None, :])**2, self.eps)     # (B, P, P)
+    def pe_weighted_crossdist(self, embd, pe, tau=1):
+        pe_diff = (pe[..., None] - pe[..., None, :])**2     # (B, P, P)
         # pe_diff = pe_diff - tf.reduce_min(pe_diff, axis=-1, keepdims=True)    # diagonal is min
-        exp_pe = tf.linalg.set_diag(tf.exp(-pe_diff),
+        exp_pe = tf.linalg.set_diag(tf.exp(-pe_diff / tau) + self.eps,
                                     tf.tile(tf.zeros(embd.shape[-1], dtype=embd.dtype)[None],
                                             [tf.shape(embd)[0], 1])
                                     )
