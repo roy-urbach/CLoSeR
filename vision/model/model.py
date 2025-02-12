@@ -66,6 +66,7 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
         pathways = SplitPathwaysVision(num_patches, name=name + '_pathways', **pathways_kwargs)(patches)
         pathways = [tf.squeeze(path, axis=-2) for path in tf.split(pathways, pathways.shape[-2], axis=-2)]
         if patch_encoder and patch_encoder_after_split:
+            assert encoder_per_path
             pathways = [PatchEncoder(p.shape[1], projection_dim, name=name + f'_patchenc{i}',
                                      kernel_regularizer=kernel_regularizer, num_class_tokens=1)(p)
                         for i,p in enumerate(pathways)]
