@@ -72,7 +72,7 @@ def plot_history(model_regex, module, window=10, name_to_name=lambda m: m, log=T
     if keys is None and keys_f is not None:
         keys = {key for key in histories.keys() if keys_f(key)}
 
-    smooth = lambda arr, window: (np.arange(len(arr) - window + 1), np.convolve(arr, [1/window]*window, mode='valid'))
+    smooth = lambda arr, window: (np.arange(len(arr) - min(window, len(arr)) + 1), np.convolve(arr, [1/window]*window, mode='valid'))
     for k, v in histories.items():
         if k.startswith("val") or k == "loss": continue
         if keys is not None and k not in keys: continue
