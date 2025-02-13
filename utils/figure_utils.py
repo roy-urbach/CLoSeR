@@ -236,7 +236,7 @@ def gather_results_over_all_args_pathways_mean(model_format, args, module=Module
 
 def plot_lines_different_along_d(model_format, module:Modules, seeds, args, ds, name="logistic", save=False, measure=False, mask=None,
                                  arg=None, mean=False, legend=True, fig=None, c_shift=0, train=False, baseline=None, sem=False, c=None,
-                                 xticks=False, marker=None, ax=None, **kwargs):
+                                 xticks=False, marker=None, ax=None, suptitle=False, title=False, **kwargs):
     if isinstance(args, str):
         args = eval(args)
     if isinstance(ds, str):
@@ -254,14 +254,16 @@ def plot_lines_different_along_d(model_format, module:Modules, seeds, args, ds, 
     # stds = np.nanstd(res, axis=2, ddof=1)
     # CI = stats.norm.interval(0.975, loc=means, scale=stds / np.sqrt(np.sum(~np.isnan(res), axis=2)))
     fig = plt.figure(figsize=(8, 4+8*train)) if fig is None else fig
-    plt.suptitle(model_format + " " + name + f" different {arg}")
+    if suptitle:
+        plt.suptitle(model_format + " " + name + f" different {arg}")
     only_test = measure or not train
     given_ax = ax is not None
     for i in range(res.shape[-1] if not measure else 1):
         if not measure and only_test and i != (res.shape[-1] - 1): continue
         if not given_ax and not only_test:
             ax = plt.subplot(1 if measure or only_test else res.shape[-1], 1, 1 if measure or only_test else i+1, sharey=ax)
-        (ax.set_title if ax is not None else plt.title)((["Train", "Test"] if res.shape[-1] == 2 else ['Train', 'Val', 'Test'][i]) if not measure else 'Test')
+        if title:
+            (ax.set_title if ax is not None else plt.title)((["Train", "Test"] if res.shape[-1] == 2 else ['Train', 'Val', 'Test'][i]) if not measure else 'Test')
         if arg:
             for ind, identity in enumerate(args):
                 relevant_part = res[ind, ..., i] if not measure else np.stack([np.stack([res[ind, i_d, s][mask if mask is not None else ~np.eye(res.shape[-1], dtype=bool)]
