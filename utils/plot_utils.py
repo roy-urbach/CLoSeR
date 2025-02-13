@@ -20,6 +20,7 @@ def D_OVER_ACC_F(ax=None, inp_name='image'):
     YLABEL_CLASS_F(ax=ax)
     (ax.set_ylim if ax else plt.ylim)(0, 1)
 
+
 class NameAndColor:
     def __init__(self, name, c=None, color=None, i=None, **kwargs):
         assert c is not None or color is not None or i is not None
@@ -294,6 +295,7 @@ def plot_significance_anchor(dct, k, keys=None, test=paired_t_test, significance
             plot_significance(i, ind_k, np.nanmax(dct[k])+significance_dist*np.abs(ind_k- i), dist=dist, p=p, linewidth=1)
 
 
-def remove_spines(ax):
+def remove_spines(ax, top_right=False):
     for sp in ax.spines:
-        ax.spines[sp].set_visible(False)
+        if not top_right or sp in ['top', 'right']:
+            ax.spines[sp].set_visible(False)
