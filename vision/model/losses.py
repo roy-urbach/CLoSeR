@@ -374,10 +374,10 @@ class ProbabilisticPullPushGraphLoss(GeneralPullPushGraphLoss):
 
 
 class NumEdgesPullPushGraphLoss(GeneralPullPushGraphLoss):
-    def __init__(self, num_pathways, *args, p_pull=1., p_push=0., depend=False, **kwargs):
+    def __init__(self, num_pathways, *args, num_edges_pull=None, num_edges_push=None, p_pull=1., p_push=0., depend=False, **kwargs):
         max_edges = num_pathways * (num_pathways - 1)
-        num_edges_pull = int(max_edges * p_pull)
-        num_edges_push = int(max_edges * p_push)
+        num_edges_pull = int(max_edges * p_pull) if num_edges_pull is None else num_edges_pull
+        num_edges_push = int(max_edges * p_push) if num_edges_push is None else num_edges_push
         pull_masked = np.array([True]*num_edges_pull + [False]*(max_edges - num_edges_pull))
         push_masked = np.array([True]*num_edges_push + [False]*(max_edges - num_edges_push))
         np.random.shuffle(pull_masked)
