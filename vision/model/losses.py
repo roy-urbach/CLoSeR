@@ -331,13 +331,15 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
         return loss
 
     @staticmethod
-    def plot_graph(mat, ax=None, interaction_c='k', nointeraction_c='w', ticks=True, cbar=True, labels=True, text_size=10, **kwargs):
+    def plot_graph(mat, ax=None, interaction_c='k', nointeraction_c='w',
+                   ticks=True, cbar=True, labels=True, text_size=10,
+                   figsize=(2,3), **kwargs):
         import matplotlib
         from matplotlib import pyplot as plt
         from utils.plot_utils import colorbar
         cmap = matplotlib.colors.ListedColormap([nointeraction_c, interaction_c])
         if ax is None:
-            fig, ax = plt.subplots(figsize=(3,3))
+            fig, ax = plt.subplots(figsize=(figsize))
         im = ax.imshow(mat > 0, cmap=cmap, vmax=1, vmin=0, origin='lower', **kwargs)
         if cbar:
             cbar = colorbar(im)
