@@ -282,6 +282,10 @@ def plot_significance(x1, x2, y, p, dist=0.1, ax=None, horizontal=False, **kwarg
             ax.plot([y]*2, [x1, x2], c='k', **kwargs)
             ax.plot([y-dist, y], [x1]*2, c='k', **kwargs)
             ax.plot([y-dist, y], [x2]*2, c='k', **kwargs)
+            y_text = np.arange(len(string))
+            y_text = (y_text - y_text.mean()) * dist
+            for s, y_text_letter in zip(string, y_text):
+                ax.text(y + dist, (x1 + x2) / 2 + y_text_letter, s, ha='center', va='center')
             ax.text(y + dist, (x1+x2)/2, '\n'.join(list(string)), ha='center', va='center')
 
 
