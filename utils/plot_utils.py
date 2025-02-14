@@ -268,7 +268,7 @@ def pvalue_to_str(p):
     return string
 
 
-def plot_significance(x1, x2, y, p, dist=0.1, dist_from_edges=0, ax=None, horizontal=False, **kwargs):
+def plot_significance(x1, x2, y, p, dist=0.1, dist_from_edges=0, line_dist=None, ax=None, horizontal=False, **kwargs):
     string = pvalue_to_str(p)
     if ax is None:
         ax = plt
@@ -281,12 +281,14 @@ def plot_significance(x1, x2, y, p, dist=0.1, dist_from_edges=0, ax=None, horizo
             ax.plot([+ (-dist_from_edges if x1<x2 else dist_from_edges)]*2, [y-dist, y], c='k', **kwargs)
             ax.text((x1+x2)/2, y + dist, string, ha='center', va='center')
         else:
+            if line_dist is None:
+                line_dist = dist
             ax.plot([y]*2, [x1 + (dist_from_edges if x1<x2 else -dist_from_edges),
                             x2 + (-dist_from_edges if x1<x2 else dist_from_edges)], c='k', **kwargs)
             ax.plot([y-dist, y], [x1 + (dist_from_edges if x1<x2 else -dist_from_edges)]*2, c='k', **kwargs)
             ax.plot([y-dist, y], [x2 + (-dist_from_edges if x1<x2 else dist_from_edges)]*2, c='k', **kwargs)
             y_text = np.arange(len(string))
-            y_text = (y_text - y_text.mean()) * dist
+            y_text = (y_text - y_text.mean()) * line_dist
             for s, y_text_letter in zip(string, y_text):
                 ax.text(y + dist, (x1 + x2) / 2 + y_text_letter, s, ha='center', va='center')
 
