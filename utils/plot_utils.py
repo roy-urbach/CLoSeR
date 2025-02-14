@@ -297,14 +297,17 @@ def plot_significance_anchor(dct, k, keys=None, test=paired_t_test, significance
     if keys is None:
         keys = list(dct.keys())
     ind_k = keys.index(k)
+    if x is not None and not hasattr(x, "__iter__"):
+        x = [x]*len(dct)
     for i, alter in enumerate(keys):
         if alter != k:
             p = test(dct[k], dct[alter], alternative='greater')
             if horizontal:
-                plot_significance(np.nanmean(dct[k]), np.nanmean(dct[alter]), x+significance_dist*np.abs(ind_k- i),
+                plot_significance(np.nanmean(dct[k]), np.nanmean(dct[alter]), (i if x is None else x[i])+significance_dist*np.abs(ind_k- i),
                                   dist=dist, p=p, linewidth=1, horizontal=True, **kwargs)
             else:
-                plot_significance(i, ind_k, np.nanmax(dct[k])+significance_dist*np.abs(ind_k- i), dist=dist, p=p, linewidth=1, **kwargs)
+                plot_significance(i if x is None else x[i], ind_k if x is None else x[i],
+                                  np.nanmax(dct[k])+significance_dist*np.abs(ind_k- i), dist=dist, p=p, linewidth=1, **kwargs)
 
 
 
