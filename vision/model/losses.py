@@ -333,7 +333,7 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
     @staticmethod
     def plot_graph(mat, ax=None, interaction_c='k', nointeraction_c='w',
                    ticks=True, cbar=True, labels=True, text_size=10,
-                   figsize=(2,3), **kwargs):
+                   figsize=(3,2), **kwargs):
         import matplotlib
         from matplotlib import pyplot as plt
         from utils.plot_utils import colorbar
