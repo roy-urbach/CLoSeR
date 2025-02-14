@@ -286,7 +286,6 @@ def plot_significance(x1, x2, y, p, dist=0.1, ax=None, horizontal=False, **kwarg
             y_text = (y_text - y_text.mean()) * dist
             for s, y_text_letter in zip(string, y_text):
                 ax.text(y + dist, (x1 + x2) / 2 + y_text_letter, s, ha='center', va='center')
-            ax.text(y + dist, (x1+x2)/2, '\n'.join(list(string)), ha='center', va='center')
 
 
 def plot_significance_anchor(dct, k, keys=None, test=paired_t_test, significance_dist=0.0075, dist=0.002, horizontal=False, x=None, **kwargs):
