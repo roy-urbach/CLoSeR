@@ -274,11 +274,11 @@ def plot_significance(x1, x2, y, p, dist=0.1, dist_from_edges=0, line_dist=None,
         ax = plt
     if string:
         if not horizontal:
-            ax.plot([x1+(dist_from_edges if x1 < x2 else -dist_from_edges),
+            ax.plot([x1 + (dist_from_edges if x1 < x2 else -dist_from_edges),
                      x2 + (-dist_from_edges if x1<x2 else dist_from_edges)],
                     [y]*2, c='k', **kwargs)
             ax.plot([x1 + (dist_from_edges if x1 < x2 else -dist_from_edges)]*2, [y-dist, y], c='k', **kwargs)
-            ax.plot([+ (-dist_from_edges if x1<x2 else dist_from_edges)]*2, [y-dist, y], c='k', **kwargs)
+            ax.plot([x2 + (-dist_from_edges if x1<x2 else dist_from_edges)]*2, [y-dist, y], c='k', **kwargs)
             ax.text((x1+x2)/2, y + dist, string, ha='center', va='center')
         else:
             if line_dist is None:
@@ -305,7 +305,8 @@ def plot_significance_anchor(dct, k, keys=None, test=paired_t_test, significance
         if alter != k:
             p = test(dct[k], dct[alter], alternative='greater')
             if horizontal:
-                plot_significance(np.nanmean(dct[k]), np.nanmean(dct[alter]), (i if x is None else x[i])+significance_dist*np.abs(ind_k- i),
+                plot_significance(np.nanmean(dct[k]), np.nanmean(dct[alter]),
+                                  (i if x is None else x[i])+significance_dist*np.abs(ind_k- i),
                                   dist=dist, p=p, linewidth=1, horizontal=True, **kwargs)
             else:
                 plot_significance(i if x is None else x[i], ind_k if x is None else x[ind_k],
