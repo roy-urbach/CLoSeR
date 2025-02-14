@@ -260,11 +260,11 @@ def plot_CDF(arr, xlabel=None, **kwargs):
 def pvalue_to_str(p):
     string = ''
     if p < 0.05:
-        string += '*'
+        string += '∗'
     if p < 0.01:
-        string += '*'
+        string += '∗'
     if p < 1e-3:
-        string += '*'
+        string += '∗'
     return string
 
 
