@@ -297,6 +297,8 @@ def plot_significance_anchor(dct, k, keys=None, test=paired_t_test, significance
     if keys is None:
         keys = list(dct.keys())
     ind_k = keys.index(k)
+    if x is not None and isinstance(x, dict):
+        x = [x[k] for k in keys]
     if x is not None and not hasattr(x, "__iter__"):
         x = [x]*len(dct)
     for i, alter in enumerate(keys):
