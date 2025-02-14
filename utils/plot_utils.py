@@ -308,7 +308,7 @@ def plot_significance_anchor(dct, k, keys=None, test=paired_t_test, significance
                 plot_significance(np.nanmean(dct[k]), np.nanmean(dct[alter]), (i if x is None else x[i])+significance_dist*np.abs(ind_k- i),
                                   dist=dist, p=p, linewidth=1, horizontal=True, **kwargs)
             else:
-                plot_significance(i if x is None else x[i], ind_k if x is None else x[i],
+                plot_significance(i if x is None else x[i], ind_k if x is None else x[ind_k],
                                   np.nanmax(dct[k])+significance_dist*np.abs(ind_k- i), dist=dist, p=p, linewidth=1, **kwargs)
 
 
