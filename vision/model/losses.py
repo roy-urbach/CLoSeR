@@ -358,10 +358,10 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
             ax.spines[sp].set_color(interaction_c)
 
     def plot_pull(self, ax=None, interaction_c=(0.05, 0.3, 0.15, 0.8), nointeraction_c=(0.05, 0.3, 0.15, 0.1), **kwargs):
-        self.plot_graph(self.a_pull.numpy(), ax=ax, interaction_c=interaction_c, nointeraction_c=nointeraction_c, **kwargs)
+        self.plot_graph(self.a_pull.numpy().T, ax=ax, interaction_c=interaction_c, nointeraction_c=nointeraction_c, **kwargs)
 
     def plot_push(self, ax=None, interaction_c=(0.5, 0, 0, 0.9), nointeraction_c=(0.5, 0, 0, 0.1), **kwargs):
-        self.plot_graph(self.a_push.numpy(), ax=ax, interaction_c=interaction_c, nointeraction_c=nointeraction_c, **kwargs)
+        self.plot_graph(self.a_push.numpy().T, ax=ax, interaction_c=interaction_c, nointeraction_c=nointeraction_c, **kwargs)
 
 
 class ProbabilisticPullPushGraphLoss(GeneralPullPushGraphLoss):
@@ -374,7 +374,7 @@ class ProbabilisticPullPushGraphLoss(GeneralPullPushGraphLoss):
 
 
 class NumEdgesPullPushGraphLoss(GeneralPullPushGraphLoss):
-    def __init__(self, num_pathways, *args, num_edges_pull=None, num_edges_push=None, p_pull=1., p_push=0., depend=False, **kwargs):
+    def __init__(self, num_pathways, *args, num_edges_pull=None, num_edges_push=None, p_pull=1., p_push=0., depend=False, outdegree=False, **kwargs):
         max_edges = num_pathways * (num_pathways - 1)
         num_edges_pull = int(max_edges * p_pull) if num_edges_pull is None else num_edges_pull
         num_edges_push = int(max_edges * p_push) if num_edges_push is None else num_edges_push
@@ -387,6 +387,10 @@ class NumEdgesPullPushGraphLoss(GeneralPullPushGraphLoss):
         a_push = np.full((num_pathways, num_pathways), False)
         a_pull[~np.eye(num_pathways).astype(bool)] = pull_masked
         a_push[~np.eye(num_pathways).astype(bool)] = push_masked
+
+        if outdegree:
+            a_pull = a_pull.T
+            a_push = a_push.T
 
         if depend:
             a_push = a_push & ~a_pull
