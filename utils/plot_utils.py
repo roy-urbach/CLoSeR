@@ -285,14 +285,14 @@ def plot_significance(x1, x2, y, p, dist=0.1, ax=None, horizontal=False, **kwarg
             ax.text(y + dist, (x1+x2)/2, '\n'.join(list(string)), ha='center', va='center')
 
 
-def plot_significance_anchor(dct, k, keys=None, test=paired_t_test, significance_dist=0.0075, dist=0.002):
+def plot_significance_anchor(dct, k, keys=None, test=paired_t_test, significance_dist=0.0075, dist=0.002, **kwargs):
     if keys is None:
         keys = list(dct.keys())
     ind_k = keys.index(k)
     for i, alter in enumerate(keys):
         if alter != k:
             p = test(dct[k], dct[alter], alternative='greater')
-            plot_significance(i, ind_k, np.nanmax(dct[k])+significance_dist*np.abs(ind_k- i), dist=dist, p=p, linewidth=1)
+            plot_significance(i, ind_k, np.nanmax(dct[k])+significance_dist*np.abs(ind_k- i), dist=dist, p=p, linewidth=1, **kwargs)
 
 
 def remove_spines(ax, top_right=False):
