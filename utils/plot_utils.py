@@ -57,7 +57,7 @@ class NameAndColor:
 class NamesAndColors(Enum):
     CHANCE = NameAndColor("chance level", color='k', linestyle=':')
     MASKED = NameAndColor("masked raw input", i=0)
-    UNTRAINED = NameAndColor("untrained model", color='C1')
+    UNTRAINED = NameAndColor("untrained model", color='gray')
     SHARED = NameAndColor("shared weights CLoSeR", i=5)
     FULL_INPUT = NameAndColor("full raw input", i=0)
     UNSUPERVISED = NameAndColor("CLoSeR", color='g')
