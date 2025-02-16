@@ -61,7 +61,7 @@ class NamesAndColors(Enum):
     SHARED = NameAndColor("shared weights CLoSeR", i=5)
     FULL_INPUT = NameAndColor("full raw input", i=0)
     UNSUPERVISED = NameAndColor("CLoSeR", color='g')
-    SUPERVISED = NameAndColor("supervised", color='pink')
+    SUPERVISED = NameAndColor("supervised", color='hotpink')
 
 
 def basic_scatterplot(x, y, identity=True, fig=None, c='k', corr=False, t=False,
