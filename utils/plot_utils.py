@@ -313,8 +313,14 @@ def plot_significance_anchor(dct, k, keys=None, test=paired_t_test, significance
                                   np.nanmax(dct[k])+significance_dist*np.abs(ind_k- i), dist=dist, p=p, linewidth=1, **kwargs)
 
 
-
 def remove_spines(ax, top_right=False):
     for sp in ax.spines:
         if not top_right or sp in ['top', 'right']:
             ax.spines[sp].set_visible(False)
+
+
+def legend_linewidth(ax, linewidth=2, **kwargs):
+    leg = ax.legend(**kwargs)
+    for lobj in leg.get_lines():
+        lobj.set_linewidth(linewidth)
+    return leg
