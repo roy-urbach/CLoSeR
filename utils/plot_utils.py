@@ -57,12 +57,12 @@ class NameAndColor:
 
 class NamesAndColors(Enum):
     CHANCE = NameAndColor("chance level", color='k', linestyle=':')
-    MASKED = NameAndColor("masked raw input", i=0)
+    MASKED = NameAndColor("masked raw input", i=0, ending='_untrained')
     UNTRAINED = NameAndColor("untrained model", color='lightgray')
     SHARED = NameAndColor("shared weights CLoSeR", i=5)
     FULL_INPUT = NameAndColor("full raw input", i=0)
-    UNSUPERVISED = NameAndColor("CLoSeR", color='g')
-    SUPERVISED = NameAndColor("supervised", color='hotpink')
+    UNSUPERVISED = NameAndColor("CLoSeR", color='g', ending='_untrained')
+    SUPERVISED = NameAndColor("supervised", color='hotpink', ending='_pathsup')
 
 
 def basic_scatterplot(x, y, identity=True, fig=None, c='k', corr=False, t=False,
