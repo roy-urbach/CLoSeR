@@ -11,7 +11,8 @@ XLABEL_PERC = "% of {inp} seen by encoder"
 YLABEL_CLASS_F = lambda ax=None: (ax.set_ylabel if ax else plt.ylabel)(YLABEL_CLASS)
 XLABEL_PERC_F = lambda ax=None, inp_name='image': (ax.set_xlabel if ax else plt.xlabel)(XLABEL_PERC.format(inp=inp_name))
 XTICKS_PERC_F = lambda ax=None, ticksize=10: (ax.set_xticks if ax else plt.xticks)(np.linspace(0, 1, 11),
-                                                                               [f"{d if d else ''}0%" for d in range(0,11)]) and (ax.set_xlim if ax else plt.xlim)(0, 1, size=ticksize)
+                                                                                   [f"{d if d else ''}0%" for d in range(0,11)],
+                                                                                   size=ticksize) and (ax.set_xlim if ax else plt.xlim)(0, 1)
 
 
 def D_OVER_ACC_F(ax=None, inp_name='image', ticksize=10):
