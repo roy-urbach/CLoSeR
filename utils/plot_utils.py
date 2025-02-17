@@ -305,7 +305,6 @@ def plot_significance_anchor(dct, k, keys=None, test=paired_t_test, significance
     for i, alter in enumerate(keys):
         if alter != k:
             p = test(dct[k], dct[alter], alternative='greater')
-            print(k, alter, p, np.nanmean(dct[k]), np.nanmean(dct[alter]))
             if horizontal:
                 plot_significance(np.nanmean(dct[k]), np.nanmean(dct[alter]),
                                   (i if x is None else x[i])+significance_dist*np.abs(ind_k- i),
