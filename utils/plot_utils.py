@@ -172,7 +172,7 @@ def multiviolin(arr, xshift=0, xs=None, fig=None, c=None, hatch=None, ax=None, *
 
 def dct_to_multiviolin(dct, rotation=0, xs=None, horizontal=False, keys=None, c=None, hatch=None, ax=None, **kwargs):
     keys = list(dct.keys()) if keys is None else keys
-    if c and isinstance(keys[0], NameAndColor):
+    if c is None and isinstance(keys[0], NameAndColor):
         c = [k.get_color() for k in keys]
     elif c and isinstance(c, dict):
         c = [c[k] for k in keys]
