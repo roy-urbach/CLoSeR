@@ -117,9 +117,10 @@ def savefig(fn):
     print(f"saved figure as {fn}")
 
 
-def violinplot_with_CI(arr, x, c='C0', widths=0.5, bar=False, scatter=False, sem=False, horizontal=False, hatch=None, box=False, plot_CI=True, **kwargs):
+def violinplot_with_CI(arr, x, c='C0', widths=0.5, bar=False, scatter=False, sem=False, horizontal=False, hatch=None,
+                       box=False, plot_CI=True, ax=None, **kwargs):
     if bar:
-       plt.bar(x, arr.mean(), color=c, **kwargs)
+       (plt if ax is None else ax).bar(x, arr.mean(), color=c, **kwargs)
     else:
         if horizontal:
             kwargs['orientation'] = 'horizontal'
@@ -130,7 +131,7 @@ def violinplot_with_CI(arr, x, c='C0', widths=0.5, bar=False, scatter=False, sem
                 if hatch:
                     pc.set_hatch(hatch)
         else:
-            vi = plt.violinplot(arr, [x], showextrema=False, showmeans=False, widths=widths,
+            vi = (plt if ax is None else ax).violinplot(arr, [x], showextrema=False, showmeans=False, widths=widths,
                                 **kwargs)
             for pc in vi['bodies']:
                 pc.set_facecolor(c)
@@ -147,29 +148,29 @@ def violinplot_with_CI(arr, x, c='C0', widths=0.5, bar=False, scatter=False, sem
             CI = np.abs(scipy.stats.t.ppf(0.025, n - 1) * SEM)
         err_kwargs = dict(marker='o', capsize=10, c=c)
         if horizontal:
-            plt.errorbar(mean, [x], xerr=CI, **err_kwargs)
+            (plt if ax is None else ax).errorbar(mean, [x], xerr=CI, **err_kwargs)
         else:
-            plt.errorbar([x], mean, yerr=CI, **err_kwargs)
+            (plt if ax is None else ax).errorbar([x], mean, yerr=CI, **err_kwargs)
     if scatter:
         if horizontal:
-            plt.scatter(arr, np.full_like(arr, x), alpha=kwargs.get("alpha", 0.8), c=c)
+            (plt if ax is None else ax).scatter(arr, np.full_like(arr, x), alpha=kwargs.get("alpha", 0.8), c=c)
         else:
-            plt.scatter(np.full_like(arr, x), arr, alpha=kwargs.get("alpha", 0.8), c=c)
+            (plt if ax is None else ax).scatter(np.full_like(arr, x), arr, alpha=kwargs.get("alpha", 0.8), c=c)
 
 
-def multiviolin(arr, xshift=0, xs=None, fig=None, c=None, hatch=None, **kwargs):
-    if fig is None:
+def multiviolin(arr, xshift=0, xs=None, fig=None, c=None, hatch=None, ax=None, **kwargs):
+    if fig is None and ax is None:
         fig = plt.figure()
     for i in range(len(arr)):
         if (isinstance(arr[i], np.ndarray) and arr[i].size) or (not isinstance(arr[i], np.ndarray) and arr):
             if np.isnan(arr[i]).all(): continue
             violinplot_with_CI(arr[i][~np.isnan(arr[i])], [i + xshift] if xs is None else xs[i],
                                c=f"C{i}" if c is None else c[i] if isinstance(c, list) else c,
-                               hatch=hatch[i] if hatch else None,
+                               hatch=hatch[i] if hatch else None, ax=ax,
                                **kwargs)
 
 
-def dct_to_multiviolin(dct, rotation=0, xs=None, horizontal=False, keys=None, c=None, hatch=None, **kwargs):
+def dct_to_multiviolin(dct, rotation=0, xs=None, horizontal=False, keys=None, c=None, hatch=None, ax=None, **kwargs):
     keys = list(dct.keys()) if keys is None else keys
     if c and isinstance(keys[0], NameAndColor):
         c = [k.get_color() for k in keys]
@@ -177,8 +178,9 @@ def dct_to_multiviolin(dct, rotation=0, xs=None, horizontal=False, keys=None, c=
         c = [c[k] for k in keys]
     if isinstance(hatch, dict):
         hatch = [hatch[k] for k in keys]
-    multiviolin([np.array(dct[k]) for k in keys], xs=xs, c=c, horizontal=horizontal, hatch=hatch, **kwargs)
-    (plt.yticks if horizontal else plt.xticks)(np.arange(len(keys)) if xs is None else xs, keys, rotation=rotation)
+    multiviolin([np.array(dct[k]) for k in keys], xs=xs, c=c, horizontal=horizontal, hatch=hatch, ax=ax, **kwargs)
+    ticks_to_change = ((plt.yticks if ax is None else ax.set_yticks) if horizontal else (plt.xticks if ax is None else ax.set_xticks))
+    ticks_to_change(np.arange(len(keys)) if xs is None else xs, keys, rotation=rotation)
 
 
 def get_CI(arr, conf=0.975, of_the_mean=True, axis=0, sem=False):
