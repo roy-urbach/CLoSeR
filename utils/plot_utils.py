@@ -312,8 +312,13 @@ def plot_significance_anchor(dct, k, keys=None, test=paired_t_test, significance
                                   (i if x is None else x[i])+significance_dist*np.abs(ind_k- i),
                                   dist=dist, p=p, linewidth=1, horizontal=True, **kwargs)
             else:
+                if significance_dist > 0:
+                    edge = max(np.nanmax(dct[k]), np.nanmax(dct[alter]))
+                else:
+                    edge = min(np.nanmin(dct[k]), np.nanmin(dct[alter]))
+
                 plot_significance(i if x is None else x[i], ind_k if x is None else x[ind_k],
-                                  np.nanmax(dct[k])+significance_dist*np.abs(ind_k- i), dist=dist, p=p, linewidth=1, **kwargs)
+                                  edge+significance_dist*np.abs(ind_k- i), dist=dist, p=p, linewidth=1, **kwargs)
 
 
 def remove_spines(ax, top_right=False):
