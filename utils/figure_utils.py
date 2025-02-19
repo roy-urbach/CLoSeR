@@ -56,7 +56,8 @@ def load_classfications_by_regex(model_regex, module, name_to_d_naive=False, con
 
 
 def plot_history(model_regex, module, window=10, name_to_name=lambda m: m, log=True, keys=None, keys_f=None,
-                 log_keys={'embedding'}, plot_train=True, plot_val=True, name_to_c=None, save=None, legend=True, title=None):
+                 log_keys={'embedding'}, plot_train=True, plot_val=True, name_to_c=None, save=None, legend=True, title=None,
+                 save_f=None):
     models = sorted(regex_models(model_regex, module))
     models_names = []
     orig_names = []
@@ -96,6 +97,8 @@ def plot_history(model_regex, module, window=10, name_to_name=lambda m: m, log=T
         plt.ylabel(k)
         if save:
             savefig(f"figures/{k}.png")
+        if save_f:
+            save_f(k)
 
 
 def sorted_barplot(model_regex, metric_regex, module=Modules.VISION, sort_by_train=True, show_top=None, regex_suptitle=True,
