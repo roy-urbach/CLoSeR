@@ -7,17 +7,17 @@ from utils.utils import paired_t_test
 mpl.rc('image', cmap='gray')
 
 YLABEL_CLASS = "Classification accuracy"
-XLABEL_PERC = "% of {inp} seen by encoder"
+XLABEL_PERC = "fraction of {inp} seen by encoder"
 YLABEL_CLASS_F = lambda ax=None: (ax.set_ylabel if ax else plt.ylabel)(YLABEL_CLASS)
-XLABEL_PERC_F = lambda ax=None, inp_name='image': (ax.set_xlabel if ax else plt.xlabel)(XLABEL_PERC.format(inp=inp_name))
-XTICKS_PERC_F = lambda ax=None, ticksize=10: (ax.set_xticks if ax else plt.xticks)(np.linspace(0, 1, 11),
-                                                                                   [f"{d if d else ''}0%" for d in range(0,11)],
+XLABEL_FRAC_F = lambda ax=None, inp_name='image': (ax.set_xlabel if ax else plt.xlabel)(XLABEL_PERC.format(inp=inp_name))
+XTICKS_FRAC_F = lambda ax=None, ticksize=10: (ax.set_xticks if ax else plt.xticks)(np.linspace(0, 1, 11),
+                                                                                   [f"{d if d else '':.1f}" for d in np.linspace(0, 1, 11)],
                                                                                    size=ticksize) and (ax.set_xlim if ax else plt.xlim)(0, 1)
 
 
 def D_OVER_ACC_F(ax=None, inp_name='image', ticksize=10):
-    XTICKS_PERC_F(ax=ax, ticksize=ticksize)
-    XLABEL_PERC_F(ax=ax, inp_name=inp_name)
+    XTICKS_FRAC_F(ax=ax, ticksize=ticksize)
+    XLABEL_FRAC_F(ax=ax, inp_name=inp_name)
     YLABEL_CLASS_F(ax=ax)
     (ax.set_ylim if ax else plt.ylim)(0, 1)
 
