@@ -10,7 +10,7 @@ CONTINUOUS = 'continuous'
 
 class Data:
     def __init__(self, x_train, y_train, x_test, y_test, x_val=None, y_val=None, val_split=None, normalize=False,
-                 img_normalize=False, flatten_y=False, split=False, simple_norm=False, module:Modules=None):
+                 img_normalize=False, flatten_y=False, split=False, simple_norm=False, module:Modules=None, seed=1929):
         self.x_train = x_train
         self.y_train = y_train
         self.x_test = x_test
@@ -22,6 +22,7 @@ class Data:
 
         if val_split and self.x_val is None and split:
             print("splitting randomly")
+            np.random.seed(seed)
             perm = np.random.permutation(len(self.x_train if not isinstance(self.x_train, dict) else list(self.x_train.value())[0]))
             split_idx = int(len(self.x_train) * self.val_split)
             val_idx = perm[:split_idx]
