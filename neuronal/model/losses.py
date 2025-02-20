@@ -680,7 +680,7 @@ class DinoLoss(tf.keras.losses.Loss):
 
 
 class LPL(tf.keras.losses.Loss):
-    def __init__(self, cont_w=1, std_w=1, corr_w=10, cross_w=None, wcross_w=None, vjepa_w=None,
+    def __init__(self, cont_w=1, std_w=1, corr_w=10, cross_w=None, crosscont_w=None, wcross_w=None, vjepa_w=None,
                  dino_w=None, cov_sqr=True, alpha=0.1, l1=False, pe_w=None, pe_kwargs={}, pe_w_absolute=False,
                  pullpush_w=None, pullpush_kwargs={},
                  cross_cov_w=None, local=True, center=False, eps=1e-4, name='LPL', flatten_paths=False, crosspred_w=None):
@@ -705,6 +705,7 @@ class LPL(tf.keras.losses.Loss):
         self.l1 = l1
         self.local = local
         self.cross_w = cross_w
+        self.crosscont_w = crosscont_w
         self.wcross_w = wcross_w
         self.cross_cov_w = cross_cov_w
         self.crosspred_w = crosspred_w
@@ -719,7 +720,7 @@ class LPL(tf.keras.losses.Loss):
             losses.append("var")
         if self.corr_w:
             losses.append("cov")
-        if cross_w or cross_cov_w or wcross_w:
+        if cross_w or cross_cov_w or wcross_w or crosscont_w:
             losses.append("cross")
         if self.pe_w:
             losses.append("pe_cross")
@@ -819,6 +820,14 @@ class LPL(tf.keras.losses.Loss):
     def crossdist(self, embd):
         # (B, DIM, P)
         mse = tf.reduce_mean((embd[..., None] - tf.stop_gradient(embd[..., None, :]))**2, axis=(0,1))  # (P, P)
+        mse_nondiag = mse[~tf.eye(embd.shape[-1], dtype=tf.bool)]
+        mean_mse = tf.reduce_mean(mse_nondiag)
+        self.monitor.update_monitor("cross", mean_mse)
+        return mean_mse
+
+    def crosscont(self,  prev_embd, embd):
+        # (B, DIM, P)
+        mse = tf.reduce_mean((embd[..., None] - tf.stop_gradient(prev_embd[..., None, :]))**2, axis=(0,1))  # (P, P)
         mse_nondiag = mse[~tf.eye(embd.shape[-1], dtype=tf.bool)]
         mean_mse = tf.reduce_mean(mse_nondiag)
         self.monitor.update_monitor("cross", mean_mse)
@@ -975,6 +984,8 @@ class LPL(tf.keras.losses.Loss):
             loss = loss + self.corr_w * self.decorrelate(embd)
         if self.cross_w:
             loss = loss + self.cross_w * self.crossdist(embd)
+        if self.crosscont_w:
+            loss = loss + self.crosscont_w * self.crosscont(prev_embd_sg, embd)
         if self.cross_cov_w:
             loss = loss + self.cross_cov_w * self.crosscov(embd)
         if self.pe_w:
