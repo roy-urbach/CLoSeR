@@ -26,7 +26,8 @@ def get_masked_ds(model, dataset=Cifar10()):
         x.shape[0], -1, pathway_indices.shape[-1])
     ds = Data(setup_func(dataset.get_x_train()), dataset.get_y_train(),
               setup_func(dataset.get_x_test()), dataset.get_y_test(),
-              x_val=setup_func(dataset.get_x_val()), y_val=dataset.get_y_val(), normalize=True)
+              x_val=setup_func(dataset.get_x_val()) if dataset.get_x_val() is not None else None,
+              y_val=dataset.get_y_val(), normalize=True)
     return ds
 
 
