@@ -625,9 +625,22 @@ class CrossEntropyAgreement(tf.keras.losses.Loss):
 class LogLikelihoodIterativeSoftmax(Loss):
     def __init__(self, *args, a_pull=None, a_push=None, temperature=10, sg=True, **kwargs):
         super(LogLikelihoodIterativeSoftmax, self).__init__(*args, **kwargs)
+        global A_PULL
+        global A_PUSH
+        self.a_pull = None
+        self.a_push = None
+
+        if a_pull is not None:
+            eval_a_pull = eval(a_pull) if isinstance(a_pull, str) else a_pull
+            A_PULL = tf.constant(eval_a_pull, dtype=tf.float32)
+            self.a_pull = A_PULL
+
+        if self.a_push is not None:
+            eval_a_push = eval(a_push) if isinstance(a_push, str) else a_push
+            A_PUSH = tf.constant(eval_a_push, dtype=tf.float32)
+            self.a_push = A_PUSH
+
         self.temperature = temperature
-        self.a_pull = a_pull
-        self.a_push = a_push
         self.sg = sg
 
     def pull(self, embd1, embd2, aij=None, aji=None):
