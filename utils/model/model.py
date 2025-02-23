@@ -160,22 +160,10 @@ class WeightDecayOptimizer(tf.keras.optimizers.Optimizer):
 
 
 class Muon(tf.keras.optimizers.Optimizer):
-    def __init__(self, learning_rate=1e-3, momentum=0.0, nesterov=False, name="Muon", steps=3, **kwargs):
-        super().__init__(name, **kwargs)
-        self.learning_rate = learning_rate
-        self.momentum = momentum
-        self.nesterov = nesterov
-        self.steps = steps
-        self.momentum_vars = {}
-
-    def _create_slots(self, var_list):
-        for var in var_list:
-            self.add_slot(var, "momentum_buffer")
-
     def zeropower_via_newtonschulz5(self, G, eps=1e-7):
         """
-        Newton-Schulz iteration to compute the zeroth power / orthogonalization of G.
-        """
+            Newton-Schulz iteration to compute the zeroth power / orthogonalization of G.
+            """
         assert len(G.shape) == 2
         a, b, c = 3.4445, -4.7750, 2.0315
         G = tf.cast(G, dtype=tf.float32)  # Equivalent to bfloat16 casting
@@ -195,16 +183,25 @@ class Muon(tf.keras.optimizers.Optimizer):
             X = tf.transpose(X)
         return X
 
-    def _resource_apply_dense(self, grad, var, apply_state=None):
-        if grad is None:
-            return tf.no_op()
+    def __init__(self, learning_rate=1e-3, momentum=0.0, nesterov=False, name="MuonOptimizer", **kwargs):
+        super().__init__(name, **kwargs)
+        self.learning_rate = learning_rate
+        self.momentum = momentum
+        self.nesterov = nesterov
 
-        state = self.get_slot(var, "momentum_buffer")
-        new_state = self.momentum * state + grad
+    def _create_slots(self, var_list):
+        for var in var_list:
+            self.add_slot(var, "momentum_buffer", initializer="zeros")
+
+    def _resource_apply_dense(self, grad, var, apply_state=None):
+        momentum_buffer = self.get_slot(var, "momentum_buffer")
+
+        # Compute momentum update
+        new_momentum = self.momentum * momentum_buffer + grad
         if self.nesterov:
-            grad = grad + self.momentum * new_state
+            grad = grad + self.momentum * new_momentum
         else:
-            grad = new_state
+            grad = new_momentum
 
         # Normalize the weight
         var.assign(var * tf.sqrt(tf.cast(tf.size(var), tf.float32)) / (tf.norm(var) + 1e-7))
@@ -217,17 +214,21 @@ class Muon(tf.keras.optimizers.Optimizer):
         var.assign_sub(self.learning_rate * update)
 
         # Store momentum buffer
-        state.assign(new_state)
+        momentum_buffer.assign(new_momentum)
+
+    def _resource_apply_sparse(self, grad, var, indices, apply_state=None):
+        # Sparse updates are not supported in the original PyTorch version, so we keep this simple.
+        raise NotImplementedError("Sparse updates are not supported in MuonOptimizer.")
 
     def get_config(self):
-        return {
+        config = super().get_config()
+        config.update({
             "learning_rate": self.learning_rate,
             "momentum": self.momentum,
             "nesterov": self.nesterov,
-        }
-
-
-
+            "steps": self.steps
+        })
+        return config
 
 
 def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_size=128, num_epochs=150, **kwargs):
