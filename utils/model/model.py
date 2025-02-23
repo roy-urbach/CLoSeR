@@ -159,77 +159,81 @@ class WeightDecayOptimizer(tf.keras.optimizers.Optimizer):
 
 
 
+
+def zeropower_via_newtonschulz5(G, steps=3, eps=1e-7):
+    """
+    Newton-Schulz iteration to compute the zeroth power / orthogonalization of G.
+    """
+    assert len(G.shape) == 2
+    a, b, c = 3.4445, -4.7750, 2.0315
+    G = tf.cast(G, dtype=tf.float32)
+    G /= (tf.norm(G) + eps)  # Ensure top singular value <= 1
+
+    transpose = G.shape[0] > G.shape[1]
+    if transpose:
+        G = tf.transpose(G)
+
+    X = G
+    for _ in range(steps):
+        A = tf.matmul(X, X, transpose_b=True)
+        B = b * A + c * tf.matmul(A, A)
+        X = a * X + tf.matmul(B, X)
+
+    if transpose:
+        X = tf.transpose(X)
+    return X
+
+
 class Muon(tf.keras.optimizers.Optimizer):
-    def zeropower_via_newtonschulz5(self, G, eps=1e-7):
-        """
-            Newton-Schulz iteration to compute the zeroth power / orthogonalization of G.
-            """
-        assert len(G.shape) == 2
-        a, b, c = 3.4445, -4.7750, 2.0315
-        G = tf.cast(G, dtype=tf.float32)  # Equivalent to bfloat16 casting
-        G /= (tf.norm(G) + eps)  # Ensure top singular value <= 1
-
-        transpose = G.shape[0] > G.shape[1]
-        if transpose:
-            G = tf.transpose(G)
-
-        X = G
-        for _ in range(self.steps):
-            A = tf.matmul(X, X, transpose_b=True)
-            B = b * A + c * tf.matmul(A, A)
-            X = a * X + tf.matmul(B, X)
-
-        if transpose:
-            X = tf.transpose(X)
-        return X
-
-    def __init__(self, learning_rate=1e-3, momentum=0.0, nesterov=False, name="MuonOptimizer", steps=3, **kwargs):
+    def __init__(self, learning_rate=1e-3, momentum=0.0, nesterov=False, name="MuonOptimizer", **kwargs):
         super().__init__(name, **kwargs)
-        self.learning_rate = learning_rate
-        self.momentum = momentum
+        self._set_hyper("learning_rate", learning_rate)
+        self._set_hyper("momentum", momentum)
         self.nesterov = nesterov
-        self.steps = steps
 
     def _create_slots(self, var_list):
         for var in var_list:
             self.add_slot(var, "momentum_buffer", initializer="zeros")
 
     def _resource_apply_dense(self, grad, var, apply_state=None):
+        lr = self._get_hyper("learning_rate")
+        momentum = self._get_hyper("momentum")
         momentum_buffer = self.get_slot(var, "momentum_buffer")
 
         # Compute momentum update
-        new_momentum = self.momentum * momentum_buffer + grad
+        new_momentum = momentum * momentum_buffer + grad
         if self.nesterov:
-            grad = grad + self.momentum * new_momentum
+            grad = grad + momentum * new_momentum
         else:
             grad = new_momentum
 
         # Normalize the weight
-        var.assign(var * tf.sqrt(tf.cast(tf.size(var), tf.float32)) / (tf.norm(var) + 1e-7))
+        norm_factor = tf.sqrt(tf.cast(tf.size(var), tf.float32)) / (tf.norm(var) + 1e-7)
+        weight_update = var * norm_factor
 
         # Whiten the update
-        update = self.zeropower_via_newtonschulz5(tf.reshape(grad, (tf.shape(grad)[0], -1)))
-        update = tf.reshape(update, tf.shape(grad))
+        reshaped_grad = tf.reshape(grad, (tf.shape(grad)[0], -1))
+        whitened_update = zeropower_via_newtonschulz5(reshaped_grad)
+        whitened_update = tf.reshape(whitened_update, tf.shape(grad))
 
-        # Apply update step
-        var.assign_sub(self.learning_rate * update)
+        # Apply updates
+        var_update = var.assign(weight_update - lr * whitened_update)
+        momentum_update = momentum_buffer.assign(new_momentum)
 
-        # Store momentum buffer
-        momentum_buffer.assign(new_momentum)
+        return tf.group(var_update, momentum_update)
 
     def _resource_apply_sparse(self, grad, var, indices, apply_state=None):
-        # Sparse updates are not supported in the original PyTorch version, so we keep this simple.
         raise NotImplementedError("Sparse updates are not supported in MuonOptimizer.")
 
     def get_config(self):
         config = super().get_config()
         config.update({
-            "learning_rate": self.learning_rate,
-            "momentum": self.momentum,
+            "learning_rate": self._serialize_hyperparameter("learning_rate"),
+            "momentum": self._serialize_hyperparameter("momentum"),
             "nesterov": self.nesterov,
-            "steps": self.steps
         })
         return config
+
 
 
 def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_size=128, num_epochs=150, **kwargs):
