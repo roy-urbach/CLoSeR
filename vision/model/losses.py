@@ -672,14 +672,14 @@ class LogLikelihoodIterativeSoftmax(Loss):
         # dim = tf.shape(y_pred)[1]
         n = y_pred.shape[2]
 
-        pull_denom = 1 if self.a_pull is not None else 1/(n*(n-1))
+        pull_denom = 1. if self.a_pull is not None else 1/(n*(n-1))
         loss = 0.
         if self.a_push is not None:
             in_enc_dist = tf.reduce_sum(tf.pow(y_pred[:, None] - y_pred[None], 2), axis=-2)                             # (down here - a bug in the original)
             in_enc_dist_without_diag = tf.reshape(in_enc_dist[tf.tile(~tf.eye(b, dtype=tf.bool)[..., None], [1, 1, n])], (b, b-1, n))
             in_enc_pre_exp = -in_enc_dist_without_diag / self.temperature
             in_enc_exp = tf.exp(in_enc_pre_exp - tf.reduce_max(in_enc_pre_exp, axis=0, keepdims=True)) + self.eps
-            in_enc_p = in_enc_exp / tf.reduce_sum(in_enc_exp, axis=1)
+            in_enc_p = in_enc_exp / tf.reduce_sum(in_enc_exp, axis=1, keepdims=True)
             in_enc_log_p = tf.math.log(in_enc_p)
 
         push_loss = 0.
@@ -695,7 +695,9 @@ class LogLikelihoodIterativeSoftmax(Loss):
                                       )
 
                 if self.a_push is not None and (self.a_push[i][j] or self.a_push[j]):
-                    push_loss += self.push(in_enc_p[..., i], in_enc_p[..., j], in_enc_log_p[..., i], in_enc_log_p[..., j], self.a_push[i][j], self.a_push[j][i])
+                    push_loss += self.push(in_enc_p[..., i], in_enc_p[..., j],
+                                           in_enc_log_p[..., i], in_enc_log_p[..., j],
+                                           self.a_push[i][j], self.a_push[j][i])
         self.monitor.update_monitor("pull", loss)
         self.monitor.update_monitor("push", push_loss)
         return loss + self.w_push * push_loss
