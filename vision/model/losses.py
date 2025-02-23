@@ -716,7 +716,7 @@ class IterativeCommunitiesLoss(LogLikelihoodIterativeSoftmax):
         a_push = ((np.eye(num_pathways) == 0) & (a_pull == 0)).astype(np.float32)
         if (a_push != 0).any():
             a_push /= a_push.sum()
-        super(IterativeCommunitiesLoss, self).__init__(*args, a_pull=a_pull, a_push=a_push, **kwargs)
+        super(IterativeCommunitiesLoss, self).__init__(*args, a_pull=a_pull.tolist(), a_push=a_push.tolist(), **kwargs)
 
 
 class BasicDisagreement(tf.keras.losses.Loss):
