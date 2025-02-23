@@ -625,15 +625,10 @@ class CrossEntropyAgreement(tf.keras.losses.Loss):
 class LogLikelihoodIterativeSoftmax(Loss):
     def __init__(self, *args, a_pull=None, a_push=None, w_push=0., temperature=10, sg=True, eps=1e-6, **kwargs):
         super(LogLikelihoodIterativeSoftmax, self).__init__(*args, **kwargs)
-        self.a_pull = None
-        self.a_push = None
         self.w_push = w_push
 
-        if a_pull is not None:
-            self.a_pull = eval(a_pull) if isinstance(a_pull, str) else a_pull
-
-        if a_push is not None:
-            self.a_push = eval(a_push) if isinstance(a_push, str) else a_push
+        self.a_pull = eval(a_pull) if isinstance(a_pull, str) else a_pull
+        self.a_push = eval(a_push) if isinstance(a_push, str) else a_push
 
         self.temperature = temperature
         self.sg = sg
@@ -658,14 +653,14 @@ class LogLikelihoodIterativeSoftmax(Loss):
         loss = 0.
         if aij:
             if self.sg:
-                p1_to_use = tf.stop_gradient(self.p1)
+                p1_to_use = tf.stop_gradient(p1)
             else:
                 p1_to_use = p1
             minus_dkl = tf.tensordot(p1_to_use, log_p2, axis=[[0, 1], [0, 1]]) / tf.cast(tf.shape(p1)[1], p1.dtype)
             loss += minus_dkl * aij
         if aji:
             if self.sg:
-                p2_to_use = tf.stop_gradient(self.p2)
+                p2_to_use = tf.stop_gradient(p2)
             else:
                 p2_to_use = p2
             minus_dkl = tf.tensordot(p2_to_use, log_p1, axis=[[0, 1], [0, 1]]) / tf.cast(tf.shape(p1)[1], p1.dtype)
