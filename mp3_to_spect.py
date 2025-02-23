@@ -45,12 +45,6 @@ def mp3_to_spect(fn,
                                fmin=fmin, fmax=fmax)
     mel_spect = (melw @ spectrogram)
     log_mel_spect = librosa.core.power_to_db(mel_spect)
-    # return log_mel_spect
-
-    # spectrogram = librosa.feature.melspectrogram(y=y, sr=sr, hop_length=hop_length, n_fft=BINS, **kwargs)
-    # spectrogram = np.log10(spectrogram+eps)
-    # if db:
-    #     spectrogram = librosa.amplitude_to_db(spectrogram)
     return log_mel_spect
 
 

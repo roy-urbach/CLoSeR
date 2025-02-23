@@ -623,32 +623,70 @@ class CrossEntropyAgreement(tf.keras.losses.Loss):
 
 
 class LogLikelihoodIterativeSoftmax(Loss):
-    def __init__(self, *args, a=None, temperature=10, **kwargs):
+    def __init__(self, *args, a_pull=None, a_push=None, temperature=10, sg=True, **kwargs):
         super(LogLikelihoodIterativeSoftmax, self).__init__(*args, **kwargs)
         self.temperature = temperature
-        self.a = a
+        self.a_pull = a_pull
+        self.a_push = a_push
+        self.sg = sg
+
+    def pull(self, embd1, embd2, aij=None, aji=None):
+        sqr_dist = tf.reduce_sum(tf.pow(embd1[:, None] - embd2[None], 2), axis=-1)  # (B, B)
+        logits = -sqr_dist / self.temperature
+        diag_logits = tf.linalg.diag_part(logits)  # (B, )
+        loss = 0.
+        for side in range(2):
+            if (side and aij) or (not side and aji):
+                log_z = tf.math.reduce_logsumexp(logits, axis=side)  # (B, )
+                mean_minus_log_likelihood = tf.reduce_mean(log_z - diag_logits)  # (B, )
+                loss += mean_minus_log_likelihood
+        return loss
+
+    def push(self, p1, p2, log_p1, log_p2, aij, aji):
+        # Not DKL, minus cross-entropy
+        # (b, b-1)
+        loss = 0.
+        if aij:
+            if self.sg:
+                p1_to_use = tf.stop_gradient(self.p1)
+            else:
+                p1_to_use = p1
+            minus_dkl = tf.tensordot(p1_to_use, log_p2, axis=[[0, 1], [0, 1]]) / tf.cast(tf.shape(p1)[1], p1.dtype)
+            loss += minus_dkl
+        if aji:
+            if self.sg:
+                p2_to_use = tf.stop_gradient(self.p2)
+            else:
+                p2_to_use = p2
+            minus_dkl = tf.tensordot(p2_to_use, log_p1, axis=[[0, 1], [0, 1]]) / tf.cast(tf.shape(p1)[1], p1.dtype)
+            loss += minus_dkl
+        return loss
 
     def call(self, y_true, y_pred):
-        # b = tf.shape(y_pred)[0]
+        b = tf.shape(y_pred)[0]
         # dim = tf.shape(y_pred)[1]
         n = tf.shape(y_pred)[2]
         loss = 0.
+        if self.a_push is not None:
+            in_enc_dist = tf.reduce_sum(tf.pow(y_pred[:, None] - y_pred[None], 2), axis=-2)                             # (down here - a bug in the original)
+            in_enc_dist_without_diag = tf.reshape(in_enc_dist[tf.tile(~tf.eye(b, dtype=tf.bool)[..., None], [1, 1, n])], (b, b-1, n))
+            in_enc_pre_exp = -in_enc_dist_without_diag / self.temperature
+            in_enc_exp = tf.exp(in_enc_pre_exp - tf.reduce_max(in_enc_pre_exp, axis=0, keepdims=True))
+            in_enc_p = in_enc_exp / tf.reduce_sum(in_enc_exp, axis=1)
+            in_enc_log_p = tf.math.log(in_enc_p)
 
         for i in range(n):
             for j in range(i+1, n):
                 if i == j:
                     continue
-                if self.a is not None and not self.a[i][j] and not self.a[j][i]:
-                    continue
+                if self.a_pull is None or self.a_pull[i][j] or self.a_push[j][i]:
+                    loss += self.pull(y_pred[..., i], y_pred[..., j],
+                                      aij=self.a_pull is None or self.a_pull[i][j],
+                                      aji=self.a_pull is None or self.a_pull[j][i],
+                                      )
 
-                sqr_dist = tf.reduce_sum(tf.pow(y_pred[:, None, ..., i] - y_pred[None, ..., j], 2), axis=-1)      # (B, B)
-                logits = -sqr_dist / self.temperature
-                diag_logits = tf.linalg.diag_part(logits)   # (B, )
-                for side in range(2):
-                    if self.a is None or (self.a is not None and (self.a[i][j] if not side else self.a[j][i])):
-                        log_z = tf.math.reduce_logsumexp(logits, axis=side)     # (B, )
-                        log_likelihood = diag_logits - log_z                    # (B, )
-                        loss = loss - tf.reduce_mean(log_likelihood)
+                if self.a_push is not None and (self.a_push[i][j] or self.a_push[j]):
+                    self.push(in_enc_p[..., i], in_enc_p[..., j], in_enc_log_p[..., i], in_enc_log_p[..., j], self.a_push[i][j], self.a_push[j][i])
         return loss / (tf.cast(n ** 2, dtype=loss.dtype) if self.a is None else tf.reduce_sum(tf.cast(self.a, dtype=loss.dtype)))
 
 
