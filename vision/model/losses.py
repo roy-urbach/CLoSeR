@@ -675,7 +675,7 @@ class LogLikelihoodIterativeSoftmax(Loss):
     def call(self, y_true, y_pred):
         b = tf.shape(y_pred)[0]
         # dim = tf.shape(y_pred)[1]
-        n = tf.shape(y_pred)[2]
+        n = y_pred.shape[2]
 
         pull_denom = 1 if self.a_pull is not None else 1/(n*(n-1))
         loss = 0.
