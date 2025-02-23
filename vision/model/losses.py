@@ -623,7 +623,7 @@ class CrossEntropyAgreement(tf.keras.losses.Loss):
 
 
 class LogLikelihoodIterativeSoftmax(Loss):
-    def __init__(self, *args, a_pull=None, a_push=None, temperature=10, sg=True, **kwargs):
+    def __init__(self, *args, a_pull=None, a_push=None, temperature=10, sg=True, eps=1e-6, **kwargs):
         super(LogLikelihoodIterativeSoftmax, self).__init__(*args, **kwargs)
         global A_PULL
         global A_PUSH
@@ -642,6 +642,7 @@ class LogLikelihoodIterativeSoftmax(Loss):
 
         self.temperature = temperature
         self.sg = sg
+        self.eps = eps
 
     def pull(self, embd1, embd2, aij=None, aji=None):
         sqr_dist = tf.reduce_sum(tf.pow(embd1[:, None] - embd2[None], 2), axis=-1)  # (B, B)
@@ -684,7 +685,7 @@ class LogLikelihoodIterativeSoftmax(Loss):
             in_enc_dist = tf.reduce_sum(tf.pow(y_pred[:, None] - y_pred[None], 2), axis=-2)                             # (down here - a bug in the original)
             in_enc_dist_without_diag = tf.reshape(in_enc_dist[tf.tile(~tf.eye(b, dtype=tf.bool)[..., None], [1, 1, n])], (b, b-1, n))
             in_enc_pre_exp = -in_enc_dist_without_diag / self.temperature
-            in_enc_exp = tf.exp(in_enc_pre_exp - tf.reduce_max(in_enc_pre_exp, axis=0, keepdims=True))
+            in_enc_exp = tf.exp(in_enc_pre_exp - tf.reduce_max(in_enc_pre_exp, axis=0, keepdims=True)) + self.eps
             in_enc_p = in_enc_exp / tf.reduce_sum(in_enc_exp, axis=1)
             in_enc_log_p = tf.math.log(in_enc_p)
 
