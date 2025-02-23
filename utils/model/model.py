@@ -183,11 +183,12 @@ class Muon(tf.keras.optimizers.Optimizer):
             X = tf.transpose(X)
         return X
 
-    def __init__(self, learning_rate=1e-3, momentum=0.0, nesterov=False, name="MuonOptimizer", **kwargs):
+    def __init__(self, learning_rate=1e-3, momentum=0.0, nesterov=False, name="MuonOptimizer", steps=3, **kwargs):
         super().__init__(name, **kwargs)
         self.learning_rate = learning_rate
         self.momentum = momentum
         self.nesterov = nesterov
+        self.steps = steps
 
     def _create_slots(self, var_list):
         for var in var_list:
