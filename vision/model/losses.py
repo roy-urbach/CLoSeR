@@ -656,14 +656,14 @@ class LogLikelihoodIterativeSoftmax(Loss):
                 p1_to_use = tf.stop_gradient(p1)
             else:
                 p1_to_use = p1
-            minus_dkl = tf.tensordot(p1_to_use, log_p2, axis=[[0, 1], [0, 1]]) / tf.cast(tf.shape(p1)[1], p1.dtype)
+            minus_dkl = tf.tensordot(p1_to_use, log_p2, axes=[[0, 1], [0, 1]]) / tf.cast(tf.shape(p1)[1], p1.dtype)
             loss += minus_dkl * aij
         if aji:
             if self.sg:
                 p2_to_use = tf.stop_gradient(p2)
             else:
                 p2_to_use = p2
-            minus_dkl = tf.tensordot(p2_to_use, log_p1, axis=[[0, 1], [0, 1]]) / tf.cast(tf.shape(p1)[1], p1.dtype)
+            minus_dkl = tf.tensordot(p2_to_use, log_p1, axes=[[0, 1], [0, 1]]) / tf.cast(tf.shape(p1)[1], p1.dtype)
             loss += minus_dkl * aji
         return loss
 
