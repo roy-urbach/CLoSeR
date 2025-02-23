@@ -630,7 +630,7 @@ class LogLikelihoodIterativeSoftmax(Loss):
         self.w_push = w_push
 
         self.a_pull = eval(a_pull) if isinstance(a_pull, str) else a_pull
-        self.a_push = eval(a_push) if isinstance(a_push, str) else a_push
+        self.a_push = (eval(a_push) if isinstance(a_push, str) else a_push) if w_push else None
 
         self.temperature = temperature
         self.sg = sg
