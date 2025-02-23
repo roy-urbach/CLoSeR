@@ -703,6 +703,19 @@ class LogLikelihoodIterativeSoftmax(Loss):
         return loss / (tf.cast(n ** 2, dtype=loss.dtype) if self.a is None else tf.reduce_sum(tf.cast(self.a, dtype=loss.dtype)))
 
 
+class IterativeCommunitiesLoss(LogLikelihoodIterativeSoftmax):
+    def __init__(self, num_pathways, num_communities, *args, **kwargs):
+        assert not (num_pathways % num_communities)
+        pathways_per_community = int(num_pathways / num_communities)
+        a_pull = scipy.linalg.block_diag(*[1-np.eye(pathways_per_community).astype(np.float32)]*num_communities)
+        if (a_pull != 0).any():
+            a_pull /= num_communities * pathways_per_community **2 - num_pathways
+        a_push = ((np.eye(num_pathways) == 0) & (a_pull == 0)).astype(np.float32)
+        if (a_push != 0).any():
+            a_push /= a_push.sum()
+        super(IterativeCommunitiesLoss, self).__init__(*args, a_pull=a_pull, a_push=a_push, **kwargs)
+
+
 class BasicDisagreement(tf.keras.losses.Loss):
     def __init__(self, entropy_w=None, name="basic_disagreement"):
         super().__init__(name=name)
