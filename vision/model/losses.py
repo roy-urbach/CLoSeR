@@ -159,17 +159,19 @@ class GeneralPullPushGraphLoss(ContrastiveSoftmaxLoss):
                                                            normalize=push_linear_predictivity_normalize, **linear_predictivity_kwargs) if push_linear_predictivity else None
 
     def map_rep_dev(self, exp_logits=None, logits=None):
+        if self.stop_grad_dist:
+            raise NotImplementedError("Because summation is over axis 1, unlike pull which is on axis 0")
         assert (logits is not None) or (exp_logits is not None)
         cur = exp_logits if exp_logits is not None else logits # Will be converted to exp_logits later
         b = tf.shape(cur)[0]
         n = tf.shape(cur)[-1]
         if self.remove_diag:
-            self_sim = tf.reshape(cur[tf.tile(~tf.eye(b, dtype=tf.bool)[..., None], [1, 1, n])], (b-1, b, n))
+            self_sim = tf.reshape(cur[tf.tile(~tf.eye(b, dtype=tf.bool)[..., None], [1, 1, n])], (b, b-1, n))
         else:
             self_sim = cur  # (b, b, n)
         if exp_logits is None:
             self_sim = self.calculate_exp_logits(None, self_sim)
-        map_rep = self_sim / tf.reduce_sum(self_sim, axis=0, keepdims=True)  # (b-remove_diag, b, n)
+        map_rep = self_sim / tf.reduce_sum(self_sim, axis=1, keepdims=True)  # (b-remove_diag, b, n)
         log_map_rep = tf.experimental.numpy.log2(tf.maximum(map_rep, self.log_eps))
         cross_ent = tf.einsum('ibn,ibm->bnm', map_rep, log_map_rep)  # (b, n, n)
         entropy = tf.linalg.diag_part(cross_ent)[..., None]
