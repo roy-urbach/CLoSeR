@@ -623,12 +623,13 @@ class CrossEntropyAgreement(tf.keras.losses.Loss):
 
 
 class LogLikelihoodIterativeSoftmax(Loss):
-    def __init__(self, *args, a_pull=None, a_push=None, temperature=10, sg=True, eps=1e-6, **kwargs):
+    def __init__(self, *args, a_pull=None, a_push=None, w_push=0., temperature=10, sg=True, eps=1e-6, **kwargs):
         super(LogLikelihoodIterativeSoftmax, self).__init__(*args, **kwargs)
         global A_PULL
         global A_PUSH
         self.a_pull = None
         self.a_push = None
+        self.w_push = w_push
 
         if a_pull is not None:
             eval_a_pull = eval(a_pull) if isinstance(a_pull, str) else a_pull
@@ -643,6 +644,7 @@ class LogLikelihoodIterativeSoftmax(Loss):
         self.temperature = temperature
         self.sg = sg
         self.eps = eps
+        self.monitor = LossMonitors("pull", "push", name="")
 
     def pull(self, embd1, embd2, aij=None, aji=None):
         sqr_dist = tf.reduce_sum(tf.pow(embd1[:, None] - embd2[None], 2), axis=-1)  # (B, B)
@@ -653,7 +655,7 @@ class LogLikelihoodIterativeSoftmax(Loss):
             if (side and aij) or (not side and aji):
                 log_z = tf.math.reduce_logsumexp(logits, axis=side)  # (B, )
                 mean_minus_log_likelihood = tf.reduce_mean(log_z - diag_logits)  # (B, )
-                loss += mean_minus_log_likelihood
+                loss += mean_minus_log_likelihood * [aij, aji][side]
         return loss
 
     def push(self, p1, p2, log_p1, log_p2, aij, aji):
@@ -666,20 +668,22 @@ class LogLikelihoodIterativeSoftmax(Loss):
             else:
                 p1_to_use = p1
             minus_dkl = tf.tensordot(p1_to_use, log_p2, axis=[[0, 1], [0, 1]]) / tf.cast(tf.shape(p1)[1], p1.dtype)
-            loss += minus_dkl
+            loss += minus_dkl * aij
         if aji:
             if self.sg:
                 p2_to_use = tf.stop_gradient(self.p2)
             else:
                 p2_to_use = p2
             minus_dkl = tf.tensordot(p2_to_use, log_p1, axis=[[0, 1], [0, 1]]) / tf.cast(tf.shape(p1)[1], p1.dtype)
-            loss += minus_dkl
+            loss += minus_dkl * aji
         return loss
 
     def call(self, y_true, y_pred):
         b = tf.shape(y_pred)[0]
         # dim = tf.shape(y_pred)[1]
         n = tf.shape(y_pred)[2]
+
+        pull_denom = 1 if self.a_pull is not None else 1/(n*(n-1))
         loss = 0.
         if self.a_push is not None:
             in_enc_dist = tf.reduce_sum(tf.pow(y_pred[:, None] - y_pred[None], 2), axis=-2)                             # (down here - a bug in the original)
@@ -689,19 +693,23 @@ class LogLikelihoodIterativeSoftmax(Loss):
             in_enc_p = in_enc_exp / tf.reduce_sum(in_enc_exp, axis=1)
             in_enc_log_p = tf.math.log(in_enc_p)
 
+        push_loss = 0.
+
         for i in range(n):
             for j in range(i+1, n):
                 if i == j:
                     continue
                 if self.a_pull is None or self.a_pull[i][j] or self.a_push[j][i]:
                     loss += self.pull(y_pred[..., i], y_pred[..., j],
-                                      aij=self.a_pull is None or self.a_pull[i][j],
-                                      aji=self.a_pull is None or self.a_pull[j][i],
+                                      aij=pull_denom if self.a_pull is None else self.a_pull[i][j],
+                                      aji=pull_denom if self.a_pull is None else self.a_pull[j][i],
                                       )
 
                 if self.a_push is not None and (self.a_push[i][j] or self.a_push[j]):
-                    self.push(in_enc_p[..., i], in_enc_p[..., j], in_enc_log_p[..., i], in_enc_log_p[..., j], self.a_push[i][j], self.a_push[j][i])
-        return loss / (tf.cast(n ** 2, dtype=loss.dtype) if self.a is None else tf.reduce_sum(tf.cast(self.a, dtype=loss.dtype)))
+                    push_loss += self.push(in_enc_p[..., i], in_enc_p[..., j], in_enc_log_p[..., i], in_enc_log_p[..., j], self.a_push[i][j], self.a_push[j][i])
+        self.monitor.update_monitor("pull", loss)
+        self.monitor.update_monitor("push", push_loss)
+        return loss + self.w_push * push_loss
 
 
 class IterativeCommunitiesLoss(LogLikelihoodIterativeSoftmax):
