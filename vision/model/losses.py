@@ -625,21 +625,15 @@ class CrossEntropyAgreement(tf.keras.losses.Loss):
 class LogLikelihoodIterativeSoftmax(Loss):
     def __init__(self, *args, a_pull=None, a_push=None, w_push=0., temperature=10, sg=True, eps=1e-6, **kwargs):
         super(LogLikelihoodIterativeSoftmax, self).__init__(*args, **kwargs)
-        global A_PULL
-        global A_PUSH
         self.a_pull = None
         self.a_push = None
         self.w_push = w_push
 
         if a_pull is not None:
-            eval_a_pull = eval(a_pull) if isinstance(a_pull, str) else a_pull
-            A_PULL = tf.constant(eval_a_pull, dtype=tf.float32)
-            self.a_pull = A_PULL
+            self.a_pull = eval(a_pull) if isinstance(a_pull, str) else a_pull
 
-        if self.a_push is not None:
-            eval_a_push = eval(a_push) if isinstance(a_push, str) else a_push
-            A_PUSH = tf.constant(eval_a_push, dtype=tf.float32)
-            self.a_push = A_PUSH
+        if a_push is not None:
+            self.a_push = eval(a_push) if isinstance(a_push, str) else a_push
 
         self.temperature = temperature
         self.sg = sg
@@ -699,7 +693,7 @@ class LogLikelihoodIterativeSoftmax(Loss):
             for j in range(i+1, n):
                 if i == j:
                     continue
-                if self.a_pull is None or self.a_pull[i][j] or self.a_push[j][i]:
+                if self.a_pull is None or self.a_pull[i][j] or self.a_pull[j][i]:
                     loss += self.pull(y_pred[..., i], y_pred[..., j],
                                       aij=pull_denom if self.a_pull is None else self.a_pull[i][j],
                                       aji=pull_denom if self.a_pull is None else self.a_pull[j][i],
