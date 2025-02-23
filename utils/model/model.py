@@ -158,74 +158,73 @@ class WeightDecayOptimizer(tf.keras.optimizers.Optimizer):
         return config
 
 
-class Muon(tf.keras.optimizers.Optimizer):
-    """
-    Muon Optimizer for Vision Transformer (ViT)
-    - Uses SGD with momentum for 2D weight matrices.
-    - Applies Newton-Schulz iterations for weight orthogonality.
-    - Uses basic Adam for non-2D parameters (biases, embeddings).
-    """
 
-    def __init__(self, learning_rate=3e-4, momentum=0.9, weight_decay=0.01, num_iters=5, name="MuonForViT", **kwargs):
+def zeropower_via_newtonschulz5(G, steps=3, eps=1e-7):
+    """
+    Newton-Schulz iteration to compute the zeroth power / orthogonalization of G.
+    """
+    assert len(G.shape) == 2
+    a, b, c = 3.4445, -4.7750, 2.0315
+    G = tf.cast(G, dtype=tf.float32)  # Equivalent to bfloat16 casting
+    G /= (tf.norm(G) + eps)  # Ensure top singular value <= 1
+
+    transpose = G.shape[0] > G.shape[1]
+    if transpose:
+        G = tf.transpose(G)
+
+    X = G
+    for _ in range(steps):
+        A = tf.matmul(X, X, transpose_b=True)
+        B = b * A + c * tf.matmul(A, A)
+        X = a * X + tf.matmul(B, X)
+
+    if transpose:
+        X = tf.transpose(X)
+    return X
+
+class Muon(tf.keras.optimizers.Optimizer):
+    def __init__(self, learning_rate=1e-3, momentum=0.0, nesterov=False, name="Muon", **kwargs):
         super().__init__(name, **kwargs)
         self.learning_rate = learning_rate
         self.momentum = momentum
-        self.weight_decay = weight_decay
-        self.num_iters = num_iters  # Newton-Schulz iterations
-        self.momentum_vars = {}  # Momentum storage
-        self.adam = tf.keras.optimizers.Adam(learning_rate=self.learning_rate)  # Basic Adam
+        self.nesterov = nesterov
+        self.momentum_vars = {}
 
-    def newton_schulz_inverse_sqrt(self, A):
-        """Computes the inverse square root of a matrix A using Newton-Schulz iteration."""
-        I = tf.eye(tf.shape(A)[0], dtype=A.dtype)
-        trace = tf.reduce_mean(tf.linalg.diag_part(A))
-        X = A / trace  # Initial approximation
+    def _create_slots(self, var_list):
+        for var in var_list:
+            self.add_slot(var, "momentum_buffer")
 
-        for _ in range(self.num_iters):
-            AX2 = tf.matmul(A, X)
-            X = X @ (1.5 * I - 0.5 * AX2)
+    def _resource_apply_dense(self, grad, var, apply_state=None):
+        if grad is None:
+            return tf.no_op()
 
-        return X
+        state = self.get_slot(var, "momentum_buffer")
+        new_state = self.momentum * state + grad
+        if self.nesterov:
+            grad = grad + self.momentum * new_state
+        else:
+            grad = new_state
 
-    def apply_gradients(self, grads_and_vars, name=None, experimental_aggregate_gradients=True):
-        updates = []
-        for (grad, var) in grads_and_vars:
-            if grad is None or var is None:
-                continue
+        # Normalize the weight
+        var.assign(var * tf.sqrt(tf.cast(tf.size(var), tf.float32)) / (tf.norm(var) + 1e-7))
 
-            # Apply Muon only to 2D weight matrices
-            if len(var.shape) == 2:
-                if var.ref() not in self.momentum_vars:
-                    self.momentum_vars[var.ref()] = tf.Variable(tf.zeros_like(var), trainable=False)
+        # Whiten the update
+        update = zeropower_via_newtonschulz5(tf.reshape(grad, (tf.shape(grad)[0], -1)))
+        update = tf.reshape(update, tf.shape(grad))
 
-                # Standard SGD with momentum update
-                momentum_var = self.momentum_vars[var.ref()]
-                momentum_update = self.momentum * momentum_var - self.learning_rate * grad
-                updates.append(momentum_var.assign(momentum_update))
-                new_var = var + momentum_update
+        # Apply update step
+        var.assign_sub(self.learning_rate * update)
 
-                # Apply Newton-Schulz orthogonalization
-                new_var = self.newton_schulz_inverse_sqrt(new_var)
-
-                # Weight decay
-                if self.weight_decay > 0.0:
-                    new_var = new_var - self.weight_decay * var
-
-                updates.append(var.assign(new_var))
-
-            else:
-                # Non-2D parameters (e.g., embeddings, biases) -> use basic Adam
-                updates.append(self.adam.apply_gradients([(grad, var)]))
-
-        return tf.group(*updates)
+        # Store momentum buffer
+        state.assign(new_state)
 
     def get_config(self):
         return {
             "learning_rate": self.learning_rate,
             "momentum": self.momentum,
-            "weight_decay": self.weight_decay,
-            "num_iters": self.num_iters,
+            "nesterov": self.nesterov,
         }
+
 
 
 
