@@ -272,7 +272,7 @@ def pvalue_to_str(p):
     return string
 
 
-def plot_significance(x1, x2, y, p, dist=0.1, dist_from_edges=0, line_dist=None, ax=None, horizontal=False, **kwargs):
+def plot_significance(x1, x2, y, p, dist=0.1, dist_from_edges=0, line_dist=None, ax=None, horizontal=False, size=None, **kwargs):
     string = pvalue_to_str(p)
     if ax is None:
         ax = plt
@@ -283,7 +283,7 @@ def plot_significance(x1, x2, y, p, dist=0.1, dist_from_edges=0, line_dist=None,
                     [y]*2, c='k', **kwargs)
             ax.plot([x1 + (dist_from_edges if x1 < x2 else -dist_from_edges)]*2, [y-dist, y], c='k', **kwargs)
             ax.plot([x2 + (-dist_from_edges if x1<x2 else dist_from_edges)]*2, [y-dist, y], c='k', **kwargs)
-            ax.text((x1+x2)/2, y + dist, string, ha='center', va='center')
+            ax.text((x1+x2)/2, y + dist, string, ha='center', va='center', size=size)
         else:
             if line_dist is None:
                 line_dist = dist
@@ -294,10 +294,11 @@ def plot_significance(x1, x2, y, p, dist=0.1, dist_from_edges=0, line_dist=None,
             y_text = np.arange(len(string))
             y_text = (y_text - y_text.mean()) * line_dist
             for s, y_text_letter in zip(string, y_text):
-                ax.text(y + dist, (x1 + x2) / 2 + y_text_letter, s, ha='center', va='center')
+                ax.text(y + dist, (x1 + x2) / 2 + y_text_letter, s, ha='center', va='center', size=size)
 
 
-def plot_significance_anchor(dct, k, keys=None, test=paired_t_test, significance_dist=0.0075, dist=0.002, horizontal=False, x=None, **kwargs):
+def plot_significance_anchor(dct, k, keys=None, test=paired_t_test, significance_dist=0.0075, dist=0.002, horizontal=False,
+                             x=None, **kwargs):
     if keys is None:
         keys = list(dct.keys())
     ind_k = keys.index(k)
