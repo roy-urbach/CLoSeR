@@ -690,6 +690,7 @@ class LPL(tf.keras.losses.Loss):
         self.std_w = std_w
         self.corr_w = corr_w
         self.cov_sqr = cov_sqr
+        self.pred_in_output = bool(pe_w or pe_cont_w or pe_w_absolute)
         self.pe_w = pe_w
         self.pe_cont_w = pe_cont_w
         self.pe_kwargs = pe_kwargs
@@ -723,7 +724,7 @@ class LPL(tf.keras.losses.Loss):
             losses.append("cov")
         if cross_w or cross_cov_w or wcross_w or crosscont_w:
             losses.append("cross")
-        if self.pe_w or self.pe_cont_w:
+        if self.pred_in_output:
             losses.append("pe_cross")
             losses.append("pe")
         if self.vjepa_w:
@@ -962,7 +963,7 @@ class LPL(tf.keras.losses.Loss):
         embd = y_pred[:, -1]
         prev_embd = y_pred[:, -2]
         prev_embd_sg = tf.stop_gradient(prev_embd)
-        if self.pe_w or self.pe_cont_w or (self.crosspred_w and not self.dino_w):
+        if self.pred_in_output or (self.crosspred_w and not self.dino_w):
             pred_start = embd.shape[-2]//2
             pred = embd[..., pred_start:, :]
             embd = embd[..., :pred_start, :]
@@ -973,7 +974,7 @@ class LPL(tf.keras.losses.Loss):
         if self.local:
             self.update_estimation(embd)
 
-        if self.pe_w or self.pe_cont_w:
+        if self.pred_in_output:
             pe = tf.reduce_mean((tf.stop_gradient(embd) - pred)**2, axis=-2)  # (B, P)
         elif self.crosspred_w and not self.dino_w:
             crosspred_loss = self.crosspred(embd, pred)
@@ -993,7 +994,9 @@ class LPL(tf.keras.losses.Loss):
         if self.cross_cov_w:
             loss = loss + self.cross_cov_w * self.crosscov(embd)
         if self.pe_w or self.pe_cont_w:
-            loss = loss + (self.pe_w or self.pe_cont_w) * self.pe_weighted_crossdist(embd, tf.stop_gradient(pe), prev_embd=prev_embd, cont=bool(self.pe_cont_w))
+            loss = loss + (self.pe_w or self.pe_cont_w) * self.pe_weighted_crossdist(embd, tf.stop_gradient(pe),
+                                                                                     prev_embd=prev_embd_sg,
+                                                                                     cont=bool(self.pe_cont_w))
             mean_pe = tf.reduce_mean(pe)
             self.monitor.update_monitor("pe", mean_pe)
             loss = loss + mean_pe
