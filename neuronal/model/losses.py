@@ -182,7 +182,7 @@ class VectorTrajectoryDisagreement(tf.keras.losses.Loss):
 class ContinuousLoss(tf.keras.losses.Loss):
     def __init__(self, softmax=False, l1=False, cosine=False, mse=False, continuous_w=1., entropy_w=None, crosspath_w=None, nonlocal_w=None, nonlocal_kwargs={}, eps=None,
                  contrast_in_time_w=None, contrast_in_time_kwargs={}, continuous_kwargs={}, push_corr_w=None, predictive_w=None,
-                 adversarial_w=None, adversarial_pred_w=None, pe_w=None, pe_push_w=None, neg_log_std_w=None, adversarial_kwargs={},
+                 adversarial_w=None, adversarial_pred_w=None, pe_w=None, pe_push_w=None, pe_cont_w=None, neg_log_std_w=None, adversarial_kwargs={},
                  log_dist=False, monitor=True, centering=False, name='continuous_loss'):
         super().__init__(name=name)
         self.l1 = l1
@@ -681,7 +681,7 @@ class DinoLoss(tf.keras.losses.Loss):
 
 class LPL(tf.keras.losses.Loss):
     def __init__(self, cont_w=1, std_w=1, corr_w=10, cross_w=None, crosscont_w=None, wcross_w=None, vjepa_w=None,
-                 dino_w=None, cov_sqr=True, alpha=0.1, l1=False, pe_w=None, pe_kwargs={}, pe_w_absolute=False,
+                 dino_w=None, cov_sqr=True, alpha=0.1, l1=False, pe_w=None, pe_cont_w=None, pe_kwargs={}, pe_w_absolute=False,
                  pullpush_w=None, pullpush_kwargs={},
                  cross_cov_w=None, local=True, center=False, eps=1e-4, name='LPL', flatten_paths=False, crosspred_w=None):
         super().__init__(name=name)
@@ -691,6 +691,7 @@ class LPL(tf.keras.losses.Loss):
         self.corr_w = corr_w
         self.cov_sqr = cov_sqr
         self.pe_w = pe_w
+        self.pe_cont_w = pe_cont_w
         self.pe_kwargs = pe_kwargs
         self.pe_w_absolute = pe_w_absolute
         self.first_moment = None
@@ -722,7 +723,7 @@ class LPL(tf.keras.losses.Loss):
             losses.append("cov")
         if cross_w or cross_cov_w or wcross_w or crosscont_w:
             losses.append("cross")
-        if self.pe_w:
+        if self.pe_w or self.pe_cont_w:
             losses.append("pe_cross")
             losses.append("pe")
         if self.vjepa_w:
@@ -855,7 +856,10 @@ class LPL(tf.keras.losses.Loss):
             self.monitor.update_monitor("cross", mean_cov)
             return mean_cov
 
-    def pe_weighted_crossdist(self, embd, pe, tau=1):
+    def pe_weighted_crossdist(self, embd, pe, prev_embd=None, cont=False, tau=1):
+        if cont:
+            assert prev_embd is not None
+
         pe_diff = (pe[..., None] - pe[..., None, :])**2     # (B, P, P)
         # pe_diff = pe_diff - tf.reduce_min(pe_diff, axis=-1, keepdims=True)    # diagonal is min
         exp_pe = tf.linalg.set_diag(tf.exp(-pe_diff / tau) + self.eps,
@@ -868,7 +872,7 @@ class LPL(tf.keras.losses.Loss):
         if self.pe_w_absolute:
             pe_weights = pe_weights * pe[..., None]
 
-        dist = tf.reduce_mean((embd[..., None] - tf.stop_gradient(embd[..., None, :]))**2, axis=1)  # (B, P, P)
+        dist = tf.reduce_mean((embd[..., None] - tf.stop_gradient((embd if not cont else prev_embd)[..., None, :]))**2, axis=1)  # (B, P, P)
         pe_weighted_dist = tf.tensordot(pe_weights, dist, [[0, 1, 2],
                                                            [0, 1, 2]]) / tf.cast(tf.shape(embd)[0] * embd.shape[-1], dtype=embd.dtype)
         self.monitor.update_monitor("pe_cross", pe_weighted_dist)
@@ -958,7 +962,7 @@ class LPL(tf.keras.losses.Loss):
         embd = y_pred[:, -1]
         prev_embd = y_pred[:, -2]
         prev_embd_sg = tf.stop_gradient(prev_embd)
-        if self.pe_w or (self.crosspred_w and not self.dino_w):
+        if self.pe_w or self.pe_cont_w or (self.crosspred_w and not self.dino_w):
             pred_start = embd.shape[-2]//2
             pred = embd[..., pred_start:, :]
             embd = embd[..., :pred_start, :]
@@ -969,7 +973,7 @@ class LPL(tf.keras.losses.Loss):
         if self.local:
             self.update_estimation(embd)
 
-        if self.pe_w:
+        if self.pe_w or self.pe_cont_w:
             pe = tf.reduce_mean((tf.stop_gradient(embd) - pred)**2, axis=-2)  # (B, P)
         elif self.crosspred_w and not self.dino_w:
             crosspred_loss = self.crosspred(embd, pred)
@@ -988,8 +992,8 @@ class LPL(tf.keras.losses.Loss):
             loss = loss + self.crosscont_w * self.crosscont(prev_embd_sg, embd)
         if self.cross_cov_w:
             loss = loss + self.cross_cov_w * self.crosscov(embd)
-        if self.pe_w:
-            loss = loss + self.pe_w * self.pe_weighted_crossdist(embd, tf.stop_gradient(pe))
+        if self.pe_w or self.pe_cont_w:
+            loss = loss + (self.pe_w or self.pe_cont_w) * self.pe_weighted_crossdist(embd, tf.stop_gradient(pe), prev_embd=prev_embd, cont=bool(self.pe_cont_w))
             mean_pe = tf.reduce_mean(pe)
             self.monitor.update_monitor("pe", mean_pe)
             loss = loss + mean_pe
