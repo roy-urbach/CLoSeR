@@ -10,8 +10,8 @@ RESULTS_FILE_NAME_K = 'classification_eval_{k}'
 
 
 @Modules.add_method
-def load_evaluation_json(model_name):
-    results = load_json(os.path.join(model_name, RESULTS_FILE_NAME))
+def load_evaluation_json(model_name, old=False):
+    results = load_json(os.path.join(model_name, RESULTS_FILE_NAME) + "_old" * old)
     return results
 
 
