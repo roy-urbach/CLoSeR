@@ -176,7 +176,7 @@ def plot_metrics_along_d(model_regex, module: Modules, metric_regex=("logistic",
     return archive
 
 
-def gather_results_over_all_args(model_format, args, module=Modules.VISION, name='logistic', seeds=[1], measure=False, print_missing=True):
+def gather_results_over_all_args(model_format, args, module=Modules.VISION, name='logistic', seeds=[1], measure=False, print_missing=True, old=False):
     names = list(args.keys())
     args = [args[n] for n in names]
     shape = [len(arg) for arg in args]
@@ -188,7 +188,7 @@ def gather_results_over_all_args(model_format, args, module=Modules.VISION, name
                 **{k: v for k, v in zip(names, [args[arg_ind][cur_ind] for arg_ind, cur_ind in enumerate(inds)])},
                 seed=seed)
             try:
-                dct = module.load_measures_json(model_name) if measure else module.load_evaluation_json(model_name)
+                dct = module.load_measures_json(model_name) if measure else module.load_evaluation_json(model_name, old=old)
             except JSONDecodeError as err:
                 dct = None
                 if print_missing:
