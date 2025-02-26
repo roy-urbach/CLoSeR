@@ -315,10 +315,11 @@ def plot_significance_anchor(dct, k, keys=None, test=paired_t_test, significance
                                   dist=dist, p=p, linewidth=1, horizontal=True, **kwargs)
             else:
                 if significance_dist > 0:
-                    edge = max(np.nanmax(dct[k]) if q is None else np.quantile(dct[k], q),
-                               np.nanmax(dct[alter]) if q is None else np.quantile(dct[alter], q))
+                    edge = max(np.nanmax(dct[k]) if q is None else np.nanquantile(dct[k], q),
+                               np.nanmax(dct[alter]) if q is None else np.nanquantile(dct[alter], q))
                 else:
-                    edge = min(np.nanmin(dct[k]), np.nanmin(dct[alter]))
+                    edge = min(np.nanmin(dct[k]) if q is None else np.nanquantile(dct[k], q),
+                               np.nanmin(dct[alter]) if q is None else np.nanquantile(dct[alter], q))
 
                 plot_significance(i if x is None else x[i], ind_k if x is None else x[ind_k],
                                   edge+significance_dist*np.abs(ind_k- i), dist=dist, p=p, linewidth=1, **kwargs)
