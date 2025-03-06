@@ -94,7 +94,7 @@ def measure_model(model, module:Modules, iterations=50, b=128):
 
         likelihood_without_self = tf.reshape(
             likelihood[tf.tile(~tf.eye(b, dtype=tf.bool)[..., None, None], [1, 1, n, n])],
-            (b - 1, b, n, n))
+            (b, b-1, n, n)).transpose([1,0,2,3])
         likelihood_without_self = likelihood_without_self / tf.reduce_sum(likelihood_without_self, axis=0,
                                                                           keepdims=True)
 

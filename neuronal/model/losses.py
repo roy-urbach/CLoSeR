@@ -857,9 +857,13 @@ class LPL(tf.keras.losses.Loss):
             self.monitor.update_monitor("cross", mean_cov)
             return mean_cov
 
-    def pe_weighted_crossdist(self, embd, pe, prev_embd=None, cont=False, tau=1):
+    def pe_weighted_crossdist(self, embd, pe, prev_embd=None, cont=False, tau=1, sig_slope=None, sig_q=0.75):
         if cont:
             assert prev_embd is not None
+
+        if sig_slope:
+            threshold = tf.keras.ops.quantile(pe, sig_q)
+            sig_w = 1 / (1 + tf.exp(-(pe - threshold) * sig_slope * tf.reduce_std(pe, ddof=1)))[..., None]
 
         pe_diff = (pe[..., None] - pe[..., None, :])**2     # (B, P, P)
         # pe_diff = pe_diff - tf.reduce_min(pe_diff, axis=-1, keepdims=True)    # diagonal is min
@@ -870,13 +874,22 @@ class LPL(tf.keras.losses.Loss):
         z_pe = tf.reduce_sum(exp_pe, axis=-1, keepdims=True)
         pe_weights = exp_pe / z_pe  # (B, P, P)
 
+        if sig_slope:
+            pe_weights = pe_weights * (1-sig_w[..., None])
+
         if self.pe_w_absolute:
             pe_weights = pe_weights * pe[..., None]
 
-        dist = tf.reduce_mean((embd[..., None] - tf.stop_gradient((embd if not cont else prev_embd)[..., None, :]))**2, axis=1)  # (B, P, P)
+        dist = tf.reduce_mean((embd[..., None] - tf.stop_gradient((embd if (not cont) or sig_slope else prev_embd)[..., None, :]))**2, axis=1)  # (B, P, P)
         pe_weighted_dist = tf.tensordot(pe_weights, dist, [[0, 1, 2],
                                                            [0, 1, 2]]) / tf.cast(tf.shape(embd)[0] * embd.shape[-1], dtype=embd.dtype)
-        self.monitor.update_monitor("pe_cross", pe_weighted_dist)
+        total_loss = pe_weighted_dist
+
+        if sig_slope:
+            mse_cont = sig_w * tf.reduce_mean((embd[..., None] - tf.stop_gradient(prev_embd)[..., None, :]) ** 2, axis=1)  # (B, P, P)
+            total_loss = pe_weighted_dist + mse_cont
+
+        self.monitor.update_monitor("pe_cross", total_loss)
         return pe_weighted_dist
 
     def vjepa(self, embd):
