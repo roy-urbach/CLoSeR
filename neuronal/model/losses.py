@@ -864,7 +864,7 @@ class LPL(tf.keras.losses.Loss):
 
         if sig_slope:
             threshold = tf.keras.ops.quantile(pe, sig_q)
-            sig_w = 1 / (1 + tf.exp(-(pe - threshold) * sig_slope * tf.reduce_std(pe, ddof=1)))  # (B, N)
+            sig_w = 1 / (1 + tf.exp(-(pe - threshold) * sig_slope / tf.reduce_std(pe, ddof=1)))  # (B, N)
             pe_weights_by_sig = tf.tile(sig_w[..., None], [1, 1, n])
             pe_weights_by_sig = pe_weights_by_sig * (1-tf.eye(n, dtype=pe_weights_by_sig.dtype))[None]
             pe_weights = pe_weights_by_sig / tf.reduce_sum(pe_weights_by_sig, axis=-1, keepdims=True) # (B, N, N)
