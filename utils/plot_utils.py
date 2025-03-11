@@ -111,9 +111,9 @@ def basic_scatterplot(x, y, identity=True, fig=None, c='k', corr=False, t=False,
     return fig
 
 
-def savefig(fn):
-    if not fn.endswith('.png'):
-        fn = fn + '.png'
+def savefig(fn, suffix='png'):
+    if not fn.endswith('.' + suffix):
+        fn = fn + suffix
     plt.savefig(fn)
     print(f"saved figure as {fn}")
 
