@@ -238,6 +238,8 @@ class Muon(tf.keras.optimizers.Optimizer):
 
 def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_size=128, num_epochs=150, **kwargs):
     print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+    print(f"{tf.test.is_gpu_available()=}")
+    print(f"{tf.test.is_built_with_cuda()=}")
 
     printd("Getting dataset...", end='\t')
     dataset = module.get_class_from_data(dataset)(module=module, **data_kwargs)
