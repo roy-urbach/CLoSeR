@@ -92,9 +92,9 @@ def measure_model(model, module:Modules, iterations=50, b=128):
         res_dct[CrossPathMeasures.LikeSelf].append(tf.reduce_mean(likelihood[tf.eye(tf.shape(likelihood)[0], dtype=tf.bool)], axis=0))
         res_dct[CrossPathMeasures.Entropy].append(-tf.reduce_mean(tf.einsum('bBnN,bBnN->BnN', likelihood, tf.math.log(likelihood)), axis=0))
 
-        likelihood_without_self = tf.reshape(
+        likelihood_without_self = tf.transpose(tf.reshape(
             likelihood[tf.tile(~tf.eye(b, dtype=tf.bool)[..., None, None], [1, 1, n, n])],
-            (b, b-1, n, n)).transpose([1,0,2,3])
+            (b, b-1, n, n)), [1,0,2,3])
         likelihood_without_self = likelihood_without_self / tf.reduce_sum(likelihood_without_self, axis=0,
                                                                           keepdims=True)
 
