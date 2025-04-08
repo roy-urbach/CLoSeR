@@ -12,10 +12,10 @@ from utils.utils import get_class
 import numpy as np
 
 
-def get_neuronal_data_augmentation(bins_per_frame, augmentations=[], name='data_augmentation', **kwargs):
+def get_neuronal_data_augmentation(bins_per_frame, augmentations=[], name='data_augmentation', axis=-1, **kwargs):
     data_augmentation = tf.keras.Sequential(
         [
-            layers.Normalization(),
+            layers.Normalization(axis=axis),
         ] + augmentations,
         name=name,
     )
