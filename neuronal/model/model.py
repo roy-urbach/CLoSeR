@@ -42,7 +42,7 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
                  encoder='BasicRNN', encoder_per_path=False, random_rotation=False, random_rotations=False,
                  pathway_classification=True, pathway_classification_allpaths=False,
                  ensemble_classification=True, classifier_pathways=True,
-                 predictor_kwargs={}, predictor_concat=True, pred_in_readout=False,
+                 predictor_kwargs={}, predictor_concat=True, pred_in_readout=False, bn=False,
                  augmentation_kwargs={}, encoder_kwargs={}, pathways_kwargs={}, labels=Labels, label_to_dim=None,
                  module=Modules.NEURONAL, SplitClass=SplitPathwaysNeuronal):
     if isinstance(kernel_regularizer, str) and kernel_regularizer.startswith("tf."):
@@ -64,8 +64,12 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
     # Augment data.
     if different_areas:
         augmented = [get_neuronal_data_augmentation(bins_per_frame, **augmentation_kwargs, name=f'data_augmentation_{area}')(inp) for area, inp in zip(areas, inputs)]
+        if bn:
+            augmented = [tf.keras.layers.BatchNormalization(name=name + f"_bn{i}")(aug) for i, aug in augmented]
     else:
         augmented = get_neuronal_data_augmentation(bins_per_frame, **augmentation_kwargs)(inputs)
+        if bn:
+            augmented = tf.keras.layers.BatchNormalization(name=name + "_bn")(augmented)
 
     # divide to different pathways
     if classifier and not classifier_pathways:
