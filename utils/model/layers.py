@@ -404,3 +404,35 @@ class Stack(tf.keras.layers.Layer):
     def call(self, *inputs):
         return tf.stack(inputs, axis=self.axis)
 
+
+class RunningNorm(tf.keras.layers.Layer):
+    def __init__(self, momentum=0.99, epsilon=1e-5, **kwargs):
+        super(RunningNorm, self).__init__(**kwargs)
+        self.momentum = momentum
+        self.epsilon = epsilon
+
+    def build(self, input_shape):
+        param_shape = input_shape[1:]
+
+        self.running_mean = self.add_weight(
+            shape=param_shape,
+            initializer="zeros",
+            trainable=False,
+            name="running_mean"
+        )
+        self.running_std = self.add_weight(
+            shape=param_shape,
+            initializer="ones",
+            trainable=False,
+            name="running_std"
+        )
+
+    def call(self, inputs, training=False):
+        if training:
+            # Update running stats
+            self.running_mean.assign(self.momentum * self.running_mean + (1 - self.momentum) * tf.reduce_mean(inputs, axis=0))
+            self.running_std.assign(self.momentum * self.running_std + (1 - self.momentum) * tf.math.reduce_std(inputs, axis=0))
+
+        return (inputs - self.running_mean) / (self.running_std + self.epsilon)
+
+

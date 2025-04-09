@@ -4,7 +4,7 @@ from tensorflow.keras import layers
 from neuronal.model.losses import CrossPathwayTemporalContrastiveLoss
 from neuronal.utils.data import Labels, CATEGORICAL
 from utils.model.encoders import SplitFramesEncoderWrapper
-from utils.model.layers import SplitPathways, Stack
+from utils.model.layers import SplitPathways, Stack, RunningNorm
 from utils.model.losses import NullLoss
 from utils.model.model import get_optimizer
 from utils.modules import Modules
@@ -65,11 +65,11 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
     if different_areas:
         augmented = [get_neuronal_data_augmentation(bins_per_frame, **augmentation_kwargs, name=f'data_augmentation_{area}')(inp) for area, inp in zip(areas, inputs)]
         if bn:
-            augmented = [tf.keras.layers.BatchNormalization(name=name + f"_bn{i}")(aug) for i, aug in augmented]
+            augmented = [RunningNorm(name=name + f"_bn{i}")(aug) for i, aug in augmented]
     else:
         augmented = get_neuronal_data_augmentation(bins_per_frame, **augmentation_kwargs)(inputs)
         if bn:
-            augmented = tf.keras.layers.BatchNormalization(name=name + "_bn")(augmented)
+            augmented = RunningNorm(name=name + "_bn")(augmented)
 
     # divide to different pathways
     if classifier and not classifier_pathways:
