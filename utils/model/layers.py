@@ -405,20 +405,11 @@ class Stack(tf.keras.layers.Layer):
         return tf.stack(inputs, axis=self.axis)
 
 
-import tensorflow as tf
-
 class RunningNorm(tf.keras.layers.Layer):
     def __init__(self, momentum=0.99, epsilon=1e-5, **kwargs):
         super(RunningNorm, self).__init__(**kwargs)
         self.momentum = momentum
         self.epsilon = epsilon
-        self.initialized = self.add_weight(
-            shape=(),
-            initializer="zeros",
-            trainable=False,
-            dtype=tf.bool,
-            name="initialized"
-        )
 
     def build(self, input_shape):
         param_shape = input_shape[1:]
@@ -437,28 +428,19 @@ class RunningNorm(tf.keras.layers.Layer):
         )
 
     def call(self, inputs, training=False):
-        batch_mean = tf.reduce_mean(inputs, axis=0)
-        batch_std = tf.math.reduce_std(inputs, axis=0)
-
-        def init_stats():
-            self.running_mean.assign(batch_mean)
-            self.running_std.assign(batch_std)
-            self.initialized.assign(True)
-
-        def update_stats():
-            self.running_mean.assign(
-                self.momentum * self.running_mean + (1 - self.momentum) * batch_mean
-            )
-            self.running_std.assign(
-                self.momentum * self.running_std + (1 - self.momentum) * batch_std
-            )
-
         if training:
-            tf.cond(
-                self.initialized,
-                true_fn=update_stats,
-                false_fn=init_stats
-            )
+            batch_mean = tf.reduce_mean(inputs, axis=0)
+            batch_std = tf.math.reduce_std(inputs, axis=0)
 
-        # Always use running stats for normalization
-        return (inputs - self.running_mean) / (self.running_std + self.epsilon)
+            # Update running stats
+            self.running_mean.assign(self.momentum * self.running_mean + (1 - self.momentum) * batch_mean)
+            self.running_std.assign(self.momentum * self.running_std + (1 - self.momentum) * batch_std)
+
+            mean = batch_mean
+            std = batch_std
+        else:
+            mean = self.running_mean
+            std = self.running_std
+
+        return (inputs - mean) / (std + self.epsilon)
+
