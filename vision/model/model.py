@@ -33,7 +33,7 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
                  ensemble_classification=False, classifier_pathways=True,
                  augmentation_kwargs={}, encoder_kwargs={}, pathways_kwargs={},
                  predictive_embedding=None, predictive_embedding_kwargs={}, tokenizer_conv_kwargs=None,
-                 patch_encoder=True, patch_encoder_after_split=False, label_to_dim=None):
+                 patch_encoder=True, patch_encoder_after_split=False, label_to_dim=None, bn=False):
     if isinstance(kernel_regularizer, str) and kernel_regularizer.startswith("tf."):
         kernel_regularizer = eval(kernel_regularizer)
 
@@ -44,6 +44,9 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
 
     if len(augmented.shape) == 3:
         augmented = augmented[..., None]
+
+    if bn:
+        augmented = tf.keras.layers.BatchNormalization(name=name + "_bn")(augmented)
 
     if tokenizer_conv_kwargs is not None:
         augmented = ConvNet(channels=projection_dim, **tokenizer_conv_kwargs)(augmented)
