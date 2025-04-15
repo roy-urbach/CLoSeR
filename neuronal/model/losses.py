@@ -867,7 +867,7 @@ class LPL(tf.keras.losses.Loss):
             sig_w = 1 / (1 + tf.exp(-(pe - threshold) * sig_slope / tf.reduce_std(pe, ddof=1)))  # (B, N)
             pe_weights_by_sig = tf.tile(sig_w[..., None], [1, 1, n])
             pe_weights_by_sig = pe_weights_by_sig * (1-tf.eye(n, dtype=pe_weights_by_sig.dtype))[None]
-            pe_weights = pe_weights_by_sig / tf.reduce_sum(pe_weights_by_sig, axis=-1, keepdims=True) # (B, N, N)
+            pe_weights = pe_weights_by_sig / tf.reduce_sum(pe_weights_by_sig, axis=-2, keepdims=True) # (B, N, N)
         else:
             pe_diff = (pe[..., None] - pe[..., None, :])**2     # (B, P, P)
             # pe_diff = pe_diff - tf.reduce_min(pe_diff, axis=-1, keepdims=True)    # diagonal is min
@@ -879,7 +879,7 @@ class LPL(tf.keras.losses.Loss):
             pe_weights = exp_pe / z_pe  # (B, P, P)
 
         if sig_slope:
-            pe_weights = pe_weights * sig_w[..., None]
+            pe_weights = pe_weights * sig_w[..., None, :]
 
         if self.pe_w_absolute:
             pe_weights = pe_weights * pe[..., None]
@@ -891,6 +891,7 @@ class LPL(tf.keras.losses.Loss):
 
         if sig_slope:
             mse_cont = (1-sig_w[..., None]) * tf.reduce_mean((embd[..., None] - tf.stop_gradient(prev_embd)[..., None, :]) ** 2, axis=1)  # (B, P, P)
+            mse_cont = tf.reduce_mean(tf.reduce_mean(mse_cont, axis=0)[~tf.eye(embd.shape[-1], dtype=tf.bool)])
             total_loss = pe_weighted_dist + mse_cont
 
         self.monitor.update_monitor("pe_cross", total_loss)
