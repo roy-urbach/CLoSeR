@@ -27,7 +27,7 @@ def get_data_augmentation(image_size, normalization_kwargs={}, rotation_factor=0
 
 
 def create_model(name='model', koleo_lambda=0, classifier=False, l2=False, divide_patches=True,
-                 input_shape=(32, 32, 3), num_classes=10, kernel_regularizer=None,
+                 divide_rgb=False, input_shape=(32, 32, 3), num_classes=10, kernel_regularizer=None,
                  projection_dim=64, encoder='ViTEncoder', encoder_per_path=False,
                  image_size=72, patch_size=8, pathway_classification=True, pathway_classification_allpaths=False,
                  ensemble_classification=False, classifier_pathways=True,
@@ -56,7 +56,10 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False, divid
         patches = Patches(patch_size, name=name + '_patch')(augmented)
         num_patches = (image_size // patch_size) ** 2
     else:
-        patches = tf.keras.layers.Flatten(name=name + "_flatten")(augmented)[..., None]
+        if divide_rgb:
+            patches = tf.reshape(augmented, (-1, augmented.shape[-3]*augmented.shape[-2], augmented.shape[-1]))
+        else:
+            patches = tf.keras.layers.Flatten(name=name + "_flatten")(augmented)[..., None]
         num_patches = patches.shape[-2]
 
     # Encode patches.
