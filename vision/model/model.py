@@ -26,7 +26,7 @@ def get_data_augmentation(image_size, normalization_kwargs={}, rotation_factor=0
     return data_augmentation
 
 
-def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
+def create_model(name='model', koleo_lambda=0, classifier=False, l2=False, divide_patches=True,
                  input_shape=(32, 32, 3), num_classes=10, kernel_regularizer=None,
                  projection_dim=64, encoder='ViTEncoder', encoder_per_path=False,
                  image_size=72, patch_size=8, pathway_classification=True, pathway_classification_allpaths=False,
@@ -51,9 +51,13 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False,
     if tokenizer_conv_kwargs is not None:
         augmented = ConvNet(channels=projection_dim, **tokenizer_conv_kwargs)(augmented)
 
-    # Create patches.
-    patches = Patches(patch_size, name=name + '_patch')(augmented)
-    num_patches = (image_size // patch_size) ** 2
+    if divide_patches:
+        # Create patches.
+        patches = Patches(patch_size, name=name + '_patch')(augmented)
+        num_patches = (image_size // patch_size) ** 2
+    else:
+        patches = tf.keras.layers.Flatten(name=name + "_flatten")(augmented)[..., None]
+        num_patches = patches.shape[-2]
 
     # Encode patches.
     if not patch_encoder_after_split:
