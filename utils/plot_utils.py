@@ -8,8 +8,8 @@ mpl.rc('image', cmap='gray')
 
 YLABEL_CLASS = "Classification accuracy"
 XLABEL_PERC = "fraction of {inp} seen by encoder"
-YLABEL_CLASS_F = lambda ax=None: (ax.set_ylabel if ax else plt.ylabel)(YLABEL_CLASS)
-XLABEL_FRAC_F = lambda ax=None, inp_name='image': (ax.set_xlabel if ax else plt.xlabel)(XLABEL_PERC.format(inp=inp_name))
+YLABEL_CLASS_F = lambda ax=None, **kwargs: (ax.set_ylabel if ax else plt.ylabel)(YLABEL_CLASS, **kwargs)
+XLABEL_FRAC_F = lambda ax=None, inp_name='image', **kwargs: (ax.set_xlabel if ax else plt.xlabel)(XLABEL_PERC.format(inp=inp_name), **kwargs)
 XTICKS_FRAC_F = lambda ax=None, ticksize=10: (ax.set_xticks if ax else plt.xticks)(np.linspace(0, 1, 11),
                                                                                    [f"{d:.1f}" if d not in (0, 1) else d
                                                                                     for d in np.linspace(0, 1, 11)],
