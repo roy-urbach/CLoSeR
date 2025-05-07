@@ -429,13 +429,20 @@ class CirculantGraphLoss(GeneralPullPushGraphLoss):
 
 
 class StarGraphLoss(GeneralPullPushGraphLoss):
-    def __init__(self, num_pathways, num_center=1, *args, **kwargs):
+    def __init__(self, num_pathways, num_center=1, normalize_rows=True, *args, **kwargs):
         a_pull = np.zeros((num_pathways, num_pathways))
         a_pull[:num_center] = 1
         a_pull[:, :num_center] = 1
         a_push = 1 - a_pull
         a_pull[np.arange(num_pathways), np.arange(num_pathways)] = 0
         a_push[np.arange(num_pathways), np.arange(num_pathways)] = 0
+
+        if normalize_rows:
+            a_pull = a_pull / a_pull.sum(axis=0, keepdims=True)
+            a_push = a_push / a_push.sum(axis=0, keepdims=True)
+
+        a_pull = a_pull / a_pull.sum()
+        a_push = a_push / a_push.sum()
 
         super(StarGraphLoss, self).__init__(*args, a_pull=a_pull, a_push=a_push, **kwargs)
         self.num_center = num_center
