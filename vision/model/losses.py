@@ -428,6 +428,19 @@ class CirculantGraphLoss(GeneralPullPushGraphLoss):
         self.num_lateral = num_lateral
 
 
+class StarGraphLoss(GeneralPullPushGraphLoss):
+    def __init__(self, num_pathways, num_center=1, *args, **kwargs):
+        a_pull = np.zeros((num_pathways, num_pathways))
+        a_pull[:num_center] = 1
+        a_pull[:, :num_center] = 1
+        a_push = 1 - a_pull
+        a_pull[np.arange(num_pathways), np.arange(num_pathways)] = 0
+        a_push[np.arange(num_pathways), np.arange(num_pathways)] = 0
+
+        super(StarGraphLoss, self).__init__(*args, a_pull=a_pull, a_push=a_push, **kwargs)
+        self.num_center = num_center
+
+
 # class BasicBatchContrastiveLoss(tf.keras.losses.Loss):
 #     def __init__(self, temperature=10, partition_along_axis=1):
 #         super(BasicBatchContrastiveLoss, self).__init__()
