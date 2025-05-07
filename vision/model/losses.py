@@ -439,7 +439,7 @@ class StarGraphLoss(GeneralPullPushGraphLoss):
 
         if normalize_rows:
             a_pull = a_pull / a_pull.sum(axis=0, keepdims=True)
-            a_push[num_center:] = a_push[num_center:] / a_push[num_center:].sum(axis=0, keepdims=True)
+            a_push[num_center:, num_center:] = a_push[num_center:, num_center:] / a_push[num_center:, num_center:].sum(axis=0, keepdims=True)
 
         a_pull = a_pull / a_pull.sum()
         a_push = a_push / a_push.sum()
