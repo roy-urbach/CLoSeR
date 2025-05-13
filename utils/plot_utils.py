@@ -192,7 +192,7 @@ def get_CI(arr, conf=0.975, of_the_mean=True, axis=0, sem=False):
     return ci
 
 
-def plot_with_CI(vals, x=None, label=None, fill_between=True, err=True, conf=0.975, axis=0, sem=False, c=None, **kwargs):
+def plot_with_CI(vals, x=None, label=None, fill_between=True, err=True, conf=0.975, axis=0, sem=False, c=None, capsize=10, **kwargs):
     m = np.nanmean(vals, axis=axis)
     ci = get_CI(vals, conf=conf, axis=axis, sem=sem)
     if x is None:
@@ -201,7 +201,7 @@ def plot_with_CI(vals, x=None, label=None, fill_between=True, err=True, conf=0.9
     if fill_between:
         plt.fill_between(x[mask], m[mask] - ci[mask], m[mask] + ci[mask], alpha=0.3, color=c, **kwargs)
     if err:
-        plt.errorbar(x[mask], m[mask], yerr=ci[mask], label=label, alpha=0.8, capsize=10 if not fill_between else 0,
+        plt.errorbar(x[mask], m[mask], yerr=ci[mask], label=label, alpha=0.8, capsize=capsize if not fill_between else 0,
                      c=c, **kwargs)
     else:
         plt.plot(x[mask], m[mask], alpha=0.8, label=label, c=c)
