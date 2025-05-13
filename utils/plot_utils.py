@@ -298,7 +298,7 @@ def plot_significance(x1, x2, y, p, dist=0.1, dist_from_edges=0, line_dist=None,
 
 
 def plot_significance_anchor(dct, k, keys=None, test=paired_t_test, significance_dist=0.0075, dist=0.002, horizontal=False,
-                             x=None, q=None, **kwargs):
+                             x=None, q=None, only_print=False, **kwargs):
     if keys is None:
         keys = list(dct.keys())
     ind_k = keys.index(k)
@@ -309,20 +309,24 @@ def plot_significance_anchor(dct, k, keys=None, test=paired_t_test, significance
     for i, alter in enumerate(keys):
         if alter != k:
             p = test(dct[k], dct[alter], alternative='greater')
-            if horizontal:
-                plot_significance(np.nanmean(dct[k]), np.nanmean(dct[alter]),
-                                  (i if x is None else x[i])+significance_dist*np.abs(ind_k- i),
-                                  dist=dist, p=p, linewidth=1, horizontal=True, **kwargs)
+            if only_print:
+                if p < 0.05:
+                    print(f"{k} > {alter}: p={p}")
             else:
-                if significance_dist > 0:
-                    edge = max(np.nanmax(dct[k]) if q is None else np.nanquantile(dct[k], q),
-                               np.nanmax(dct[alter]) if q is None else np.nanquantile(dct[alter], q))
+                if horizontal:
+                    plot_significance(np.nanmean(dct[k]), np.nanmean(dct[alter]),
+                                      (i if x is None else x[i])+significance_dist*np.abs(ind_k- i),
+                                      dist=dist, p=p, linewidth=1, horizontal=True, **kwargs)
                 else:
-                    edge = min(np.nanmin(dct[k]) if q is None else np.nanquantile(dct[k], q),
-                               np.nanmin(dct[alter]) if q is None else np.nanquantile(dct[alter], q))
+                    if significance_dist > 0:
+                        edge = max(np.nanmax(dct[k]) if q is None else np.nanquantile(dct[k], q),
+                                   np.nanmax(dct[alter]) if q is None else np.nanquantile(dct[alter], q))
+                    else:
+                        edge = min(np.nanmin(dct[k]) if q is None else np.nanquantile(dct[k], q),
+                                   np.nanmin(dct[alter]) if q is None else np.nanquantile(dct[alter], q))
 
-                plot_significance(i if x is None else x[i], ind_k if x is None else x[ind_k],
-                                  edge+significance_dist*np.abs(ind_k- i), dist=dist, p=p, linewidth=1, **kwargs)
+                    plot_significance(i if x is None else x[i], ind_k if x is None else x[ind_k],
+                                      edge+significance_dist*np.abs(ind_k- i), dist=dist, p=p, linewidth=1, **kwargs)
 
 
 def remove_spines(ax, top_right=False):
