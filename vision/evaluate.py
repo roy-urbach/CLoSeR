@@ -32,7 +32,7 @@ def get_masked_ds(model, dataset=Cifar10()):
 
 
 def evaluate(model, module: Modules=Modules.VISION, knn=False, linear=True, ensemble=True, ensemble_knn=False,
-             override_linear=False, save_results=False, override=False, inp=True,
+             override_linear=False, save_results=False, override=False, inp=True, simple_norm=False,
              dataset:Optional[Data]=Cifar10(), ks=[1] + list(range(5, 50, 5)), **kwargs):
 
     if isinstance(model, str):
@@ -56,16 +56,16 @@ def evaluate(model, module: Modules=Modules.VISION, knn=False, linear=True, ense
     printd("done!")
 
     embd_dataset = Data(x_train_embd, dataset.get_y_train(), x_test_embd, dataset.get_y_test(),
-                        x_val=x_val_embd, y_val=dataset.get_y_val(), normalize=True)
+                        x_val=x_val_embd, y_val=dataset.get_y_val(), normalize=True, simple_norm=simple_norm)
 
     from utils.evaluation.evaluation import classify_head_eval
 
-    results = {} if override and not override_linear else module.load_evaluation_json(model.name)
+    results = {} if override and not override_linear else module.load_evaluation_json(model.name, simple_norm=simple_norm)
 
     if results is None:
         results = {}
 
-    save_res = lambda *inputs: module.save_evaluation_json(model.name, results) if save_results else None
+    save_res = lambda *inputs: module.save_evaluation_json(model.name, results, simple_norm=simple_norm) if save_results else None
 
     if knn:
         for k in ks:

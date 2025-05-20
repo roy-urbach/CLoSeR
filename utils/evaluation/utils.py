@@ -10,19 +10,19 @@ RESULTS_FILE_NAME_K = 'classification_eval_{k}'
 
 
 @Modules.add_method
-def load_evaluation_json(model_name, old=False):
-    results = load_json(os.path.join(model_name, RESULTS_FILE_NAME) + "_old" * old)
+def load_evaluation_json(model_name, old=False, simple_norm=False):
+    results = load_json(os.path.join(model_name, RESULTS_FILE_NAME) + "_simplenorm"*simple_norm + "_old" * old)
     return results
 
 
 @Modules.add_method
-def save_evaluation_json(model_name, dct):
-    save_json(os.path.join(model_name, RESULTS_FILE_NAME), dct)
+def save_evaluation_json(model_name, dct, simple_norm=False):
+    save_json(os.path.join(model_name, RESULTS_FILE_NAME) + "_simplenorm"*simple_norm, dct)
 
 
 @Modules.add_method
-def get_evaluation_time(model_name, raw=True):
-    return get_file_time(os.path.join(model_name, RESULTS_FILE_NAME) + '.json', raw=raw)
+def get_evaluation_time(model_name, raw=True, simple_norm=False):
+    return get_file_time(os.path.join(model_name, RESULTS_FILE_NAME) + "_simplenorm"*simple_norm + '.json', raw=raw)
 
 
 @Modules.add_method
