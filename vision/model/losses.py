@@ -970,29 +970,39 @@ class NegativeLogLikelihoodRatio(tf.keras.losses.Loss):
         self.eps = eps
 
     def call(self, y_true, y_pred):
-        # (B, dim, N)
-        B = tf.cast(tf.shape(y_pred)[0], dtype=y_pred.dtype)
-        dim = y_pred.shape[-2]
-        N = tf.cast(y_pred.shape[-1], dtype=y_pred.dtype)
+        B = tf.shape(y_pred)[0]
+        dim = tf.shape(y_pred)[1]
+        N = tf.shape(y_pred)[2]
+        dtype = y_pred.dtype
         embd = y_pred
 
-        # calculate grad directly
         embd_sg = tf.stop_gradient(embd)
-        mu_pos = tf.reduce_mean(embd_sg, axis=-1)   # (B, dim)
-        mu_neg = tf.reduce_mean(embd_sg, axis=(0, -1))   # (dim, )
-        Sig_pos = tf.einsum('bin,bjn->bij', embd_sg - mu_pos[..., None]) / (N - 1)
-        Sig_neg = tf.einsum('bin,bjn->ij', embd_sg - mu_neg[None, ..., None]) / (N * B - 1)
+        mu_pos = tf.reduce_mean(embd_sg, axis=-1)  # (B, dim)
+        mu_neg = tf.reduce_mean(embd_sg, axis=(0, -1))  # (dim,)
+
+        x_pos = embd_sg - mu_pos[..., None]  # (B, dim, N)
+        x_neg = embd_sg - mu_neg[None, ..., None]  # (B, dim, N)
+
+        N_f = tf.cast(N, dtype)
+        B_f = tf.cast(B, dtype)
+
+        Sig_pos = tf.matmul(x_pos, x_pos, transpose_b=True) / (N_f - 1)
+        Sig_neg = tf.matmul(x_neg, x_neg, transpose_b=True) / (N_f * B_f - 1)
+
         if self.eps:
-            Sig_pos += self.eps * tf.eye(dim)[None]
-            Sig_neg += self.eps * tf.eye(dim)
+            eye = tf.eye(dim, dtype=dtype)
+            Sig_pos += self.eps * tf.broadcast_to(eye[None], tf.shape(Sig_pos))  # (B, dim, dim)
+            Sig_neg += self.eps * eye
 
-        inv_Sig_pos = tf.linalg.inv(Sig_pos) # tf.stack([tf.linalg.inv(Sig_pos[b]) for b in range(B)], axis=0)  # (B, dim, dim)
-        inv_Sig_neg = tf.linalg.inv(Sig_neg)   # (dim, dim)
+        inv_Sig_pos = tf.linalg.inv(Sig_pos)  # (B, dim, dim)
+        inv_Sig_neg = tf.linalg.inv(Sig_neg)  # (dim, dim)
 
-        grad_pos = tf.einsum('bij,bjn->bin', inv_Sig_pos, embd_sg - mu_pos[..., None])   # (B, dim, N)
-        grad_neg = tf.einsum('ij,bjn->bin', inv_Sig_neg, embd_sg - mu_neg[None, ..., None])  # (B, dim, N)
-        grad = grad_pos - grad_neg  # (B, dim, N)
+        grad_pos = tf.matmul(inv_Sig_pos, x_pos)  # (B, dim, N)
+        grad_neg = tf.matmul(inv_Sig_neg[None], x_neg)  # broadcast (1, dim, dim) × (B, dim, N) → (B, dim, N)
 
-        grad_as_loss = tf.reduce_mean(grad * embd)
+        grad = grad_pos - grad_neg
+
+        grad_as_loss = tf.reduce_mean(grad * embd)  # Gradient injection
 
         return grad_as_loss
+
