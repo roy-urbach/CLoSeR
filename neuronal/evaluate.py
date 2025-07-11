@@ -245,12 +245,12 @@ def evaluate(model, dataset=None, module: Modules=Modules.NEURONAL, labels=[Labe
         return ds
     printd("done")
 
-    results = module.load_evaluation_json(model.name) if not override else {}
+    results = module.load_evaluation_json(model.name, simple_norm=simple_norm) if not override else {}
 
     if results is None:
         results = {}
 
-    save_res = lambda *inputs: module.save_evaluation_json(model.name, results) if save_results else None
+    save_res = lambda *inputs: module.save_evaluation_json(model.name, results, simple_norm=simple_norm) if save_results else None
     if alltime is None:
         alltime = (hasattr(dataset, "frames_per_sample") and dataset.frames_per_sample > 1) or (issubclass(dataset.__class__, TemporalData) and dataset.samples_per_example > 1)
 
