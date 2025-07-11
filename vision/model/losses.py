@@ -965,23 +965,29 @@ class HarmonicContrastive(tf.keras.losses.Loss):
 
 
 class NegativeLogLikelihoodRatio(tf.keras.losses.Loss):
-    def __init__(self, **kwargs):
+    def __init__(self, eps=1e-6, **kwargs):
         super().__init__(**kwargs)
+        self.eps = eps
 
     def call(self, y_true, y_pred):
         # (B, dim, N)
-        B = tf.shape(y_pred)[0]
-        N = y_pred.shape[-1]
+        B = tf.cast(tf.shape(y_pred)[0], dtype=y_pred.dtype)
+        dim = y_pred.shape[-2]
+        N = tf.cast(y_pred.shape[-1], dtype=y_pred.dtype)
         embd = y_pred
 
         # calculate grad directly
         embd_sg = tf.stop_gradient(embd)
         mu_pos = tf.reduce_mean(embd_sg, axis=-1)   # (B, dim)
         mu_neg = tf.reduce_mean(embd_sg, axis=(0, -1))   # (dim, )
-        Sig_pos = tf.einsum('bin,bjn->bij', embd_sg) / tf.constant(N - 1, dtype=embd_sg.dtype)
-        Sig_neg = tf.einsum('bin,bjn->ij', embd_sg) / tf.constant(N * B - 1, dtype=embd_sg.dtype)
-        inv_Sig_pos = tf.stack([tf.linalg.pinv(Sig_pos[b]) for b in range(B)], axis=0)  # (B, dim, dim)
-        inv_Sig_neg = tf.linalg.pinv(Sig_neg)   # (dim, dim)
+        Sig_pos = tf.einsum('bin,bjn->bij', embd_sg - mu_pos[..., None]) / (N - 1)
+        Sig_neg = tf.einsum('bin,bjn->ij', embd_sg - mu_neg[None, ..., None]) / (N * B - 1)
+        if self.eps:
+            Sig_pos += self.eps * tf.eye(dim)[None]
+            Sig_neg += self.eps * tf.eye(dim)
+
+        inv_Sig_pos = tf.linalg.inv(Sig_pos) # tf.stack([tf.linalg.inv(Sig_pos[b]) for b in range(B)], axis=0)  # (B, dim, dim)
+        inv_Sig_neg = tf.linalg.inv(Sig_neg)   # (dim, dim)
 
         grad_pos = tf.einsum('bij,bjn->bin', inv_Sig_pos, embd_sg - mu_pos[..., None])   # (B, dim, N)
         grad_neg = tf.einsum('ij,bjn->bin', inv_Sig_neg, embd_sg - mu_neg[None, ..., None])  # (B, dim, N)
