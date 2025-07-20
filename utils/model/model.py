@@ -1,49 +1,30 @@
 from utils.data import GeneratorDataset
 from utils.model.callbacks import SaveOptimizerCallback, ErasePreviousCallback, SaveHistory, StopIfNaN
 from utils.model.losses import NullLoss
+from utils.model.optimizer import load_optimizer
 from utils.modules import Modules
-from utils.tf_utils import get_weights_fn, serialize
+from utils.tf_utils import get_weights_fn
 from utils.utils import printd
 import os
 import tensorflow as tf
 
 
-def get_optimizer(optimizer_cls=tf.optimizers.legacy.Nadam if tf.__version__ == '2.12.0' else tf.optimizers.Nadam,
-                  scheduler_kwargs={}, weight_decay=None, **kwargs):
-    if scheduler_kwargs:
-        assert "scheduler" in scheduler_kwargs
-        scheduler_name = scheduler_kwargs['scheduler']
-        try:
-            from tensorflow.keras.optimizers import schedules
-            scheduler_cls = getattr(schedules, scheduler_name)
-        except Exception as err:
-            print(f"Tried to getattr tf.keras.optimizers.schedules.{scheduler_name}, get error:", err)
-            raise err
-        kwargs['learning_rate'] = scheduler_cls(**{k: v for k, v in scheduler_kwargs.items() if k != 'scheduler'})
-
-    if "optimizer" in kwargs:
-        optimizer_cls_name = kwargs.pop("optimizer")
-        try:
-            optimizer_cls = eval(optimizer_cls_name)
-        except Exception as err:
-            print(f"Tried to eval {optimizer_cls_name}, get error:", err)
-            try:
-                optimizer_cls = tf.keras.optimizers.getattr(optimizer_cls_name)
-            except Exception as err:
-                print(f"Tried to getattr tf.keras.optimizers.{optimizer_cls_name}, get error:", err)
-                raise err
-    print(f"using optimizer {optimizer_cls}")
-    optimizer = optimizer_cls(**{k: eval(v) if isinstance(v, str) and v.startswith("tf.") else v
-                                 for k, v in kwargs.items()})
-    serialize(optimizer.__class__, 'Custom')
-
-    if weight_decay:
-        optimizer = WeightDecayOptimizer(optimizer, weight_decay=weight_decay)
-    return optimizer
-
-
 def create_and_compile_model(model_name, dataset, model_kwargs, module: Modules, loss=NullLoss, loss_kwargs={},
                              optimizer_kwargs={}, metrics_kwargs={}, print_log=False, **kwargs):
+    """
+    a module-general function which inits a model and compiles it
+    :param model_name: name of the model, which can be used to get the corresponding json file
+    :param dataset: any utils\data class
+    :param model_kwargs: kwargs for the model creation
+    :param module: Module
+    :param loss: embedding loss name or class
+    :param loss_kwargs: embedding loss kwargs for init
+    :param optimizer_kwargs: optimizer kwargs for init
+    :param metrics_kwargs: metrics kwargs
+    :param print_log: whether to print progress comments
+    :param kwargs: leftover kwargs for both create_model and compile_model
+    :return:
+    """
     if print_log:
         printd("Creating model...", end='\t')
     m = module.create_model(name=model_name, input_shape=dataset.get_shape(),
@@ -64,32 +45,46 @@ def create_and_compile_model(model_name, dataset, model_kwargs, module: Modules,
 
 def load_or_create_model(model_name, module: Modules, *args, load=True, optimizer_state=True,
                          skip_mismatch=False, pretrained_name=None, **kwargs):
+    """
+    a module-general function which load or creates a new model
+    :param model_name: name of the model
+    :param module: Module
+    :param args: args for "create_and_compile_model"
+    :param load: whether to load if the model exists. Defaults to true
+    :param optimizer_state: whether to load the optimizer state. Defaults to true
+    :param skip_mismatch: when loading weights, whether to ignore mismatches
+    :param pretrained_name: a name of a different model to use as pre-trained weights
+    :param kwargs: kwargs for "create_and_compile_model"
+    :return: (a tensorflow Model, number of epochs it was already trained)
+    """
     import re
 
     model = create_and_compile_model(model_name, *args, module=module, **kwargs)
     max_epoch = 0
-    if load:
+    if load:    # try to load weights
         model_fn = None
         dir_path = os.path.join(module.get_models_path(), f"{model_name}/checkpoints")
         if os.path.exists(dir_path):
             for fn in os.listdir(dir_path):
+                # find the latest weights
                 match = re.match(r"model_weights_(\d+)\.index", fn)
                 if match:
                     epoch = int(match.group(1))
                     if epoch > max_epoch:
                         max_epoch = epoch
                         model_fn = f"model_weights_{max_epoch}"
-            if model_fn:
-                print(f"loading checkpoint {model_fn}")
+            if model_fn:    # if found weights, load them
+                printd(f"loading checkpoint {model_fn}")
                 if optimizer_state:
                     load_optimizer(model, module)
                 model.load_weights(os.path.join(dir_path, model_fn),
                                    skip_mismatch=skip_mismatch, by_name=skip_mismatch)
         if not max_epoch:
-            print("didn't find previous checkpoint")
+            printd("didn't find previous checkpoint")
 
     if pretrained_name is not None and not max_epoch:
-        print(f"trying to load from {pretrained_name}")
+        # load weight
+        printd(f"trying to load from {pretrained_name}")
         pretrained_model = load_model_from_json(pretrained_name, module)
         for i, l in enumerate(model.layers):
             if len(l.weights) == 0:
@@ -100,13 +95,13 @@ def load_or_create_model(model_name, module: Modules, *args, load=True, optimize
                 if layer.name == pretrained_layer_name:
                     try:
                         l.set_weights([w.numpy() for w in layer.weights])
-                        print(f"loaded layer {l.name}")
+                        printd(f"loaded layer {l.name}")
                     except Exception as err:
-                        print(f"couldn't load layer {l.name}, got exception {err}")
+                        printd(f"couldn't load layer {l.name}, got exception {err}")
                     loaded_w = True
                     break
             if not loaded_w:
-                print(f"couldn't load layer {l.name}, name didn't exist")
+                printd(f"couldn't load layer {l.name}, name didn't exist")
     return model, max_epoch
 
 
@@ -125,132 +120,37 @@ def load_model_from_json(model_name, module: Modules, load=True, optimizer_state
         return call(**dct)
 
 
-def load_optimizer(model, module: Modules):
-    import os
-    import pickle
-    grad_vars = model.trainable_weights
-    zero_grads = [tf.zeros_like(w) for w in grad_vars]
-    model.optimizer.apply_gradients(zip(zero_grads, grad_vars))
-    with open(os.path.join(module.get_models_path(), model.name, "checkpoints", 'optimizer.pkl'), 'rb') as f:
-        weight_values = pickle.load(f)
-    model.optimizer.set_weights(weight_values)
-
-
-class WeightDecayOptimizer(tf.keras.optimizers.Optimizer):
-    def __init__(self, optimizer, weight_decay):
-        self.optimizer = optimizer
-        super().__init__(name="wd_" + str(optimizer))
-        for k, v in self.optimizer.__dict__.items():
-            if k not in ("apply_gradients", "get_config"):
-                setattr(self, k, v)
-        self.weight_decay = weight_decay
-
-    def apply_gradients(self, grads_and_vars, name=None):
-        self.optimizer.apply_gradients(grads_and_vars, name=name)
-
-        for _, var in grads_and_vars:
-            lr = self.optimizer._decayed_lr(var.dtype)  # Get the current learning rate
-            var.assign(var * (1 - self.weight_decay * lr))
-
-    def get_config(self):
-        config = self.optimizer.get_config()
-        config.update({'weight_decay': self.weight_decay})
-        return config
-
-
-
-
-def zeropower_via_newtonschulz5(G, steps=3, eps=1e-7):
-    """
-    Newton-Schulz iteration to compute the zeroth power / orthogonalization of G.
-    """
-    assert len(G.shape) == 2
-    a, b, c = 3.4445, -4.7750, 2.0315
-    G = tf.cast(G, dtype=tf.float32)
-    G /= (tf.norm(G) + eps)  # Ensure top singular value <= 1
-
-    transpose = G.shape[0] > G.shape[1]
-    if transpose:
-        G = tf.transpose(G)
-
-    X = G
-    for _ in range(steps):
-        A = tf.matmul(X, X, transpose_b=True)
-        B = b * A + c * tf.matmul(A, A)
-        X = a * X + tf.matmul(B, X)
-
-    if transpose:
-        X = tf.transpose(X)
-    return X
-
-
-class Muon(tf.keras.optimizers.Optimizer):
-    def __init__(self, learning_rate=1e-3, momentum=0.0, nesterov=False, name="MuonOptimizer", **kwargs):
-        super().__init__(name, **kwargs)
-        self._set_hyper("learning_rate", learning_rate)
-        self._set_hyper("momentum", momentum)
-        self.nesterov = nesterov
-
-    def _create_slots(self, var_list):
-        for var in var_list:
-            self.add_slot(var, "momentum_buffer", initializer="zeros")
-
-    def _resource_apply_dense(self, grad, var, apply_state=None):
-        lr = self._get_hyper("learning_rate")
-        momentum = self._get_hyper("momentum")
-        momentum_buffer = self.get_slot(var, "momentum_buffer")
-
-        # Compute momentum update
-        new_momentum = momentum * momentum_buffer + grad
-        if self.nesterov:
-            grad = grad + momentum * new_momentum
-        else:
-            grad = new_momentum
-
-        # Normalize the weight
-        norm_factor = tf.sqrt(tf.cast(tf.size(var), tf.float32)) / (tf.norm(var) + 1e-7)
-        weight_update = var * norm_factor
-
-        # Whiten the update
-        reshaped_grad = tf.reshape(grad, (tf.shape(grad)[0], -1))
-        whitened_update = zeropower_via_newtonschulz5(reshaped_grad)
-        whitened_update = tf.reshape(whitened_update, tf.shape(grad))
-
-        # Apply updates
-        var_update = var.assign(weight_update - lr * whitened_update)
-        momentum_update = momentum_buffer.assign(new_momentum)
-
-        return tf.group(var_update, momentum_update)
-
-    def _resource_apply_sparse(self, grad, var, indices, apply_state=None):
-        raise NotImplementedError("Sparse updates are not supported in MuonOptimizer.")
-
-    def get_config(self):
-        config = super().get_config()
-        config.update({
-            "learning_rate": self._serialize_hyperparameter("learning_rate"),
-            "momentum": self._serialize_hyperparameter("momentum"),
-            "nesterov": self.nesterov,
-        })
-        return config
-
-
-
 def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_size=128, num_epochs=150, **kwargs):
-    print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
-    print(f"{tf.test.is_gpu_available()=}")
-    print(f"{tf.test.is_built_with_cuda()=}")
+    """
+    A module-general training function
+    :param model_name: name of the model
+    :param module: name of the module
+    :param data_kwargs: kwargs for the data init
+    :param dataset: name of the dataset
+    :param batch_size: batch size
+    :param num_epochs: number of epochs to train (if already trained K, then training for num_of_epochs-K)
+    :param kwargs: from the configuration file
+    :return:
+    """
 
+    # checking a gpu is available
+    printd("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+    printd(f"{tf.test.is_gpu_available()=}")
+    printd(f"{tf.test.is_built_with_cuda()=}")
+
+    # loading the dataset
     printd("Getting dataset...", end='\t')
     dataset = module.get_class_from_data(dataset)(module=module, **data_kwargs)
     printd("Done!")
 
+    # loading\creating the model
     model, max_epoch = load_or_create_model(model_name, module, dataset=dataset, print_log=True, **kwargs)
 
     model.summary()
 
     if num_epochs > max_epoch:
         printd(f"Fitting the model (with {model.count_params()} parameters)!")
+
         fit_kwargs = dict(epochs=num_epochs,
                           initial_epoch=max_epoch,
                           callbacks=[tf.keras.callbacks.ModelCheckpoint(filepath=get_weights_fn(model, module),
@@ -263,7 +163,7 @@ def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_
 
         if issubclass(dataset.__class__, GeneratorDataset):
             val_dataset = dataset.get_val()
-
+            # fitting the model
             history = model.fit(iter(dataset),
                                 validation_data=iter(val_dataset),
                                 batch_size=dataset.batch_size,
@@ -271,6 +171,7 @@ def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_
                                 validation_steps=250,
                                 **fit_kwargs)
         else:
+            # fitting the model
             history = model.fit(x=dataset.get_x_train(),
                                 y=dataset.get_y_train(),
                                 validation_split=dataset.get_val_split() if hasattr(dataset, 'get_val_split') else None,

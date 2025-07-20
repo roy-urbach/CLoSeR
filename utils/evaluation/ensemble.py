@@ -9,6 +9,7 @@ from utils.utils import counter
 
 class EnsembleVotingMethods(Enum):
     """
+    Simple methods for ensembling
     Assumes shape (samples, classes, pathways)
     """
     ArgmaxMeanProb = partial(lambda probs: np.argmax(probs.mean(axis=-1), axis=1))
@@ -35,11 +36,25 @@ class EnsembleModel:
         self.is_dct = False
 
     def split(self, X):
-        # return np.unstack(X, axis=self.ensemble_axis)
         return [X_single.squeeze(axis=self.ensemble_axis)
                 for X_single in np.split(X, X.shape[self.ensemble_axis], axis=self.ensemble_axis)]
 
-    def fit_with_validation(self, X_train, y_train, X_val, y_val, X_test, y_test, voting_method=EnsembleVotingMethods.ArgmaxMeanProb, individual_ys=False):
+    def fit_with_validation(self, X_train, y_train, X_val, y_val, X_test, y_test,
+                            voting_method=EnsembleVotingMethods.ArgmaxMeanProb, individual_ys=False):
+        """
+        Fits a model per encoder (and finds a regularization coefficient for each).
+        Then evaluates them and the voting method.
+        :param X_train:
+        :param y_train:
+        :param X_val:
+        :param y_val:
+        :param X_test:
+        :param y_test:
+        :param voting_method: EnsembleVotingMethods
+        :param individual_ys: True if each encoder has a different set of labels
+        :return: (individual train score, individual validation score, individual test score),
+                 (ensemble train score, ensemble validation score, ensemble test score),
+        """
         self.is_dct = isinstance(X_train, dict)
 
         if not self.CS_models:
@@ -115,6 +130,9 @@ class EnsembleModel:
         return (self.scores_train, self.scores_val, self.scores_test), (ensemble_score_train, ensemble_score_val, ensemble_score_test)
 
     def fit(self, X_train, y_train, CS=None, individual_ys=False):
+        """
+        A simple fitting without validation of each encoder's decoder
+        """
         if self.is_dct:
             self.models = {}
             from sklearn.base import clone as sklearn_clone

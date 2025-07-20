@@ -5,7 +5,7 @@ import os
 import numpy as np
 
 RESULTS_FILE_NAME = 'classification_eval'
-CS = np.array([0, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1, 10])
+CS = np.array([0, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1, 10])     # regularization term
 RESULTS_FILE_NAME_K = 'classification_eval_{k}'
 
 

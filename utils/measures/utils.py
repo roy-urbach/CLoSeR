@@ -11,6 +11,7 @@ MEASURES_FILE_NAME = 'measures'
 
 
 class CrossPathMeasures(Enum):
+    # different measures about similarities between encoders
     Acc = "Agreement score"
     LikeSelf = auto()
     Entropy = auto()
@@ -44,6 +45,14 @@ def get_measuring_time(model_name, raw=True):
 
 
 def measure_model(model, module:Modules, iterations=50, b=128):
+    """
+    Calculates a mean measure between pairs of encoders, over many samples of batches
+    :param model: the model
+    :param module: the module
+    :param iterations: number of iterations to average over
+    :param b: number of samples in batch
+    :return: a dictionary where the keys correspond to CrossPathMeasures and the values are the measures
+    """
     import tensorflow as tf
 
     if isinstance(model, str):

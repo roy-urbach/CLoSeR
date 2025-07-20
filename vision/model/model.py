@@ -26,17 +26,44 @@ def get_data_augmentation(image_size, normalization_kwargs={}, rotation_factor=0
     return data_augmentation
 
 
-def create_model(name='model', koleo_lambda=0, classifier=False, l2=False, divide_patches=True,
+def create_model(name='model', classifier=False, l2=False, divide_patches=True,
                  divide_rgb=False, input_shape=(32, 32, 3), num_classes=10, kernel_regularizer=None,
                  projection_dim=64, encoder='ViTEncoder', encoder_per_path=False,
                  image_size=72, patch_size=8, pathway_classification=True, pathway_classification_allpaths=False,
                  ensemble_classification=False, classifier_pathways=True,
                  augmentation_kwargs={}, encoder_kwargs={}, pathways_kwargs={},
-                 predictive_embedding=None, predictive_embedding_kwargs={}, tokenizer_conv_kwargs=None,
-                 patch_encoder=True, patch_encoder_after_split=False, label_to_dim=None, bn=False):
+                 patch_encoder=True, patch_encoder_after_split=False, label_to_dim=None):
+    """
+    a vision model creationg function
+    :param name: name of the model
+    :param classifier: whether it is supervised or not
+    :param l2: l2 regularization on the embedding
+    :param divide_patches: whether to divide the images to patches or not (ViT requires it, MLP doesn't)
+    :param divide_rgb: if not divide_patches, whether to keep the RGB channels before splitting to different encoders
+    :param input_shape: shape of the input
+    :param num_classes: number of classes in the dataset
+    :param kernel_regularizer: kernel regularization for the encoder
+    :param projection_dim: embedding dimension
+    :param encoder: class of the encoder
+    :param encoder_per_path: whether to have individual encoders or shared weights
+    :param image_size: size of the image to resize to
+    :param patch_size: size of the patch
+    :param pathway_classification: whether the classification is done for independent classifiers (even when it is not a classifier, it is usefull to have this metric during training)
+    :param pathway_classification_allpaths: if pathways classification, whether each encoder should be trained in a supervised manner, or only the first
+    :param ensemble_classification: whether a linear classifier from the concatenated output of all encoders should learn to classify
+    :param classifier_pathways: if false, the classifier receives the full image and is a single encoder
+    :param augmentation_kwargs: kwargs for get_data_augmentation
+    :param encoder_kwargs: kwargs for the encoder
+    :param pathways_kwargs: kwargs for SplitPathwaysVision
+    :param patch_encoder: whether to use Patch encoding
+    :param patch_encoder_after_split: if true, the patches are encoded after splitting, so that the linear projection is not shared
+    :param label_to_dim: ignore
+    :return: a tensorflow Model
+    """
+
+
     if isinstance(kernel_regularizer, str) and kernel_regularizer.startswith("tf."):
         kernel_regularizer = eval(kernel_regularizer)
-
 
     inputs = layers.Input(shape=input_shape)
     # Augment data.
@@ -45,14 +72,8 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False, divid
     if len(augmented.shape) == 3:
         augmented = augmented[..., None]
 
-    if bn:
-        augmented = tf.keras.layers.BatchNormalization(name=name + "_bn")(augmented)
-
-    if tokenizer_conv_kwargs is not None:
-        augmented = ConvNet(channels=projection_dim, **tokenizer_conv_kwargs)(augmented)
-
     if divide_patches:
-        # Create patches.
+        # Create patches
         patches = Patches(patch_size, name=name + '_patch')(augmented)
         num_patches = (image_size // patch_size) ** 2
     else:
@@ -66,13 +87,14 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False, divid
     if not patch_encoder_after_split:
         num_class_tokens = pathways_kwargs.get('n', 2) if pathways_kwargs.get('token_per_path', False) else (max(eval(pathways_kwargs.get('pathway_to_cls', '[0]'))) + 1)
         patches = PatchEncoder(num_patches, projection_dim, name=name + '_patchenc',
-                                       kernel_regularizer=kernel_regularizer,
-                                       num_class_tokens=num_class_tokens)(patches) if patch_encoder else patches
+                               kernel_regularizer=kernel_regularizer,
+                               num_class_tokens=num_class_tokens)(patches) if patch_encoder else patches
 
     # divide to different pathways
     if classifier and not classifier_pathways:
         pathways = [patches]
     else:
+        # generate the input for each encoder with a corresponding class token
         pathways = SplitPathwaysVision(num_patches, class_token=patch_encoder and not patch_encoder_after_split,
                                        name=name + '_pathways', **pathways_kwargs)(patches)
         pathways = [tf.squeeze(path, axis=-2) for path in tf.split(pathways, pathways.shape[-2], axis=-2)]
@@ -82,9 +104,10 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False, divid
                                      kernel_regularizer=kernel_regularizer, num_class_tokens=1)(p)
                         for i,p in enumerate(pathways)]
 
+    # encoders
     import utils.model.encoders
     Encoder = get_class(encoder, utils.model.encoders)
-    out_reg = KoLeoRegularizer(koleo_lambda) if koleo_lambda else (tf.keras.regularizers.L2(l2) if l2 else None)
+    out_reg = tf.keras.regularizers.L2(l2) if l2 else None
     enc_init = lambda i: Encoder(name=name+f'_enc{i if i is not None else ""}',
                                  kernel_regularizer=kernel_regularizer, out_regularizer=out_reg, **encoder_kwargs)
     encoders = [enc_init(i) for i in range(len(pathways))] if encoder_per_path else [enc_init(None)] * len(pathways)
@@ -94,11 +117,6 @@ def create_model(name='model', koleo_lambda=0, classifier=False, l2=False, divid
 
     outputs = [embedding]
 
-    if predictive_embedding is not None:
-        outputs.append(PredictiveEmbedding(predictive_embedding, name=name + "_predembd",
-                                           dim=embedding.shape[1],
-                                           regularization=predictive_embedding_kwargs.pop("regularization", kernel_regularizer),
-                                           **predictive_embedding_kwargs)(embedding))
 
     # classification heads, with stop_grad unless classifier=True
     if pathway_classification:
@@ -125,6 +143,22 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
                   optimizer_kwargs={}, classifier=False, pathway_classification=True,
                   ensemble_classification=False, pathway_classification_allpaths=False,
                   metrics_kwargs={}, **kwargs):
+    """
+    Compiles the model
+
+    :param model: a tensorflow Model
+    :param loss: the embedding loss class
+    :param loss_kwargs: kwargs for the loss init
+    :param optimizer_cls: class of the optimizer
+    :param optimizer_kwargs: kwargs for the optimizer init
+    :param classifier: whether the model is supervised or not
+    :param pathway_classification: whether the classification is done for independent classifiers (even when it is not a classifier, it is usefull to have this metric during training)
+    :param ensemble_classification: whether a linear classifier from the concatenated output of all encoders should learn to classify
+    :param pathway_classification_allpaths: if pathways classification, whether each encoder should be trained in a supervised manner, or only the first
+    :param metrics_kwargs: kwargs for the metrics
+    :param kwargs: leftover kwargs that won't be used
+    :return: None
+    """
     if kwargs:
         print(f"WARNING: compile_model got spare kwargs that won't be used: {kwargs}")
 
@@ -157,6 +191,7 @@ def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
 
     for loss in losses.values():
         if hasattr(loss, "monitor") and loss.monitor is not None:
+            # see utils\metrics\LossMonitors
             if model.name + '_embedding' not in metrics:
                 metrics[model.name + '_embedding'] = []
             elif not isinstance(metrics[model.name + '_embedding'], list):

@@ -4,10 +4,18 @@ from sklearn.decomposition import PCA
 from utils.data import Data
 from utils.evaluation.ensemble import EnsembleModel, EnsembleVotingMethods
 from utils.evaluation.utils import CS
-from utils.utils import printd, run_on_dict
+from utils.utils import printd, run_on_dict, flatten_but_batch
 
 
 def linear_head_eval(svm=True, C=1e-2, categorical=False, **kwargs):
+    """
+    Returns a linear model
+    :param svm: if true and categorical, returns sklearn.svm.SVC
+    :param C: regularization term
+    :param categorical: if true, a classifier, else linear regressor
+    :param kwargs:
+    :return:
+    """
     if categorical:
         if svm:
             from sklearn.svm import SVC
@@ -21,8 +29,24 @@ def linear_head_eval(svm=True, C=1e-2, categorical=False, **kwargs):
     return model
 
 
-def classify_head_eval(dataset, m=lambda x: x.reshape(x.shape[0], -1), categorical=False,
+def classify_head_eval(dataset, m=flatten_but_batch, categorical=False,
                        pca=False, linear=True, samples=0, k=10, CS=CS, all_CS=True, **kwargs):
+    """
+    Trains a head and evaluates it. If the dataset includes validation, chooses a regularization term using it.
+    Practically, this is used for what is called ensemble accuracy in the paper, for it is just concatenating all the inputs.
+
+    :param dataset: any utils/data class
+    :param m: a transformation to run over the data (defaults = flatten but batch)
+    :param categorical: whether the task is a classification task or not
+    :param pca: if given, projects the input to <pca> dimensions using PCA
+    :param linear: if not, using KNN
+    :param samples: number of samples to use. if 0, uses all of them
+    :param k: if not linear, number of neighbours to use
+    :param CS: regularization term
+    :param all_CS:
+    :param kwargs: linear_head_eval kwargs
+    :return: (train, test) scores if validation is not given, else (train, val, test) scores
+    """
     (x_train, y_train), (x_test, y_test) = dataset.get_all()
     print(f"classify shape: {x_train.shape=}, {y_train.shape=}")
     if dataset.get_x_val() is not None and linear:
@@ -32,6 +56,7 @@ def classify_head_eval(dataset, m=lambda x: x.reshape(x.shape[0], -1), categoric
         prev_train, prev_val = None, None
         for C in CS:
             print(f"{C=}")
+            # train a model per C, and choose the best based on the validation score
             cur_train, cur_val = classify_head_eval(val_dataset, m=m, categorical=categorical, pca=pca, linear=linear,
                                                     samples=samples, k=k, C=C, **kwargs)
             if not all_CS and prev_train is not None and cur_train > prev_train and cur_val < prev_val:
@@ -56,6 +81,7 @@ def classify_head_eval(dataset, m=lambda x: x.reshape(x.shape[0], -1), categoric
     if linear:
         model = linear_head_eval(categorical=categorical, **kwargs)
     else:
+        # use KNN
         from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
         if categorical:
             model = KNeighborsClassifier(k)
@@ -76,6 +102,11 @@ def classify_head_eval(dataset, m=lambda x: x.reshape(x.shape[0], -1), categoric
 def classify_head_eval_ensemble(dataset, linear=True, k=10, base_name='',
                                 categorical=False,
                                 voting_methods=EnsembleVotingMethods, C=1, individual_ys=False, **kwargs):
+    """
+    Practically, this is used in the paper to train each classifier for every encoder,
+    since complicated ensembling methods didn't yield more interesting results then the simple concatenations
+    :return a dictionary with the scores of the individuals and votings
+    """
     (x_train, y_train), (x_test, y_test) = dataset.get_all()
     print(f"classify shape: x={run_on_dict(x_train, lambda x: x.shape)}, y={y_train.shape}")
     if linear:
@@ -94,6 +125,7 @@ def classify_head_eval_ensemble(dataset, linear=True, k=10, base_name='',
 
     if dataset.get_x_val() is not None and linear:
         for i, voting_method in enumerate(voting_methods):
+            # get results for every ensemble voting method
             (ind_train, ind_val, ind_test), (ens_train, ens_val, ens_test) = ensemble.fit_with_validation(x_train, y_train,
                                                                                                           dataset.get_x_val(), dataset.get_y_val(),
                                                                                                           x_test, y_test,

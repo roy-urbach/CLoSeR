@@ -8,6 +8,10 @@ from utils.utils import printd
 
 
 class StopIfNaN(tf.keras.callbacks.Callback):
+    """
+    Stops training if the loss includes NaN (every batch),
+    prints a message and saves in the model directory a file called "nan"
+    """
     FILENAME = 'nan'
 
     def __init__(self, module: Modules, save=True, *args, **kwargs):
@@ -19,7 +23,7 @@ class StopIfNaN(tf.keras.callbacks.Callback):
         if logs is not None:
             if 'loss' in logs:
                 if np.isnan(logs["loss"]):
-                    print(f"\nEarly stopping because of NaN in loss")
+                    printd(f"\nEarly stopping because of NaN in loss")
                     self.model.stop_training = True
                     if self.save:
                         with open(os.path.join(self.module.get_models_path(), self.model.name, StopIfNaN.FILENAME), 'w') as f:
@@ -27,6 +31,9 @@ class StopIfNaN(tf.keras.callbacks.Callback):
 
 
 class SaveOptimizerCallback(tf.keras.callbacks.Callback):
+    """
+    Saves the optimizer weights every epoch
+    """
     def __init__(self, module: Modules, *args, **kwargs):
         super(SaveOptimizerCallback, self).__init__(*args, **kwargs)
         self.module = module
@@ -42,6 +49,9 @@ class SaveOptimizerCallback(tf.keras.callbacks.Callback):
 
 
 class ErasePreviousCallback(tf.keras.callbacks.Callback):
+    """
+    Every epoch, erases the previous epoch's weights
+    """
     def __init__(self, module: Modules, *args, **kwargs):
         super(ErasePreviousCallback, self).__init__(*args, **kwargs)
         self.module = module
@@ -57,6 +67,9 @@ class ErasePreviousCallback(tf.keras.callbacks.Callback):
 
 
 class SaveHistory(tf.keras.callbacks.Callback):
+    """
+    Every epoch, updates the history json file
+    """
     def __init__(self, module:Modules):
         super().__init__()
         self.history = None
@@ -75,27 +88,3 @@ class SaveHistory(tf.keras.callbacks.Callback):
             self.history.setdefault(k, []).append(v)
 
         self.module.save_json(self.module.history_fn_name(self.model.name), self.history)
-
-
-class SaveHistoryWithMetrics(SaveHistory):
-    def on_epoch_end(self, epoch, logs=None):
-        logs = logs or {}
-        for loss_name, loss in self.model.loss.items():
-            # Access the loss values from the model
-            if hasattr(loss, 'get_metrics'):
-                for metric_name, metric in loss.get_metrics().items():
-                    logs[metric_name] = metric.numpy()
-
-        super().on_epoch_end(epoch, logs=logs)
-
-
-class HistoryWithMetrics(tf.keras.callbacks.History):
-    def on_epoch_end(self, epoch, logs=None):
-        logs = logs or {}
-        for loss_name, loss in self.model.loss.items():
-            # Access the loss values from the model
-            if hasattr(loss, 'get_metrics'):
-                for metric_name, metric in loss.get_metrics().items():
-                    logs[metric_name] = metric.numpy()
-
-        super().on_epoch_end(epoch, logs=logs)

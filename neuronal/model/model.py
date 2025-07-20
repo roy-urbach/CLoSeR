@@ -2,11 +2,10 @@ import tensorflow as tf
 from tensorflow.keras import layers
 
 from neuronal.model.losses import CrossPathwayTemporalContrastiveLoss
-from neuronal.utils.data import Labels, CATEGORICAL
-from utils.model.encoders import SplitFramesEncoderWrapper
+from neuronal.utils.data import Labels
 from utils.model.layers import SplitPathways, Stack, RunningNorm
 from utils.model.losses import NullLoss
-from utils.model.model import get_optimizer
+from utils.model.optimizer import get_optimizer
 from utils.modules import Modules
 from utils.utils import get_class
 import numpy as np
@@ -102,14 +101,11 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
     if encoder_kwargs.get("local", False):
         encoder_kwargs['loss'] = module.get_loss(encoder_kwargs.pop("loss"))(**encoder_kwargs.pop("loss_kwargs", {}))
 
-    split_frames = encoder_kwargs.pop("split", False)
 
     enc_init = lambda i: Encoder(name=f'enc{i if i is not None else ""}',
                                  kernel_regularizer=kernel_regularizer,
                                  out_regularizer=out_reg, **encoder_kwargs)
     encoders = [enc_init(i if not different_areas else areas[i]) for i in range(len(pathways))] if encoder_per_path else [enc_init(None)] * len(pathways)
-    if split_frames:
-        encoders = [SplitFramesEncoderWrapper(encoder, frames=frames, split_axis=-1, stack_axis=1) for encoder in encoders]
 
     embedding = Stack(name='embedding' if not predictor_kwargs else 'embedding_before_pred',
                       axis=-1)(*[encoder(pathway) for encoder, pathway in zip(encoders, pathways)])

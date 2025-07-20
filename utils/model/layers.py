@@ -10,7 +10,18 @@ from utils.tf_utils import set_seed, serialize
 
 @serialize
 class MLP(tf_layers.Layer):
+    """
+    An MLP layer
+    """
     def __init__(self, hidden_units, dropout_rate=0.1, kernel_regularizer='l1_l2', local=False, loss=None, **kwargs):
+        """
+        :param hidden_units: a list of hidden units
+        :param dropout_rate: a fixed dropout rate
+        :param kernel_regularizer: kernel regularizer for all layers
+        :param local: if local, uses stopgrad after every layer, and updates according to the given loss
+        :param loss: if stopgrad, calculates the loss for every layer
+        :param kwargs:
+        """
         super(MLP, self).__init__(**kwargs)
         self.hidden_units = hidden_units
         self.dense = [tf_layers.Dense(units, activation=tf.nn.gelu, kernel_regularizer=kernel_regularizer, name=self.name + f'_fc{i}')
@@ -64,6 +75,11 @@ class Patches(tf_layers.Layer):
 @serialize
 class PatchEncoder(tf_layers.Layer):
     def __init__(self, num_patches=196, projection_dim=768, num_class_tokens=1, kernel_regularizer='l1_l2', **kwargs):
+        """
+        Given input patches, projects them and adds learnt position embedding.
+        Also, stacks the patches and adds at the beginning a learnt class token (or multiple, depending on num_class_tokens)
+        :param num_class_tokens: number of class tokens
+        """
         super(PatchEncoder, self).__init__(**kwargs)
         self.num_patches = num_patches
         self.projection_dim = projection_dim
@@ -264,32 +280,10 @@ class LayerNormalization(keras.layers.Layer):
         return outputs
 
 
-class PredictiveEmbedding(tf.keras.layers.Layer):
-    def __init__(self, pred_graph, name='predictive_embedding', regularization=None, dim=128, **loss_kwargs):
-        super(PredictiveEmbedding, self).__init__(name=name)
-        self.pred_graph = eval(pred_graph) if isinstance(pred_graph, str) else pred_graph
-        self.loss_kwargs = loss_kwargs
-        self.n = len(self.pred_graph)
-        self.dense = [[tf.keras.layers.Dense(dim, kernel_regularizer=regularization, name=self.name + f"_{i}to{j}")
-                       if self.pred_graph[i][j] else None
-                       for j in range(self.n)] for i in range(self.n)]
-
-    def call(self, embedding):
-        pred_embd = []
-        for i in range(self.n):
-            pred_embd.append([])
-            for j in range(self.n):
-                if i == j:
-                    pred_embd[-1].append(embedding[..., i])
-                elif self.pred_graph[i][j]:
-                    pred_embd[-1].append(self.dense[i][j](embedding[..., i]))
-                else:
-                    pred_embd[-1].append(tf.zeros_like(embedding[..., i]))
-            pred_embd[-1] = tf.stack(pred_embd[-1], axis=-1)
-        return tf.stack(pred_embd, axis=2)
-
-
 class ConvNet:
+    """
+    Not used in the paper
+    """
     def __init__(self, depth=1, kernel_size=4, strides=4, channels=256, max_pool=False, activation='relu', name="convnet"):
         self.convs = [tf.keras.layers.Conv2D(channels, kernel_size, strides=(strides, strides),
                                              activation=activation, name=name + f"_conv{i}")

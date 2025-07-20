@@ -2,37 +2,6 @@ import tensorflow as tf
 import numpy as np
 
 
-def tf_interp(x, xp, fp):
-    """
-    TensorFlow equivalent of np.interp for 1D interpolation.
-
-    Args:
-        x: Query points (tensor).
-        xp: Sample points (tensor, must be sorted).
-        fp: Sample values corresponding to xp (tensor).
-
-    Returns:
-        Interpolated values at x.
-    """
-    # Find indices of the two closest points
-    idx = tf.searchsorted(xp, x, side='left')
-
-    # Clip indices to avoid out-of-bounds errors
-    idx = tf.clip_by_value(idx, 1, tf.shape(xp)[0] - 1)
-
-    # Get x0, x1, y0, y1
-    x0 = tf.gather(xp, idx - 1)
-    x1 = tf.gather(xp, idx)
-    y0 = tf.gather(fp, idx - 1)
-    y1 = tf.gather(fp, idx)
-
-    # Linear interpolation formula
-    slope = (y1 - y0) / (x1 - x0)
-    result = y0 + slope * (x - x0)
-    return result
-
-
-
 class MelSpectrogramAugmenter(tf.keras.layers.Layer):
     """
     Applies pink and white noise augmentation directly in the mel-spectrogram domain using TensorFlow.

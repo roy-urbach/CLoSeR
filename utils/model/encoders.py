@@ -7,8 +7,21 @@ from utils.utils import streval
 
 
 class ViTEncoder:
+
     def __init__(self, block_kwargs={}, out_block_kwargs={}, layers=3, kernel_regularizer='l1_l2', ln=False,
                  out_regularizer=None, only_classtoken=False, name='ViTEncoder'):
+        """
+        A Vision Transformer class
+
+        :param block_kwargs: the kwargs for each ViTBlock
+        :param out_block_kwargs: the kwargs for the ViTOutBlock
+        :param layers: number of layers
+        :param kernel_regularizer: kernel_regularizer given to both the blocks and the out block
+        :param ln: whether to use layernorm or batchnorm
+        :param out_regularizer: an activity_regularizer on the output of the out block
+        :param only_classtoken: if true, outputs the accumelted activation of the class token after the out block
+        :param name: name of the encoder, which will be used as prefix for the blocks and out block
+        """
         self.blocks = [ViTBlock(name=name + f'_block{l}', ln=ln, kernel_regularizer=kernel_regularizer, **block_kwargs) for l in range(layers)]
         self.only_classtoken = only_classtoken
         self.out_block = ViTOutBlock(name=name + '_outblock', **out_block_kwargs, ln=ln,
@@ -27,6 +40,15 @@ class ViTEncoder:
 @serialize
 class MLPEncoder(MLP):
     def __init__(self, *args, out_dim=64, out_regularizer=None, kernel_regularizer='l1_l2', flatten=True, **kwargs):
+        """
+        A basic MLP encoder, which starts by flattening (if flatten is True)
+        :param args: MLP args
+        :param out_dim: output dimension
+        :param out_regularizer: activity_regularizer on the output of the out layer
+        :param kernel_regularizer: kernel regularizer for all layers of the MLP
+        :param flatten: if true, flattens the input
+        :param kwargs: MLP kwargs
+        """
         super(MLPEncoder, self).__init__(*args, kernel_regularizer=kernel_regularizer, **kwargs)
         self.flatten = tf_layers.Flatten(name=self.name + '_flatten') if flatten else None
         self.out_layer = tf_layers.Dense(out_dim, activation=None, kernel_regularizer=kernel_regularizer,
@@ -41,6 +63,9 @@ class MLPEncoder(MLP):
 class BasicRNN(tf.keras.layers.Layer):
     def __init__(self, residual=False, outdim=None, name='rnn', kernel_regularizer=None, out_regularizer=None,
                  only_last=False, **kwargs):
+        """
+        Not used in the paper
+        """
         super().__init__(name=name)
         self.residual = residual
         self.outdim = outdim
@@ -84,6 +109,9 @@ class BasicRNN(tf.keras.layers.Layer):
 
 
 class LSTM(tf.keras.layers.Layer):
+    """
+    Not used in the paper
+    """
     def __init__(self, *args, name='lstm', out_regularizer=None, only_last=False, **kwargs):
         super().__init__(name=name)
         self.lstm = tf.keras.layers.LSTM(*args, return_sequences=not only_last, **kwargs)
@@ -98,8 +126,15 @@ class LSTM(tf.keras.layers.Layer):
 
 
 class TimeAgnosticMLP(MLPEncoder):
-    def __init__(self, bins_per_frame, *args, local=False, **kwrags):
-        super().__init__(*args, flatten=False, local=local, **kwrags)
+    def __init__(self, bins_per_frame, *args, **kwrags):
+        """
+        An MLP which is encoding each frame independently. Used for the Neuronal and Auditory datasets
+        :param bins_per_frame: number of bins in a single frame (usually 1)
+        :param args: MLPEncoder args
+        :param local:
+        :param kwrags:
+        """
+        super().__init__(*args, flatten=False, **kwrags)
         self.bins_per_frame = bins_per_frame
         self.reshape_shape = None
 
@@ -126,55 +161,11 @@ class TimeAgnosticMLP(MLPEncoder):
         return super().call(reshaped)
 
 
-class TimeAgnosticMLPTimeShift(TimeAgnosticMLP):
-    def call(self, inputs, **kwargs):
-        # (B, N, T)
-        B, N = tf.shape(inputs)[0], inputs.shape[1]
-        time_shift_out = super().call(inputs)
-        return time_shift_out
-
-
-class RecurrentAdversarial(tf.keras.layers.Layer):
-    def __init__(self, encoder='BasicRNN', name='recurrent_adversarial', **kwargs):
-        super().__init__(name=name)
-        RNN = eval(encoder)
-        self.rnn = RNN(name=name + "_rnn", **kwargs)
-        self.advers_rnn = RNN(name=name + "_adversrnn", **kwargs)
-        self.outdim = None
-
-    def build(self, input_shape):
-        # (B, N, T)
-        self.outdim = self.rnn.outdim
-
-    def call(self, inputs):
-        embds = self.rnn(inputs)    # (B, T, OUTDIM)
-        embds_as_inp = tf.transpose(embds[:, :-1], [0, 2, 1])   # (B, DIM, T-1)
-        adverse_embd = self.advers_rnn(embds_as_inp)    # (B, T-1, OUTDIM)
-
-        concat = tf.concat([embds,
-                            tf.concat([tf.zeros([tf.shape(inputs)[0], 1, self.outdim], dtype=adverse_embd.dtype), adverse_embd], axis=1)],
-                           axis=-1)
-        return concat
-
-
-class SplitFramesEncoderWrapper:
-    def __init__(self, encoder, frames=2, split_axis=-1, stack_axis=None):
-        self.encoder = encoder
-        self.frames = frames
-        self.split_axis = split_axis
-        if stack_axis is None:
-            stack_axis = split_axis
-        self.stack_axis = stack_axis
-
-    def __call__(self, inputs):
-        # bins_in_split = inputs.shape[self.split_axis] // self.frames
-        splits = tf.split(inputs, num_or_size_splits=self.frames, axis=self.split_axis)
-        encs = [self.encoder(sp) for sp in splits]
-        return tf.stack(encs, axis=self.stack_axis)
-
-
 class TemporalConvNet:
     """
+    Not used in the paper
+
+
     A 1D convolutional neural network with convolutional hidden layers,
     max-pooling, and global average pooling.
 
