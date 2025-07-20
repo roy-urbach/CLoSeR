@@ -1,12 +1,15 @@
 from utils.model.model import load_model_from_json
 import numpy as np
 import os
-
+import argparse
 from vision.utils.data import Cifar10
-from utils.utils import flatten_but_batch, unknown_args_to_dict, printd
+from utils.utils import unknown_args_to_dict, printd
 
 
 def calculate_class_mean_likelihood(model, module, pred=None, save=False, examples_per_class=50, repeats=100, temp=10, inp=False, **kwargs):
+    """
+    Calculate class mean conditional pseudo-likelihood
+    """
     ds = Cifar10()
     C = len(ds.LABELS)
 
@@ -16,17 +19,20 @@ def calculate_class_mean_likelihood(model, module, pred=None, save=False, exampl
         with open(path_to_save, 'rb') as f:
             mean_cls_cls_likelihood = np.load(path_to_save)
     else:
-        pred_x = model.predict(ds.get_x_test())[0] if pred is None else pred
+        pred_x = model.predict(ds.get_x_test())[0] if pred is None else pred         # embedding
         inds_by_class = [np.where(ds.get_y_test() == i)[0] for i in range(C)]
         mean_cls_cls_likelihood = []
-        for _ in counter(range(repeats)):
+        for _ in counter(range(repeats)):   # calculate the average class-class conditional pseudo-likelihood over <repeats> image samples
             mean_cls_cls_likelihood_p = []
             cur_examples_inds = np.concatenate([inds[np.random.permutation(len(inds))[:examples_per_class]] for inds in inds_by_class])
             cur_examples = pred_x[cur_examples_inds]    # (B, DIM, P)
 
             for p in range(pred_x.shape[-1]):
+                # psi
                 sim = np.exp(-(np.linalg.norm(cur_examples[:, None, ..., p] - cur_examples[None,..., p], axis=-1)**2)/temp)
                 np.fill_diagonal(sim, np.nan)
+
+                # conditional pseudo-likelihood
                 likelihood = sim / np.nansum(sim, axis=1, keepdims=True)  # (B, B)
                 mean_example_cls_likelihood = np.nanmean(likelihood.reshape(len(likelihood), C, examples_per_class), axis=-1)   # (B, C)
                 mean_cls_cls_likelihood_p.append(np.nanmean(mean_example_cls_likelihood.reshape(C, examples_per_class, C), axis=1))
@@ -38,37 +44,6 @@ def calculate_class_mean_likelihood(model, module, pred=None, save=False, exampl
     return mean_cls_cls_likelihood
 
 
-def calculate_class_mean_likelihood_ens(model, module, pred=None, save=False, examples_per_class=50, repeats=100, temp=10, inp=False, **kwargs):
-    ds = Cifar10()
-    C = len(ds.LABELS)
-
-    from tqdm import tqdm as counter
-    path_to_save = f"{module.value}/models/{model.name}/cls_mean_likelihood_ens{'_inp' if inp else ''}.npy"
-    if os.path.exists(path_to_save):
-        with open(path_to_save, 'rb') as f:
-            mean_cls_cls_likelihood = np.load(path_to_save)
-    else:
-        pred_x = model.predict(ds.get_x_test())[0] if pred is None else pred
-        inds_by_class = [np.where(ds.get_y_test() == i)[0] for i in range(C)]
-        mean_cls_cls_likelihood = []
-        for _ in counter(range(repeats)):
-            cur_examples_inds = np.concatenate(
-                [inds[np.random.permutation(len(inds))[:examples_per_class]] for inds in inds_by_class])
-            cur_examples = flatten_but_batch(pred_x[cur_examples_inds])  # (B, DIM*P)
-
-            sim = np.exp(-(np.linalg.norm(cur_examples[:, None] - cur_examples[None], axis=-1) ** 2) / temp)
-            np.fill_diagonal(sim, np.nan)
-            likelihood = sim / np.nansum(sim, axis=1, keepdims=True)  # (B, B)
-            mean_example_cls_likelihood = np.nanmean(likelihood.reshape(len(likelihood), C, examples_per_class), axis=-1)  # (B, C)
-            mean_cls_cls_likelihood.append(np.nanmean(mean_example_cls_likelihood.reshape(C, examples_per_class, C), axis=1))
-        mean_cls_cls_likelihood = np.mean(mean_cls_cls_likelihood, axis=0)
-        if save:
-            with open(path_to_save, 'wb') as f:
-                np.save(f, mean_cls_cls_likelihood)
-    return mean_cls_cls_likelihood
-
-
-import argparse
 
 
 def parse():
@@ -116,11 +91,6 @@ if __name__ == "__main__":
     calculate_class_mean_likelihood(model, module, pred=embd, save=True,
                                     repeats=args.repeats, examples_per_class=args.examples, temp=args.temp,
                                     inp=False, **kwargs)
-    printd("done")
-    printd("running ensemble...")
-    calculate_class_mean_likelihood_ens(model, module, pred=embd, save=True,
-                                        repeats=args.repeats, examples_per_class=args.examples, temp=args.temp,
-                                        inp=False, **kwargs)
     printd("done")
 
 

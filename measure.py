@@ -5,6 +5,9 @@ import os
 
 
 def main():
+    """
+    A module-general cross-path measures script
+    """
     import argparse
 
     def parse():
@@ -21,25 +24,32 @@ def main():
     module = Modules.get_module(args.module)
     measuring_fn = os.path.join(module.get_models_path(), args.json, 'is_measuring')
 
+    # if nan, don't evaluate
     if os.path.exists(os.path.join(module.get_models_path(), args.json, StopIfNaN.FILENAME)):
         print(f"NaN issue, not measuring")
 
     if os.path.exists(measuring_fn):
+        # if already measuring, don't measure too. Useful for parallelization
         print("already measuring!")
         return
     else:
+        # mark that you are evaluating, so that parallel jobs won't remeasure
         with open(measuring_fn, 'w') as f:
             f.write("Yes!")
 
     try:
         res = measure(args.json, module, b=args.batch, iterations=args.iterations, save_results=True, override=args.override)
     finally:
+        # mark that you are no longer evaluating
         os.remove(measuring_fn)
     return res
 
 
 def measure(model, module:Modules, save_results=False, override=False, **kwargs):
     model_name = model if isinstance(model, str) else model.name
+
+    # if override or the model changed since the last time it was measured, measure
+
     if not override:
         output_time = module.get_output_time(model)
         measuring_time = module.get_measuring_time(model)

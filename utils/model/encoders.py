@@ -128,7 +128,7 @@ class LSTM(tf.keras.layers.Layer):
 class TimeAgnosticMLP(MLPEncoder):
     def __init__(self, bins_per_frame, *args, **kwrags):
         """
-        An MLP which is encoding each frame independently. Used for the Neuronal and Auditory datasets
+        An MLP which is encoding each frame independently. Used for the Neuronal module
         :param bins_per_frame: number of bins in a single frame (usually 1)
         :param args: MLPEncoder args
         :param local:

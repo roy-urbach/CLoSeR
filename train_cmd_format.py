@@ -4,23 +4,10 @@ import re
 
 from utils.modules import Modules
 
-# QUEUE_GPU = "gsla-gpu"    # TODO: change back when it works
-# QUEUE_GPU = 'sch-gpu'
-# QUEUE_GPU = 'gpu-short'
 QUEUE_GPU = 'short-gpu'
 QUEUE_CPU = "new-short"
-# QUEUE_CPU = 'gsla-cpu'
 CONDA_PATH = '~/miniconda3/etc/profile.d/conda.sh'
 RUSAGE = 6000
-
-
-# def run_command(cmd):
-#     if isinstance(cmd, str):
-#         cmd = cmd.split()
-#     print(f"Calling", ' '.join(cmd))
-#     import subprocess
-#     result = subprocess.run(cmd, stdout=subprocess.PIPE)
-#     return result.stdout.decode('utf-8')
 
 
 def parse():
@@ -31,9 +18,9 @@ def parse():
     parser.add_argument('-q', '--queue', type=str, default=QUEUE_GPU, help='name of the queue')
     parser.add_argument('-m', '--module', type=str, default=Modules.VISION.name,
                         choices=Modules.get_cmd_module_options())
-    parser.add_argument('-s', '--seed', type=int, default=None, help='seed to change to')
+    parser.add_argument('-s', '--seed', type=int, default=None,
+                        help='seed to change to. assumes that the model name includes "seed<seed>" and changes it accordingly')
     parser.add_argument('-d', '--masking_ratio', type=float, default=None, help='d to change to')
-    # parser.add_argument('--kwargs', type=dict, default={}, help='kwargs to change and save config')
     parser.add_argument('--rusage', type=int, default=RUSAGE, help='CPU mem')
     parser.add_argument('--mem', type=int, default=4, help='GPU mem')
 
@@ -57,6 +44,7 @@ def get_cmd():
     pretrained_model_name = dct.get("pretrained_name", None)
 
     if args.seed is not None:
+        # assumes that the model name includes "seed<seed>"
         new_config = True
         dct['model_kwargs']['pathways_kwargs']['seed'] = args.seed
         model_name = re.sub(r"seed\d+", f"seed{args.seed}", model_name)
@@ -64,6 +52,7 @@ def get_cmd():
             pretrained_model_name = re.sub(r"seed\d+", f"seed{args.seed}", pretrained_model_name)
 
     if args.masking_ratio is not None:
+        # assumes that the model name includes "_d0.<d>" and changes <d> accordingly
         new_config = True
         dct['model_kwargs']['pathways_kwargs']['d'] = args.masking_ratio
         model_name = re.sub(r"_d0\.\d+_", f"_d{args.masking_ratio}_", model_name)
@@ -74,6 +63,7 @@ def get_cmd():
         dct['pretrained_name'] = pretrained_model_name
 
     if new_config:
+        # if changed the seed or d, save the new configuration json
         module.save_json(model_name, dct, config=True)
 
     path = os.path.join(module.get_models_path(), model_name)
@@ -85,7 +75,7 @@ def get_cmd():
     error_name = os.path.join(path, 'error')
 
     training_fn = os.path.join(path, "is_training")
-    if os.path.exists(training_fn):
+    if os.path.exists(training_fn):     # if already training, don't override
         print("already training")
         return f'echo "{model_name} already trained"'
 
@@ -100,6 +90,8 @@ def get_cmd():
 
 
 if __name__ == '__main__':
+    # this script outputs (by writing to "/tmp/cmd") the command to run to send a job to train a model
+
     # Call this script using the bash function:
     # function train_vis() { python3 train_cmd_format.py $@; cmd=$(<'/tmp/cmd'); eval $cmd; rm /tmp/cmd;}
     from utils.io_utils import load_json, save_json

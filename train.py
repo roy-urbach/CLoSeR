@@ -3,6 +3,7 @@ import os
 
 from utils.model.callbacks import StopIfNaN
 from utils.modules import Modules
+from utils.utils import printd
 
 
 def parse():
@@ -18,6 +19,9 @@ def parse():
 
 
 def run():
+    """
+    A module-general training script
+    """
     args = parse()[0]
     model_name = args.json.split('.json')[0]
     module = Modules.get_module(args.module)
@@ -25,31 +29,35 @@ def run():
 
     txt = '\n'.join([str(s) for s in [model_name, args.__dict__, kwargs]])
 
-    print(txt, flush=True)
+    printd(txt)
 
-    import sys
-    sys.stdout.flush()
-
+    # if model got to NaNs in the past, don't continue training
     if os.path.exists(os.path.join(module.get_models_path(), model_name, StopIfNaN.FILENAME)):
         print(f"NaN issue, not training")
         return
 
+    # if the model is already training in another job, don't train in parallel
     training_fn = os.path.join(module.get_models_path(), model_name, "is_training")
     if os.path.exists(training_fn):
         print("already training")
         return
     else:
+        # mark that you are training the model, so that other jobs won't override you
         with open(training_fn, 'w') as f:
             f.write("Yes!")
 
     try:
+        # train the model!
         from utils.model.model import train
         train(model_name, module, **kwargs, batch_size=args.batch, num_epochs=args.epochs)
     finally:
+        # mark that you are no longer training the model
         os.remove(training_fn)
 
 
 if __name__ == '__main__':
+    # this is the script to run to train the model. See train_cmd_format for the command format for running jobs
+
     import run_before_script
     run_before_script.run()
 

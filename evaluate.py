@@ -19,6 +19,9 @@ def check_evaluation_time(model, module: Modules):
 
 
 def main():
+    """
+    A module-general evaluating script. See <MODULE>\evaluate.py to see the actual evaluation process of each module
+    """
     import argparse
 
     def parse():
@@ -43,16 +46,21 @@ def main():
     module = Modules.get_module(args.module)
     evaluating_fn = os.path.join(module.get_models_path(), args.json, 'is_evaluating')
 
+    # if nan, don't evaluate
     if os.path.exists(os.path.join(module.get_models_path(), args.json, StopIfNaN.FILENAME)):
         print(f"NaN issue, not evaluating")
         return
 
     if os.path.exists(evaluating_fn):
+        # if already evaluating, don't evaluate too. Useful for parallelization
         print("already evaluating!")
         return
     else:
+        # mark that you are evaluating, so that parallel jobs won't reevaluate
         with open(evaluating_fn, 'w') as f:
             f.write("Yes!")
+
+    # if not override and the model didn't train since you last evaluated, evaluate
 
     if not args.override and not args.override_linear and not args.fill:
         if not check_evaluation_time(args.json, module):
@@ -63,6 +71,7 @@ def main():
                               save_results=True, dataset=None, override=args.override, override_linear=args.override_linear,
                               inp=args.inp, ks=streval(args.ks), **kwargs)
     finally:
+        # mark that you are no longer evaluating
         os.remove(evaluating_fn)
 
     return res
