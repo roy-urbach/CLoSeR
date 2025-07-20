@@ -10,7 +10,7 @@ CONTINUOUS = 'continuous'
 
 class Data:
     def __init__(self, x_train, y_train, x_test, y_test, x_val=None, y_val=None, val_split=None, normalize=False,
-                 img_normalize=False, flatten_y=False, split=False, simple_norm=False, module:Modules=None, seed=1929):
+                 flatten_y=False, split=False, simple_norm=False, module:Modules=None, seed=1929):
         self.x_train = x_train
         self.y_train = y_train
         self.x_test = x_test
@@ -34,8 +34,6 @@ class Data:
             self.y_train = run_on_dict(self.y_train, lambda arr: arr[train_idx])
 
         self.shape = run_on_dict(x_train, lambda x: x[0].shape)
-        if img_normalize:
-            self.image_normalize_data()
         if normalize:
             self.normalize_data(simple=simple_norm)
         if flatten_y:
@@ -47,12 +45,6 @@ class Data:
     @staticmethod
     def is_generator():
         return False
-
-    def image_normalize_data(self):
-        self.x_train = run_on_dict(self.x_train, lambda a: a / 255)
-        self.x_test = run_on_dict(self.x_test, lambda a: a / 255)
-        if self.x_val is not None:
-            self.x_val = run_on_dict(self.x_val, lambda a: a / 255)
 
     def normalize_data(self, simple=False):
         def normalize(arr_train, arr_test, arr_val=None):
@@ -211,6 +203,9 @@ class ComplicatedData:
 
     @abc.abstractmethod
     def _set_x(self, *args, **kwargs):
+        """
+        This has to be implemented by any ComplicatedData
+        """
         raise NotImplementedError()
 
     def _set_label_to_dim(self, *args, **kwargs):

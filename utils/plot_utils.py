@@ -70,6 +70,30 @@ def basic_scatterplot(x, y, identity=True, fig=None, c='k', corr=False, t=False,
                       regress=False, mean_diff=False, label=None, regress_color='r',
                       regress_label=None, add_r_squared_to_regress_label=True,
                       log_x=False, log_y=False, min_=None, max_=None, alpha=0.6, **kwargs):
+    """
+    A basic scatterplot for every occasion
+    :param x: x
+    :param y: y
+    :param identity: whether to plot the identity line
+    :param fig: matplotlib figure. If not, creates a new one
+    :param c: color for the scatter points
+    :param corr: whether to add the Pearson correation in the title
+    :param t: whether to do a paired student's t-test and write the results in the title
+    :param regress: whether to add a regression line
+    :param mean_diff: if t=True, whether to write the mean difference in the title
+    :param label: label
+    :param regress_color: color for the regression line
+    :param regress_label: label for the regression line
+    :param add_r_squared_to_regress_label: whether to add an R^2 value to the regression label
+    :param log_x: whether to change the x axis to log scale
+    :param log_y: whether to change the x axis to log scale
+    :param min_: min value for the axes
+    :param max_: max value for the axes
+    :param alpha: alpha for the scatter plot
+    :param kwargs: kwargs to send to plt.scatter
+    :return: matplotlib figure object
+    """
+
     x = np.array(x)
     y = np.array(y)
 

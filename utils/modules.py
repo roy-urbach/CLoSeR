@@ -5,6 +5,12 @@ from utils.utils import get_class
 
 
 class Modules(Enum):
+    """
+    Each module represents a different kind of data and model, but since the framework and filesystem is similar,
+    what can be general was made general
+    """
+
+    # this value corresponds to the module name and folder in the filesystem
     VISION = "vision"
     NEURONAL = "neuronal"
     AUDITORY = 'auditory'
@@ -33,9 +39,6 @@ class Modules(Enum):
 
     def evaluate(self, *args, **kwargs):
         return import_variable(self.value, "evaluate", "evaluate")(*args, **kwargs)
-
-    def evaluate_k(self, *args, **kwargs):
-        return import_variable(self.value, "evaluate", "evaluate_k")(*args, **kwargs)
 
     def get_label(self, label):
         if isinstance(label, str):

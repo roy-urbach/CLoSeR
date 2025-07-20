@@ -18,7 +18,7 @@ def regex_models(regex, module:Modules):
     return list(filter(lambda m: re.match(regex, m), os.listdir(module.get_models_path())))
 
 
-def name_to_d(name, module=Modules.VISION, naive=True, mapping={}, frac=True, patches=None):
+def name_to_q(name, module=Modules.VISION, naive=True, mapping={}, frac=True, patches=None):
     if naive:
         return eval(re.findall("0\.\d+", name)[-1])
     else:
@@ -38,7 +38,7 @@ def name_to_d(name, module=Modules.VISION, naive=True, mapping={}, frac=True, pa
             return d
 
 
-def load_classfications_by_regex(model_regex, module, name_to_d_naive=False, convert_name=True, negative_regex=None, print_err=True):
+def load_classfications_by_regex(model_regex, module, name_to_q_naive=False, convert_name=True, negative_regex=None, print_err=True):
     base_path = module.get_models_path()
     archive = {}
     for m in os.listdir(base_path):
@@ -50,14 +50,33 @@ def load_classfications_by_regex(model_regex, module, name_to_d_naive=False, con
                 continue
             if eval_json is not None:
                 if convert_name:
-                    m = name_to_d(m, module=module, naive=name_to_d_naive)
+                    m = name_to_q(m, module=module, naive=name_to_q_naive)
                 archive[m] = eval_json
     return archive
 
 
-def plot_history(model_regex, module, window=10, name_to_name=lambda m: m, log=True, keys=None, keys_f=None,
+def plot_history(model_regex, module: Modules, window=10, name_to_name=lambda m: m, keys=None, keys_f=None,
                  log_keys={'embedding'}, plot_train=True, plot_val=True, name_to_c=None, save=None, legend=True, title=None,
                  save_f=None):
+    """
+    Plots the training history of models
+    :param model_regex: regex for all models that should be plotted
+    :param module: the module
+    :param window: smoothing window (convolution with average)
+    :param name_to_name: a function that receives a model name and outputs the label for the plot
+    :param keys: a container with names of metric keys to plot
+    :param keys_f: if keys is None and this is not None, chooses keys based on this boolean function which receieves
+                    a string returns a boolean value
+    :param log_keys: Same as keys_f, but whether to change the y axis to log scale
+    :param plot_train: whether to plot the train metrics or not
+    :param plot_val: whether to plot the validation metrics or not
+    :param name_to_c: a function that converts a string to a color
+    :param save: whether to save this figure in "figures/{k}.png" where k is the metric name
+    :param legend: whether to call plt.legend
+    :param title: title for the figure
+    :param save_f: if given, calls this function with the metric name
+    :return: None
+    """
     models = sorted(regex_models(model_regex, module))
     models_names = []
     orig_names = []
@@ -89,7 +108,7 @@ def plot_history(model_regex, module, window=10, name_to_name=lambda m: m, log=T
                 if len(val) > window:
                     plt.plot(smooth(val, window), label=model_name if not plot_train else None,
                              c=f"C{i}" if name_to_c is None else name_to_c(orig_names[i]), linestyle=':' if plot_train else '-')
-        if log and any([key in k for key in log_keys]):
+        if any([key in k for key in log_keys]):
             plt.yscale("log")
         if legend:
             plt.legend()
@@ -101,46 +120,9 @@ def plot_history(model_regex, module, window=10, name_to_name=lambda m: m, log=T
             save_f(k)
 
 
-def sorted_barplot(model_regex, metric_regex, module=Modules.VISION, sort_by_train=True, show_top=None, regex_suptitle=True,
-                   negative_regex=None, print_err=False, baseline=None, plot_train=True):
-    archive = load_classfications_by_regex(model_regex, module, convert_name=False, negative_regex=negative_regex,
-                                           print_err=print_err)
-    metrics = set(metric for dct in archive.values() for metric in dct.keys() if re.match(metric_regex, metric))
-    rows, cols = calculate_square_rows_cols(len(metrics))
-    plt.figure(figsize=(cols * 5, rows * 3))
-    if regex_suptitle:
-        plt.suptitle(model_regex)
-    for subplot, metric in enumerate(sorted(metrics)):
-        plt.subplot(rows, cols, subplot + 1)
-        plt.title(metric)
-        values = {k: archive[k].get(metric, [np.nan] * 2) for k in archive}
-
-        keys = np.array(sorted(archive.keys()))
-        values_to_sort_by = np.array([values[k][0 if sort_by_train else 1] for k in keys])
-        nan_mask = ~np.isnan(values_to_sort_by)
-        sorted_k = keys[nan_mask][np.argsort(values_to_sort_by[nan_mask])]
-        if show_top is not None:
-            sorted_k = sorted_k[-show_top:]
-        if plot_train:
-            plt.barh(np.arange(len(sorted_k)), [values[k][0] for k in sorted_k], label='train', zorder=1)
-            plt.scatter([values[k][1] for k in sorted_k], np.arange(len(sorted_k)), label='test', zorder=2)
-        else:
-            plt.barh(np.arange(len(sorted_k)), [values[k][1] for k in sorted_k], label='test', zorder=2)
-        plt.yticks(np.arange(len(sorted_k)), sorted_k)
-        if baseline:
-            plt.axvline(module.load_evaluation_json(baseline)[metric][1], c='k', linestyle=':')
-        plt.legend()
-        if baseline:
-            plt.gca().set_xlim(left=module.load_evaluation_json(baseline)[metric][1])
-            # plt.xticks(np.linspace(0, 1, 11))
-            # plt.xlim(load_evaluation_json(BASELINE_UNTRAINED)[metric][1], 1)
-        plt.grid(axis='x', zorder=0, alpha=0.2, linewidth=2)
-    if len(metrics) > 1: plt.tight_layout()
-
-
-def plot_metrics_along_d(model_regex, module: Modules, metric_regex=("logistic", '.*linear_.*', '.*knn.*'),
-                         name_to_d_naive=False, baseline_name=None, metric_to_label=None, xticks=False):
-    archive = load_classfications_by_regex(model_regex, module, name_to_d_naive=name_to_d_naive)
+def plot_metrics_along_q(model_regex, module: Modules, metric_regex=("logistic", '.*linear_.*', '.*knn.*'),
+                         name_to_q_naive=False, baseline_name=None, metric_to_label=None, xticks=False):
+    archive = load_classfications_by_regex(model_regex, module, name_to_q_naive=name_to_q_naive)
     best = max([max([v[-1] for v in val.values()]) for val in archive.values()])
     print(best)
     sorted_keys = np.array([k for k in sorted(archive.keys(), key=lambda k: eval(k))])
@@ -176,11 +158,23 @@ def plot_metrics_along_d(model_regex, module: Modules, metric_regex=("logistic",
     return archive
 
 
-def gather_results_over_all_args(model_format, args, module=Modules.VISION, name='logistic', seeds=[1], measure=False, print_missing=True, old=False):
+def gather_results_over_all_args(model_format, args, module=Modules.VISION, name='logistic', seeds=[1],
+                                 measure=False, print_missing=True):
+    """
+    loads evaluations for many models with the same format and returns as a tensor, whose shape is a cartesian product of args
+    :param model_format: a format model name
+    :param args: a dictionary where the keys are argument names and the values are arguments (for examples {"q": [1,2,3,4,5]})
+    :param module: Module
+    :param name: what metric to load
+    :param seeds: seeds to iterate over
+    :param measure: whether it is a measure (see utils/measures)
+    :param print_missing: whether to print the names of models that couldn't be loaded
+    :return: a numpy tensor with shape [arg1, ..., argK, seed, metric_dim1, ..., metric_dimD]
+    """
     names = list(args.keys())
     args = [args[n] for n in names]
     shape = [len(arg) for arg in args]
-    res = None # np.full(list(shape) + [len(seeds), 2 - measure], np.nan)
+    res = None
 
     for i, inds in enumerate(product(*[range(s) for s in shape])):
         for s, seed in enumerate(seeds):
@@ -188,14 +182,13 @@ def gather_results_over_all_args(model_format, args, module=Modules.VISION, name
                 **{k: v for k, v in zip(names, [args[arg_ind][cur_ind] for arg_ind, cur_ind in enumerate(inds)])},
                 seed=seed)
             try:
-                dct = module.load_measures_json(model_name) if measure else module.load_evaluation_json(model_name, old=old)
+                dct = module.load_measures_json(model_name) if measure else module.load_evaluation_json(model_name)
             except JSONDecodeError as err:
                 dct = None
                 if print_missing:
                     print(model_name)
             if dct is None:
                 val = np.nan
-            #                     print(f"missing {model_format.format(P=P, d=d, seed=seed)}")
             else:
                 val = dct.get(name, np.nan)
             if val is np.nan and print_missing:
@@ -212,50 +205,21 @@ def gather_results_over_all_args(model_format, args, module=Modules.VISION, name
     return res
 
 
-def gather_results_over_all_args_pathways_mean(model_format, args, module=Modules.VISION, name_format='pathway{}_linear', seeds=[1],
-                                               P=10, measure=False):
-    names = list(args.keys())
-    args = [args[n] for n in names]
-    shape = [len(arg) for arg in args]
-    res = None # np.full(list(shape) + [len(seeds), 2], np.nan)
-
-    for i, inds in enumerate(product(*[range(s) for s in shape])):
-        for s, seed in enumerate(seeds):
-            model_name = model_format.format(
-                **{k: v for k, v in zip(names, [args[arg_ind][cur_ind] for arg_ind, cur_ind in enumerate(inds)])},
-                seed=seed)
-            dct = module.load_measures_json(model_name) if measure else module.load_evaluation_json(model_name)
-            val = np.mean(
-                [dct[name_format.format(path)] for path in range(args[names.index("P")] if "P" in names else P)],
-                axis=0)
-            if res is None:
-                res = np.full(list(shape) + [len(seeds)] + ([2] if not measure else list(val.shape)), np.nan)
-            cur = res
-            for cur_ind in inds:
-                cur = cur[cur_ind]
-            cur[s] = val
-    return res
-
-
-def plot_lines_different_along_d(model_format, module:Modules, seeds, args, ds, name="logistic", save=False, measure=False, mask=None,
-                                 arg=None, mean=False, legend=True, fig=None, c_shift=0, train=False, baseline=None, sem=False, c=None,
+def plot_lines_different_along_q(model_format, module:Modules, seeds, args, qs, name="logistic", save=False, measure=False, mask=None,
+                                 arg=None, legend=True, fig=None, c_shift=0, train=False, baseline=None, sem=False, c=None,
                                  xticks=False, marker=None, ax=None, suptitle=False, title=False, **kwargs):
     if isinstance(args, str):
         args = eval(args)
-    if isinstance(ds, str):
-        ds = eval(ds)
-    res = (gather_results_over_all_args if not mean else gather_results_over_all_args_pathways_mean)(model_format, module=module,
-                                                                                                     name=name,
-                                                                                                     seeds=seeds,
-                                                                                                     args={arg: args, 'd': ds} if arg else {'d': ds},
-                                                                                                     measure=measure,
-                                                                                                     **kwargs)
+    if isinstance(qs, str):
+        qs = eval(qs)
+    res = gather_results_over_all_args(model_format, module=module, name=name,
+                                       seeds=seeds,
+                                       args={arg: args, 'q': qs} if arg else {'q': qs},
+                                       measure=measure,
+                                       **kwargs)
     if res is None or np.isnan(res).all():
         print(f"for {model_format} and {name}, everything is nan, so not plotting")
         return
-    # means = np.nanmean(res, axis=2)
-    # stds = np.nanstd(res, axis=2, ddof=1)
-    # CI = stats.norm.interval(0.975, loc=means, scale=stds / np.sqrt(np.sum(~np.isnan(res), axis=2)))
     fig = plt.figure(figsize=(8, 4+8*train)) if fig is None else fig
     if suptitle:
         plt.suptitle(model_format + " " + name + f" different {arg}")
@@ -281,9 +245,9 @@ def plot_lines_different_along_d(model_format, module:Modules, seeds, args, ds, 
 
                 color = f"C{ind+c_shift}" if c is None else (c.get_color() if isinstance(c, NameAndColor) else c)
 
-                (ax if ax is not None else plt).plot(ds, mean, label=(legend + ' ' if isinstance(legend, str) else "") + str(identity), c=color, marker=marker)
+                (ax if ax is not None else plt).plot(qs, mean, label=(legend + ' ' if isinstance(legend, str) else "") + str(identity), c=color, marker=marker)
                 if len(seeds) > 1:
-                    (ax if ax is not None else plt).fill_between(ds, CI[0], CI[1][ind, ..., i], color=color, alpha=0.3)
+                    (ax if ax is not None else plt).fill_between(qs, CI[0], CI[1][ind, ..., i], color=color, alpha=0.3)
         else:
             color = f"C{c_shift}" if c is None else c
             relevant_part = res[..., i] if not measure else np.stack([np.stack([res[i_d, s][mask if mask is not None else ~np.eye(res.shape[-1], dtype=bool)]
@@ -297,9 +261,9 @@ def plot_lines_different_along_d(model_format, module:Modules, seeds, args, ds, 
             else:
                 CI = stats.norm.interval(0.975, loc=mean, scale=std_err_mean)
 
-            (ax if ax is not None else plt).plot(ds, mean, label=(legend + ' ') if isinstance(legend, str) else "", c=color)
+            (ax if ax is not None else plt).plot(qs, mean, label=(legend + ' ') if isinstance(legend, str) else "", c=color)
             if len(seeds) > 1:
-                (ax if ax is not None else plt).fill_between(ds, CI[0], CI[1], color=color, alpha=0.3)
+                (ax if ax is not None else plt).fill_between(qs, CI[0], CI[1], color=color, alpha=0.3)
         if i:
             (ax.set_xlabel if ax is not None else plt.xlabel)('d')
         else:
@@ -308,8 +272,8 @@ def plot_lines_different_along_d(model_format, module:Modules, seeds, args, ds, 
         (ax.set_xlabel if ax is not None else plt.xlabel)('d')
         YLABEL_CLASS_F() if not measure else (ax.set_ylabel if ax is not None else plt.ylabel)(name)
         if xticks and module is Modules.VISION:
-            from vision.utils.figures_utils import ds_to_labels
-            (ax.set_xticks if ax is not None else plt.xticks)(ds, ds_to_labels(ds))
+            from vision.utils.figures_utils import qs_to_labels
+            (ax.set_xticks if ax is not None else plt.xticks)(qs, qs_to_labels(qs))
         if xticks:
             (ax if ax is not None else plt).grid(alpha=0.3)
         if not measure and baseline:
