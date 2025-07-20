@@ -3,12 +3,11 @@ from tensorflow import keras
 from tensorflow.keras import layers as tf_layers
 from tensorflow.keras import backend as K
 
-from utils.tf_utils import set_seed, serialize
+from utils.tf_utils import set_seed
 
 
 # ViT layers
 
-@serialize
 class MLP(tf_layers.Layer):
     """
     An MLP layer
@@ -49,7 +48,6 @@ class MLP(tf_layers.Layer):
         return dict(**super().get_config(), hidden_units=self.hidden_units, local=self.local)
 
 
-@serialize
 class Patches(tf_layers.Layer):
     def __init__(self, patch_size, **kwargs):
         super().__init__(**kwargs)
@@ -72,7 +70,6 @@ class Patches(tf_layers.Layer):
         return dict(super().get_config(), patch_size=self.patch_size)
 
 
-@serialize
 class PatchEncoder(tf_layers.Layer):
     def __init__(self, num_patches=196, projection_dim=768, num_class_tokens=1, kernel_regularizer='l1_l2', **kwargs):
         """
@@ -112,7 +109,6 @@ class PatchEncoder(tf_layers.Layer):
                     num_class_tokens=self.num_class_tokens)
 
 
-@serialize
 class ViTBlock(tf_layers.Layer):
     def __init__(self, num_heads=4, projection_dim=64, dropout_rate=0.1, attn_dropout=None, kernel_regularizer='l1_l2',
                  ln=False, divide_dim_by_head=False, **kwargs):
@@ -147,7 +143,6 @@ class ViTBlock(tf_layers.Layer):
         return out
 
 
-@serialize
 class ViTOutBlock(tf_layers.Layer):
     def __init__(self, dropout_rate=0.1, output_dim=512, mlp_head_units=(2048, 1024), ln=False, kernel_regularizer='l1_l2', **kwargs):
         super(ViTOutBlock, self).__init__(**kwargs)
@@ -179,7 +174,6 @@ class ViTOutBlock(tf_layers.Layer):
                 'output_dim': self.output_dim}
 
 
-@serialize
 class LayerNormalization(keras.layers.Layer):
     """
     Taken from:
@@ -300,7 +294,6 @@ class ConvNet:
         return x
 
 
-@serialize
 class SplitPathways(tf.keras.layers.Layer):
     # Receives (B, ..., S, DIM)
     # Outputs (B, ..., d*S, P, DIM)
