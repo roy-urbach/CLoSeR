@@ -8,6 +8,9 @@ import errno
 
 
 def printd(*args, **kwargs):
+    """
+    Print with flush
+    """
     print(*args, flush=True, **kwargs)
     sys.stdout.flush()
 
@@ -25,36 +28,71 @@ def get_class(cls, file):
 
 
 def flatten_but_batch(arr):
+    """
+    Remove all dimensions but the first
+    """
     return arr.reshape(len(arr), -1)
 
 
 def cosine_sim(vec1, vec2, axis=-1):
+    """
+    Cosine similarity
+    :param vec1:
+    :param vec2:
+    :param axis: axis to reduce over
+    :return: the cosine similarity of vec1 and vec2
+    """
     normalize = lambda vec: vec / np.linalg.norm(vec, axis=axis, keepdims=True)
     return (normalize(vec1) * normalize(vec2)).sum(axis=axis)
 
 
 def correlation(arr1, arr2):
+    """
+    Pearson correlation
+    :param arr1: a tensor
+    :param arr2: a tensor with the same shape as arr1
+    :return: a single float
+    """
     return (np.nanmean(np.multiply(arr1, arr2)) - np.nanmean(arr1) * np.nanmean(arr2)) / (np.nanstd(arr1) * np.nanstd(arr2))
 
 
-def correlation_t_test(corr, n, a=0.95):
-    t_cutoff = scipy.stats.t.ppf(a, df=n-2)
-    t = corr * np.sqrt(n-2) / (1 - corr**2)
-    p = 1 - scipy.stats.t.cdf(t, df=n - 2)
-    return t, t_cutoff, p
-
-
 def paired_t_test(x, y, **kwargs):
+    """
+    Calculates the p-value of a paired student's t-test of the two distributions.
+    Ignores NaNs
+    :param x: distribution 1
+    :param y: distribution 2
+    :param kwargs: scipy.stats.ttest_rel kwargs
+    :return: p-value
+    """
     mask = ~(np.isnan(x) | np.isnan(y))
     return scipy.stats.ttest_rel(x[mask], y[mask], **kwargs).pvalue
 
 
 def ind_t_test(x, y, **kwargs):
+    """
+    Calculates the p-value of an independent student's t-test of the two distributions.
+    Ignores NaNs
+    :param x: distribution 1
+    :param y: distribution 2
+    :param kwargs: scipy.stats.ttest_rel kwargs
+    :return: p-value
+    """
     mask = ~(np.isnan(x) | np.isnan(y))
     return scipy.stats.ttest_ind(x[mask], y[mask], **kwargs).pvalue
 
 
 def ind_permutation_test(arr1, arr2, n_permutations=10000, **kwargs):
+    """
+    Calculates the p-value of an independent permutation test of the two distributions,
+    where the statistic is the difference of the means.
+    Ignores NaNs
+    :param arr1: distribution 1
+    :param arr2: distribution 2
+    :param n_permutations: number of permutations. Defaults to 10000
+    :param kwargs: scipy.stats.permutation_test kwargs
+    :return: p-value
+    """
     def statistic(x, y):
         return np.mean(x) - np.mean(y)
 
@@ -64,6 +102,16 @@ def ind_permutation_test(arr1, arr2, n_permutations=10000, **kwargs):
 
 
 def paired_permutation_test(arr1, arr2, n_permutations=10000, **kwargs):
+    """
+    Calculates the p-value of a paired permutation test of the two distributions,
+    where the statistic is the mean of the differences.
+    Ignores NaNs
+    :param arr1: distribution 1
+    :param arr2: distribution 2
+    :param n_permutations: number of permutations. Defaults to 10000
+    :param kwargs: scipy.stats.permutation_test kwargs
+    :return: p-value
+    """
     def statistic(x, y):
         return np.mean(x - y)
     assert arr1.size == arr2.size, "sizes should be the same"
@@ -75,104 +123,17 @@ def paired_permutation_test(arr1, arr2, n_permutations=10000, **kwargs):
 
 
 def get_min_max(*arrs):
+    """
+    :param arrs: a general number of arrays
+    :return: (min, max) over all the arrays
+    """
     return min([np.nanmin(arr) for arr in arrs]), max([np.nanmax(arr) for arr in arrs])
 
 
-
-class FileLockException(Exception):
-    pass
-
-
-class FileLock(object):
-
-    """ A file locking mechanism that has context-manager support so
-        you can use it in a with statement. This should be relatively cross
-        compatible as it doesn't rely on msvcrt or fcntl for the locking.
-        Taken from:
-        https://github.com/dmfrey/FileLock/blob/master/filelock/filelock.py
-    """
-
-    def __init__(self, file_name, timeout=10, delay=.05):
-        """ Prepare the file locker. Specify the file to lock and optionally
-            the maximum timeout and the delay between each attempt to lock.
-        """
-        if timeout is not None and delay is None:
-            raise ValueError("If timeout is not None, then delay must not be None.")
-        self.is_locked = False
-        self.lockfile = os.path.join(os.getcwd(), "%s.lock" % file_name)
-        self.file_name = file_name
-        self.timeout = timeout
-        self.delay = delay
-        self.fd = None
-
-    def acquire(self):
-        """ Acquire the lock, if possible. If the lock is in use, it check again
-            every `wait` seconds. It does this until it either gets the lock or
-            exceeds `timeout` number of seconds, in which case it throws
-            an exception.
-        """
-        start_time = time.time()
-        while True:
-            try:
-                self.fd = os.open(self.lockfile, os.O_CREAT | os.O_EXCL | os.O_RDWR)
-                self.is_locked = True  # moved to ensure tag only when locked
-                break
-            except OSError as e:
-                if e.errno != errno.EEXIST:
-                    raise
-                if self.timeout is None:
-                    raise FileLockException("Could not acquire lock on {}".format(self.file_name))
-                if (time.time() - start_time) >= self.timeout:
-                    raise FileLockException("Timeout occured.")
-                time.sleep(self.delay)
-
-    #        self.is_locked = True
-
-    def release(self):
-        """ Get rid of the lock by deleting the lockfile.
-            When working in a `with` statement, this gets automatically
-            called at the end.
-        """
-        if self.is_locked:
-            os.close(self.fd)
-            os.unlink(self.lockfile)
-            self.is_locked = False
-
-    def __enter__(self):
-        """ Activated when used in the with statement.
-            Should automatically acquire a lock to be used in the with block.
-        """
-        if not self.is_locked:
-            self.acquire()
-        return self
-
-    def __exit__(self, type, value, traceback):
-        """ Activated at the end of the with statement.
-            It automatically releases the lock if it isn't locked.
-        """
-        if self.is_locked:
-            self.release()
-
-    def __del__(self):
-        """ Make sure that the FileLock instance doesn't leave a lockfile
-            lying around.
-        """
-        self.release()
-
-
-def smooth(arr, window=10):
-    arr = np.array(arr)
-    n = len(arr)
-    sub_arr = arr[:n-(n % window)]
-    y = sub_arr.reshape((-1, window)).mean(axis=-1)
-    x = np.arange(len(y)) * window + (window-1)/2
-    if n % window:
-        x = np.concatenate([x, [n - window/2]])
-        y = np.concatenate([y, [arr[-window:].mean()]])
-    return x, y
-
-
 def streval(w, warning=False):
+    """
+    Given an input, if it's a string, tries to eval. Otherwise, returns the input
+    """
     if isinstance(w, str):
         try:
             return eval(w)
@@ -189,10 +150,19 @@ def streval(w, warning=False):
 
 
 def unknown_args_to_dict(args, warning=False):
+    """
+    Takes args from argparse, and turns them to dictionary, by removing "--" and streval the values
+    """
     return {args[2*i].split("--")[-1]: streval(args[2*i+1], warning=warning) for i in range(len(args)//2)}
 
 
 def run_on_dict(dct, f):
+    """
+    Runs a function on the values of a dict. If dct is not a dict, just returns f(dct).
+    :param dct: a dictionary
+    :param f: a function to run on the values of the dictionaries
+    :return: {k: f(v)}
+    """
     if isinstance(dct, dict):
         return {k: f(v) for k, v in dct.items()}
     else:

@@ -142,6 +142,8 @@ def savefig(fn, suffix='png'):
     print(f"saved figure as {fn}")
 
 
+# violinplot functions
+
 def violinplot_with_CI(arr, x, c='C0', widths=0.5, bar=False, scatter=False, sem=False, horizontal=False, hatch=None,
                        box=False, plot_CI=True, ax=None, capsize=10, **kwargs):
     if bar:
@@ -196,6 +198,19 @@ def multiviolin(arr, xshift=0, xs=None, fig=None, c=None, hatch=None, ax=None, *
 
 
 def dct_to_multiviolin(dct, rotation=0, xs=None, horizontal=False, keys=None, c=None, hatch=None, ax=None, **kwargs):
+    """
+    Given a dictionary, each key becomes an xtick label, with the distribution of its value as the vioiln
+    :param dct: {xtick name or NameAndColor: values to plot as violin}
+    :param rotation: rotation of the xticks
+    :param xs: xs
+    :param horizontal: plot horizontally
+    :param keys: a subset of the dct's keys to plot. If None, plots all
+    :param c: colors, as a dict or list (where the order corresponds to the iteration order over the dictionary)
+    :param hatch: same as c, but for hatch
+    :param ax: ax to plot on. If not given, create a new one
+    :param kwargs: kwargs to send to plot_utils/multiviolin
+    :return: None
+    """
     keys = list(dct.keys()) if keys is None else keys
     if c is None and isinstance(keys[0], NameAndColor):
         c = [k.get_color() for k in keys]
@@ -209,6 +224,15 @@ def dct_to_multiviolin(dct, rotation=0, xs=None, horizontal=False, keys=None, c=
 
 
 def get_CI(arr, conf=0.975, of_the_mean=True, axis=0, sem=False):
+    """
+    Calculate the size of a one-sided confidence interval over the data (distance from the mean)
+    :param arr: samples
+    :param conf: percentile of one side (for example, for a 95% CI, conf=0.975)
+    :param of_the_mean: CI of the mean or not (practically, to divide by sqrt(n_samples) or not)
+    :param axis: axis to calculate over. defaults to 0
+    :param sem: if True, ignores conf and calculates standard error (one standard deviation)
+    :return: a tensor with the same shape as arr except the reduced (according to axis)
+    """
     std = np.nanstd(arr, axis=axis, ddof=1)
     n = (~np.isnan(arr)).sum(axis=axis)
     t = 1 if sem else scipy.stats.t.ppf(conf, df=n - 1)
@@ -232,6 +256,12 @@ def plot_with_CI(vals, x=None, label=None, fill_between=True, err=True, conf=0.9
 
 
 def simpleaxis(ax, remove_left=False):
+    """
+    Removes the top and right axes
+    :param ax: matplotlib ax object
+    :param remove_left: whether to remove the left axis or not
+    :return: None
+    """
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     if remove_left:
@@ -241,32 +271,61 @@ def simpleaxis(ax, remove_left=False):
     ax.get_xaxis().tick_bottom()
 
 
-def set_ticks_style(fig, remove_left=False):
+def set_ticks_style(fig, remove_left=False, size=12):
+    """
+    Changes the size of all ticks over all axs
+    :param fig: matplotlib figure
+    :param remove_left: whether to remove the left axis or not
+    :param size: size of ticks to change to
+    :return: None
+    """
     for ax in fig.axes:
-        ax.tick_params(axis='x', labelsize=12)
-        ax.tick_params(axis='y', labelsize=12)
-        ax.xaxis.label.set_size(12)
-        ax.yaxis.label.set_size(12)
+        ax.tick_params(axis='x', labelsize=size)
+        ax.tick_params(axis='y', labelsize=size)
+        ax.xaxis.label.set_size(size)
+        ax.yaxis.label.set_size(size)
         simpleaxis(ax, remove_left=remove_left)
 
 
 def legend(*args, facecolor='w', framealpha=0, **kwargs):
+    """
+    like plt.legend but with facecolor='w' and framealpha=0 as default
+    :param args:
+    :param facecolor:
+    :param framealpha:
+    :param kwargs:
+    :return:
+    """
     plt.legend(*args, **kwargs, facecolor=facecolor, framealpha=framealpha)
 
 
 def noticks():
+    """
+    remove xticks and yticks
+    :return:
+    """
     plt.xticks([])
     plt.yticks([])
 
 
 def calculate_square_rows_cols(n):
+    """
+    Given n, calculates ceil(sqrt(n)) and ceil(n/ceil(sqrt(n)),
+    to choose the number of rows and columns to make the figure as square as possible
+    :param n: number of subplots
+    :return: (rows, cols)
+    """
     cols = int(np.ceil(np.sqrt(n)))
     rows = int(np.ceil(n/cols))
     return rows, cols
 
 
 def colorbar(mappable, ax=None):
-    # https://joseph-long.com/writing/colorbars/
+    """
+    A colorbar with the same size as the ax next to it
+    Taken from:
+        https://joseph-long.com/writing/colorbars/
+    """
     from mpl_toolkits.axes_grid1 import make_axes_locatable
     last_axes = plt.gca()
     ax = mappable.axes if ax is None else ax

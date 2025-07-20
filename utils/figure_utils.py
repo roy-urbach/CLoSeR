@@ -11,7 +11,6 @@ import os
 import re
 
 from utils.plot_utils import savefig, calculate_square_rows_cols, simpleaxis, NameAndColor, YLABEL_CLASS_F
-from utils.utils import smooth
 
 
 def regex_models(regex, module:Modules):
