@@ -20,7 +20,8 @@ def parse():
                         choices=Modules.get_cmd_module_options())
     parser.add_argument('-s', '--seed', type=int, default=None,
                         help='seed to change to. assumes that the model name includes "seed<seed>" and changes it accordingly')
-    parser.add_argument('-d', '--masking_ratio', type=float, default=None, help='d to change to')
+    parser.add_argument('-d', '--masking_ratio', type=float, default=None,
+                        help='d to change to. assumes that the model name includes "_d0.<d>" and changes it accordingly')
     parser.add_argument('--rusage', type=int, default=RUSAGE, help='CPU mem')
     parser.add_argument('--mem', type=int, default=4, help='GPU mem')
 
