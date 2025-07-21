@@ -664,39 +664,14 @@ class DinoLoss(tf.keras.losses.Loss):
 
 
 class LPL(tf.keras.losses.Loss):
-    def __init__(self, cont_w=1, std_w=1, corr_w=10, cross_w=None, crosscont_w=None, wcross_w=None, vjepa_w=None,
-                 dino_w=None, cov_sqr=True, alpha=0.1, l1=False, pe_w=None, pe_cont_w=None, pe_kwargs={}, pe_w_absolute=False,
-                 pullpush_w=None, pullpush_kwargs={},
-                 cross_cov_w=None, local=True, center=False, eps=1e-4, name='LPL', flatten_paths=False, crosspred_w=None):
+    def __init__(self, cont_w=1, std_w=1, corr_w=10, cross_w=None, crosscont_w=None, eps=1e-4, name='LPL'):
         super().__init__(name=name)
         self.eps = streval(eps)
         self.cont_w = cont_w
         self.std_w = std_w
         self.corr_w = corr_w
-        self.cov_sqr = cov_sqr
-        self.pred_in_output = bool(pe_w or pe_cont_w or pe_w_absolute)
-        self.pe_w = pe_w
-        self.pe_cont_w = pe_cont_w
-        self.pe_kwargs = pe_kwargs
-        self.pe_w_absolute = pe_w_absolute
-        self.first_moment = None
-        self.second_moment = None
-        self.center = center
-        self.cov_est = None
-        assert not flatten_paths or (flatten_paths and not cross_w)
-        self.flatten_paths = flatten_paths
-        self.alpha = alpha
-        self.dino_w = dino_w
-        self.vjepa_w = vjepa_w
-        self.l1 = l1
-        self.local = local
         self.cross_w = cross_w
         self.crosscont_w = crosscont_w
-        self.wcross_w = wcross_w
-        self.cross_cov_w = cross_cov_w
-        self.crosspred_w = crosspred_w
-        self.pullpush_w = pullpush_w
-        self.pullpush_kwargs = pullpush_kwargs
         self.pullpush_graph = None
 
         losses = []
@@ -706,21 +681,8 @@ class LPL(tf.keras.losses.Loss):
             losses.append("var")
         if self.corr_w:
             losses.append("cov")
-        if cross_w or cross_cov_w or wcross_w or crosscont_w:
+        if cross_w or crosscont_w:
             losses.append("cross")
-        if self.pred_in_output:
-            losses.append("pe_cross")
-            losses.append("pe")
-        if self.vjepa_w:
-            losses.append("vjepa")
-        if self.dino_w:
-            losses.append("dino")
-        if self.crosspred_w:
-            losses.append("crosspred")
-        if self.pullpush_w:
-            self.set_pullpush_graph(**self.pullpush_kwargs)
-            losses.append("pull")
-            losses.append("push")
         self.monitor = LossMonitors(*losses, name="")
 
     def update_estimation(self, x):
