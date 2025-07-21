@@ -1,13 +1,13 @@
 from utils.model.layers import *
 from utils.model.losses import *
-from utils.model.model import get_optimizer
+from utils.model.optimizer import get_optimizer
 from vision.model.layers import SplitPathwaysVision
 from utils.utils import *
 from tensorflow.keras import layers
 from tensorflow import keras
 import tensorflow as tf
 
-from vision.model.losses import ContrastiveSoftmaxLoss, LateralPredictiveLoss
+from vision.model.losses import CLoSeRLoss
 
 PATHWAY_TO_CLS = None
 
@@ -138,7 +138,7 @@ def create_model(name='model', classifier=False, l2=False, divide_patches=True,
     return model
 
 
-def compile_model(model, loss=ContrastiveSoftmaxLoss, loss_kwargs={},
+def compile_model(model, loss=CLoSeRLoss, loss_kwargs={},
                   optimizer_cls=tf.optimizers.legacy.Nadam if tf.__version__ == '2.12.0' else tf.optimizers.Nadam,
                   optimizer_kwargs={}, classifier=False, pathway_classification=True,
                   ensemble_classification=False, pathway_classification_allpaths=False,

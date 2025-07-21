@@ -19,8 +19,6 @@ class CrossPathMeasures(Enum):
     EntropyNoSelf = auto()
     Distance = auto()
     Correlation = "Alignment of embedding maps"
-    DKL = auto()
-    CKA = auto()
 
 
 @Modules.add_method
@@ -80,8 +78,8 @@ def measure_model(model, module:Modules, iterations=50, b=128):
 
     n = test_embd.shape[2]
 
-    from vision.model.losses import CommunitiesLoss
-    loss = CommunitiesLoss(n, 1)
+    from vision.model.losses import CLoSeRLoss
+    loss_obj = CLoSeRLoss()
 
     res_dct = {k: [] for k in CrossPathMeasures}
 
@@ -89,12 +87,9 @@ def measure_model(model, module:Modules, iterations=50, b=128):
 
     for _ in counter(range(iterations)):
         cur_samples = test_embd[np.random.permutation(test_embd.shape[0])[:b]]
-        cur_dists = np.sqrt(loss.calculate_dists(cur_samples).numpy())
-        logits = loss.calculate_logits(None, dist=cur_dists**2)
-        exp_logits = loss.calculate_exp_logits(logits=logits)
-        mrdev = loss.map_rep_dev(exp_logits=tf.linalg.diag_part(exp_logits))   # (b, n)
-
-        likelihood = loss.calculate_likelihood(exp_logits=exp_logits)
+        cur_dists = np.sqrt(loss_obj.calculate_dists(cur_samples).numpy())
+        logits = loss_obj.calculate_logits(cur_dists**2)
+        likelihood = loss_obj.calculate_conditional_pseudo_likelihood(loss_obj.calculate_exp_logits(logits))
         res_dct[CrossPathMeasures.Acc].append(tf.reduce_mean(tf.cast((likelihood >= tf.reduce_max(likelihood, axis=0, keepdims=True))[
                                                      tf.eye(tf.shape(likelihood)[0], dtype=tf.bool)], dtype=tf.float32),
                                          axis=0))
@@ -114,8 +109,6 @@ def measure_model(model, module:Modules, iterations=50, b=128):
 
         res_dct[CrossPathMeasures.Distance].append(cur_dists[np.arange(b), np.arange(b)].mean(axis=0))
         res_dct[CrossPathMeasures.Correlation].append(np.corrcoef(cur_dists[triu_inds][..., np.arange(n), np.arange(n)].T))
-        res_dct[CrossPathMeasures.DKL].append(tf.reduce_mean(mrdev, axis=0))
-        res_dct[CrossPathMeasures.CKA].append(loss.calculate_cka(exp_logits=exp_logits))
 
     res_dct = {k.name: np.mean(v, axis=0) for k, v in res_dct.items()}
     return res_dct
