@@ -88,7 +88,7 @@ class GeneralGraphCLoSeRLoss(Loss):
 
         mean_nll = tf.reduce_mean(negative_log_likelihood, axis=0)  # (N, N)
         n = mean_nll.shape[0]
-        w = self.graph if self.graph is not None else tf.full_like(mean_nll, 1/(n*(n-1)))
+        w = self.graph if self.graph is not None else tf.keras.ops.full_like(mean_nll, 1/(n*(n-1)))
         loss = tf.tensordot(w, mean_nll, axes=[[0, 1], [0, 1]])
 
         self.monitor.update_monitor("pull", loss)
