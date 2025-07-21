@@ -2,13 +2,11 @@ import numpy as np
 import os
 import pandas as pd
 from enum import Enum
-import abc
 
 from neuronal.utils.consts import NEURONAL_BASE_DIR, NATURAL_MOVIES, NATURAL_MOVIES_FRAMES, \
     NATURAL_MOVIES_TRIALS, SESSIONS, BLOCKS, VALID_SESSIONS, VALID_SESSIONS_PREV
-import tensorflow as tf
 
-from utils.data import Label, ComplicatedData, CONTINUOUS, CATEGORICAL, TemporalData
+from utils.data import Label, ComplicatedData, CONTINUOUS, CATEGORICAL
 from utils.modules import Modules
 from utils.utils import streval
 
@@ -16,13 +14,9 @@ DATA_DIR = f"{NEURONAL_BASE_DIR}/data"
 
 
 class Labels(Enum):
-    # NEXT = Label("next", CONTINUOUS, None)
     STIMULUS = Label("stimulus", CATEGORICAL, 1 if len(NATURAL_MOVIES) <= 2 else len(NATURAL_MOVIES), NATURAL_MOVIES)
     TRIAL = Label("trial", CATEGORICAL, max(NATURAL_MOVIES_TRIALS.values()))
     FRAME = Label("normedframe", CONTINUOUS, 1)
-    LOCATION = Label("location", CONTINUOUS, 2)
-    LOCATION1D = Label("location1d", CATEGORICAL, 10)
-    ANGLE = Label("angle", CATEGORICAL, 1)
     NOTHING = Label(None, CONTINUOUS, 1)
 
     @staticmethod
@@ -38,6 +32,10 @@ class Labels(Enum):
 
 
 class SplitScheme(Enum):
+    """
+    How to split the data to train and test
+    """
+
     LAST = 'last'
     ODD_MOD_5 = 'odd_mod_5'
 
@@ -247,7 +245,7 @@ class Trial:
         self._load_frame_end()
         return self.frame_end
 
-    def _load_spike_bins(self, bins_per_frame=3, override=False):
+    def _load_spike_bins(self, bins_per_frame=1, override=False):
         if bins_per_frame not in self.spike_bins or override:
             binned_path = os.path.join(self._path, f"spikes_binned_bpf_{bins_per_frame}.npz")
             bins_path = os.path.join(self._path, f"spike_bins_bpf_{bins_per_frame}.npy")
@@ -267,7 +265,7 @@ class Trial:
                 with open(bins_path, "wb") as f:
                     np.save(f, self.bins[bins_per_frame])
 
-    def get_spike_bins(self, area=None, bins_per_frame=3, as_matrix=False, **kwargs):
+    def get_spike_bins(self, area=None, bins_per_frame=1, as_matrix=False, **kwargs):
         self._load_spike_bins(bins_per_frame, **kwargs)
         unit_to_bins = self._filter_by_area(self.spike_bins[bins_per_frame], area=area)
         if not len(unit_to_bins): return None
@@ -290,9 +288,26 @@ class Trial:
 
 
 class SessionDataGenerator(ComplicatedData):
-    def __init__(self, module:Modules, session_id, frames_per_sample=10, bins_per_frame=1, num_units=None,
+    def __init__(self, module:Modules, session_id, frames_per_sample=2, bins_per_frame=1, num_units=None,
                  stimuli=NATURAL_MOVIES, areas=None, binary=False, random=False, ignore_areas=False,
                  split_scheme=SplitScheme.LAST, delete_sessions=False, **kwargs):
+        """
+        a data generator for the Allen institute data. Assumes process_neuronal_dataset.py script was already run
+        :param module: the module
+        :param session_id: session id or index according to neuronal/utils/consts.
+                          Can also be a list of ids, which will make it into an aligned pseudo-mouse
+        :param frames_per_sample: how many samples are in every sample
+        :param bins_per_frame: how many bins are in a single frame (33ms)
+        :param num_units: if not None, take the first num_units
+        :param stimuli: names of stimuli
+        :param areas: what areas to use. If None, takes all areas
+        :param binary: whether to make the spikes binary with a threshold at 1 spike in timebin. default: False
+        :param random:
+        :param ignore_areas: if true, doesn't separate the areas and considers all neurons from the same area. Default: False
+        :param split_scheme: how to separate to train and test. See SplitScheme enum
+        :param delete_sessions: after loading the spikes, whether to delete the Sessions from the cache
+        :param kwargs: ComplicatedData kwargs
+        """
         super(SessionDataGenerator, self).__init__(module=module, **kwargs)
         if session_id == 'all':
             session_ids = VALID_SESSIONS
@@ -314,7 +329,7 @@ class SessionDataGenerator(ComplicatedData):
         self.frames_per_sample = frames_per_sample
         self.bins_per_frame = bins_per_frame
         self.spikes = {}    # {stim: {area: List[trial_activity_mat]}} if areas else {stim: List[trial_activity_mat]}
-        self.areas = list(areas) if areas is not None else areas
+        self.areas = None if areas is None else list(areas)
         self.single_area = areas[0] if areas and len(areas) == 1 else None
         self.stimuli = np.array(stimuli)
         self.bins_per_sample = frames_per_sample * bins_per_frame
@@ -360,21 +375,6 @@ class SessionDataGenerator(ComplicatedData):
                     split_scheme=self.split_scheme,
                     delete_sessions=self.delete_sessions,
                     ignore_areas=self.ignore_areas)
-
-    # def __len__(self):
-    #     if self.__total_samples is None:
-    #         total = 0
-    #         for stim, act in self.spikes.items():
-    #             if self.areas_in_spikes():
-    #                 arr = act[self.areas[0]]
-    #             else:
-    #                 arr = act
-    #
-    #             num_trials = len(arr)
-    #             num_samples_in_trial = arr[0].shape[-1] - self.bins_per_sample + 1
-    #             total += num_trials * num_samples_in_trial
-    #         self.__total_samples = total
-    #     return self.__total_samples
 
     def __load_spikes(self):
         for stimulus in self.stimuli:
@@ -423,7 +423,6 @@ class SessionDataGenerator(ComplicatedData):
                         aligned_trials_spikes.append(trial.get_spike_bins(area=self.single_area if self.single_area else None,
                                                                           bins_per_frame=self.bins_per_frame,
                                                                           as_matrix=True)[unit_mask])
-                        # print(session, trial, aligned_trials_spikes[-1].shape)
                         if aligned_trials_units is not None:
                             aligned_trials_units += len(aligned_trials_spikes[-1])
 
@@ -434,7 +433,6 @@ class SessionDataGenerator(ComplicatedData):
                             if self.num_units[area] is None:
                                 self.num_units[area] = aligned_trials_units[area]
                 else:
-
                     self.spikes[stimulus].append(np.concatenate(aligned_trials_spikes, axis=0))
                     if self.num_units is None:
                         self.num_units = aligned_trials_units
@@ -519,14 +517,6 @@ class SessionDataGenerator(ComplicatedData):
                             y[Labels.STIMULUS.value.name].append(stim_ind)
                             y[Labels.TRIAL.value.name].append(self.possible_trials[stim_name][trial_num])
                             y[Labels.FRAME.value.name].append(frame_num / NATURAL_MOVIES_FRAMES[stim_name])
-                            # next_bin_activity = self.get_activity_window(stim_name, trial_num, frame_num+self.frames_per_sample)
-                            # if self.areas_in_spikes():
-                            #     if not y[Labels.NEXT.value.name]:
-                            #         y[Labels.NEXT.value.name] = {area: [] for area in self.areas}
-                            #     for area in self.areas:
-                            #         y[Labels.NEXT.value.name][area].append(next_bin_activity[area][..., 0])
-                            # else:
-                            #     y[Labels.NEXT.value.name].append(next_bin_activity[..., 0])
 
             if self.areas_in_spikes():
                 spikes = {area: np.stack(activity, axis=0) for area, activity in spikes.items()}
@@ -540,19 +530,6 @@ class SessionDataGenerator(ComplicatedData):
 
     def get_y(self, labels=None, **kwargs):
         return super().get_y(labels=labels, **kwargs)
-        # if self.y is None:
-        #     self.get_x()
-        #
-        #
-        # actual_y = {}
-        # for name, label in self.name_to_label.items() if labels is None else {label.value.name if hasattr(label, 'value') else label: label
-        #                                                                       for label in labels}.items():
-        #     if self.areas_in_spikes() and label == Labels.NEXT:
-        #         actual_y[name] = {area: np.stack(self.y[label.value.name][area], axis=0) if label.value.name else np.zeros(self.__len__())
-        #                           for area in self.areas}
-        #     else:
-        #         actual_y[name] = np.array(self.y[label.value.name] if label.value.name else np.zeros(self.__len__()))
-        # return actual_y
 
     def __getitem__(self, idx):
         if self.random:
@@ -566,75 +543,3 @@ class SessionDataGenerator(ComplicatedData):
                 cur_x = x[idx]
             cur_y = y[idx]
             return cur_x, cur_y
-
-
-class RPPlaceCells(TemporalData):
-    def __init__(self, name, envnum, **kwargs):
-        self.name = name
-        self.envnum = envnum
-        self.fn = f"../RP_placecells/simulations/{self.name}/env{self.envnum}.npz"
-        super().__init__(**kwargs)
-
-    def _load_data(self, *args, **kwargs):
-        if self.x_samples is None:
-            if os.path.exists(self.fn):
-                data = np.load(self.fn, allow_pickle=True)
-                self.x_samples = data['spikes']
-
-                trajectory = self.inds2loc(data['trajectory'])
-                angles = self.inds2thetas(data['thetas']) if not Labels.ANGLE.value.is_categorical() else data[
-                    'thetas']
-                self.y_samples = {Labels.LOCATION.value.name: trajectory,
-                                  Labels.ANGLE.value.name: angles}
-            else:
-                print(f"couldn't find {self.fn}")
-                raise FileNotFoundError
-
-    @staticmethod
-    def inds2loc(inds):
-        XS = YS = np.linspace(-3, 3, 101)
-        GRID = np.stack(np.meshgrid(XS, YS), axis=-1)
-        return GRID[inds[..., 0], inds[..., 1]]
-
-    @staticmethod
-    def inds2thetas(inds):
-        thetas = np.linspace(0, np.pi*2, 41)[:-1]
-        return thetas[inds]
-
-    def get_config(self):
-        return dict(**super().get_config(), name=self.name, envnum=self.envnum)
-
-
-class PlaceCellsDS(TemporalData):
-    PATH = "neuronal/data/event_traces.mat"
-
-    def __init__(self, session, normalize_traj=True, trajectory=None, **kwargs):
-        self.session = session
-        self.normalize_traj = normalize_traj
-        self.trajectory = trajectory
-        super().__init__(**kwargs)
-
-    def _load_data(self):
-        if self.x_samples is None:
-            from scipy.io import loadmat
-            mat = loadmat(PlaceCellsDS.PATH)
-            sesmat = mat['event_traces'][0, self.session]
-            self.x_samples = sesmat[-2].toarray()
-
-            trajectory = sesmat[-1][..., 0]
-            self.trajectory = trajectory
-            if Labels.LOCATION1D.value.is_categorical():
-                min_, max_ = trajectory.min(), trajectory.max()
-                trajectory = np.digitize(trajectory,
-                                         np.linspace(min_-1e-6, max_+1e-6, Labels.LOCATION1D.value.dimension+1)[1:])
-            elif self.normalize_traj:
-                trajectory = (trajectory - trajectory.mean()) / trajectory.std(ddof=1)
-            self.y_samples = {Labels.LOCATION1D.value.name: trajectory[..., None]}
-
-    def get_config(self):
-        return dict(**super().get_config(),
-                    session=self.session,
-                    normalize_traj=self.normalize_traj,
-                    trajectory=self.trajectory
-                    )
-
