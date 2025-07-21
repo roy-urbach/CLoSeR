@@ -20,7 +20,7 @@ def get_masked_ds(model, dataset=Cifar10()) -> Data:
     """
     given a model, returns a Data object with the patchified and masked images
     :param model: tensorflow Model or str
-    :param dataset: an utils\data class
+    :param dataset: an utils/data class
     :return: a Data object
     """
     if isinstance(model, str):

@@ -191,7 +191,7 @@ def compile_model(model, loss=CLoSeRLoss, loss_kwargs={},
 
     for loss in losses.values():
         if hasattr(loss, "monitor") and loss.monitor is not None:
-            # see utils\metrics\LossMonitors
+            # see utils/metrics/LossMonitors
             if model.name + '_embedding' not in metrics:
                 metrics[model.name + '_embedding'] = []
             elif not isinstance(metrics[model.name + '_embedding'], list):

@@ -14,7 +14,7 @@ def create_and_compile_model(model_name, dataset, model_kwargs, module: Modules,
     """
     a module-general function which inits a model and compiles it
     :param model_name: name of the model, which can be used to get the corresponding json file
-    :param dataset: any utils\data class
+    :param dataset: any utils/data class
     :param model_kwargs: kwargs for the model creation
     :param module: Module
     :param loss: embedding loss name or class
