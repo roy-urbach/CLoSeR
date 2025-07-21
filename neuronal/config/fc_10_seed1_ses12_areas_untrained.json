@@ -1,0 +1,51 @@
+{
+    "model_kwargs": {
+        "l2": 0,
+        "encoder_per_path": true,
+        "pathways_kwargs": {
+            "n": 10,
+            "d": 1,
+            "fixed": true,
+            "seed": 1
+        },
+        "encoder": "TimeAgnosticMLP",
+        "encoder_kwargs": {
+            "bins_per_frame": 1,
+            "out_dim": 32,
+            "hidden_units": [
+                32,
+                32
+            ]
+        },
+        "kernel_regularizer": "tf.keras.regularizers.L1L2(l1=5e-6, l2=5e-6)"
+    },
+    "pathway_classification": true,
+    "pathway_classification_allpaths": false,
+    "classifier": false,
+    "classifier_pathways": true,
+    "ensemble_classification": true,
+    "labels": [
+        "Labels.STIMULUS"
+    ],
+    "loss": "LPL",
+    "loss_kwargs": {},
+    "dataset": "SessionDataGenerator",
+    "data_kwargs": {
+        "session_id": 12,
+        "frames_per_sample": 2,
+        "bins_per_frame": 1,
+        "split_scheme": "ODD_MOD_5",
+        "areas": [
+            "LP",
+            "VISrl",
+            "CA1",
+            "VISam",
+            "PO",
+            "LGd",
+            "VISp",
+            "SUB",
+            "Eth",
+            "SGN"
+        ]
+    }
+}
