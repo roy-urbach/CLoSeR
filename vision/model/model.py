@@ -34,7 +34,7 @@ def create_model(name='model', classifier=False, l2=False, divide_patches=True,
                  augmentation_kwargs={}, encoder_kwargs={}, pathways_kwargs={},
                  patch_encoder=True, patch_encoder_after_split=False, label_to_dim=None):
     """
-    a vision model creationg function
+    a vision model creating function
     :param name: name of the model
     :param classifier: whether it is supervised or not
     :param l2: l2 regularization on the embedding

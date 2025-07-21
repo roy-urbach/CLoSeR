@@ -1,17 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
-import scipy
-
-from utils.figure_utils import load_classfications_by_regex, plot_metrics_along_q, name_to_q, regex_models, \
-    plot_lines_different_along_q
-from utils.model.model import load_model_from_json
-from utils.modules import Modules
-from utils.plot_utils import calculate_square_rows_cols, simpleaxis, savefig, dct_to_multiviolin
-from utils.utils import cosine_sim
-from utils import plot_utils
-import re
-import os
-from scipy import stats
 
 BASELINE_NAME = r'$f^{image}_{logistic}$'
 PATCHES = 64
@@ -25,6 +12,7 @@ def qs_to_labels(ds):
     qs_labels = [f"{int(d*PATCHES)}/{PATCHES}" for d in ds]
     qs_labels = [r'$\frac{{{0}}}{{{1}}}$'.format(*k.split('/')) for k in qs_labels]
     return qs_labels
+
 
 def qs_to_perc(ds):
     return np.array([f'{int(d*PATCHES)/PATCHES:.1%}' for d in ds])
