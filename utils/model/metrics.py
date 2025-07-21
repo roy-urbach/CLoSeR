@@ -4,7 +4,7 @@ import tensorflow as tf
 class LossMonitor(tf.keras.metrics.MeanMetricWrapper):
     """
     Used to have multiple metrics for the same output .
-    See for example in "vision\utils\compile_model"
+    See for example in vision\utils\compile_model
     """
     def __init__(self, name='loss_monitor'):
         super().__init__(fn=self.get_current_value, name=name)
