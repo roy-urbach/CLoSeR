@@ -87,7 +87,6 @@ class GeneralGraphCLoSeRLoss(Loss):
         negative_log_likelihood = -(logits[tf.eye(tf.shape(logits)[0], dtype=tf.bool)] - log_denom) # (B, N, N)
 
         mean_nll = tf.reduce_mean(negative_log_likelihood, axis=0)  # (N, N)
-        print(embd.shape, dists_squared.shape, logits.shape, log_denom.shape, negative_log_likelihood.shape, mean_nll.shape)
         n = mean_nll.shape[0]
         w = self.graph if self.graph is not None else tf.cast((1-tf.eye(n)) * (1/(n*(n-1))),
                                                               dtype=mean_nll.dtype)
