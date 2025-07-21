@@ -86,7 +86,7 @@ class TemporalContiguityLoss(tf.keras.losses.Loss):
         if self.cont_w:
             loss = loss + self.cont_w * self.continuous_loss(prev_embd_sg, embd)
         if self.var_w:
-            loss = loss + self.std_w * self.neg_log_std(embd)
+            loss = loss + self.var_w * self.neg_log_std(embd)
         if self.cov_w:
             loss = loss + self.cov_w * self.decorrelate(embd)
         if self.pull_w:
