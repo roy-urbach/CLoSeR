@@ -158,8 +158,9 @@ def create_model(input_shape, name='neuronal_model',
     model = tf.keras.Model(inputs=inputs, outputs=outputs, name=name)
     return model
 
+
 def label_to_loss(label):
-    if label.values.is_categorical():
+    if label.value.is_categorical():
         if label.value.dimension > 1:
             return tf.keras.losses.SparseCategoricalCrossentropy
         else:
@@ -169,8 +170,7 @@ def label_to_loss(label):
 
 
 def label_to_metric(label):
-
-    if label.values.is_categorical():
+    if label.value.is_categorical():
         if label.value.dimension > 1:
             return tf.keras.metrics.SparseCategoricalAccuracy
         else:
