@@ -212,18 +212,18 @@ def compile_model(model, dataset, loss=TemporalContiguityLoss, loss_kwargs={},
                 for label in labels:
                     dataset.update_name_to_label(f'logits{path}_{label.value.name}', label)
                     losses[f'logits{path}_{label.value.name}'] = label_to_loss(label)(**label_kwargs[label.value.name])
-                    metrics[f'logits{path}_{label.value.name}'] = label_to_metric(label)[label.value.name]()
+                    metrics[f'logits{path}_{label.value.name}'] = label_to_metric(label)()
         else:
             for label in labels:
                 dataset.update_name_to_label(f'logits_{label.value.name}', label)
                 losses[f'logits_{label.value.name}'] = label_to_loss(label)(**label_kwargs[label.value.name])
-                metrics[f'logits_{label.value.name}'] = label_to_metric(label)[label.value.name]()
+                metrics[f'logits_{label.value.name}'] = label_to_metric(label)()
 
     if ensemble_classification:
         for label in labels:
             dataset.update_name_to_label(f'ensemble_logits_{label.value.name}', label)
             losses[f'ensemble_logits_{label.value.name}'] = label_to_loss(label)(**label_kwargs[label.value.name])
-            metrics[f'ensemble_logits_{label.value.name}'] = label_to_metric(label)[label.value.name]()
+            metrics[f'ensemble_logits_{label.value.name}'] = label_to_metric(label)()
 
 
     # added individual losses to metrics (using monitors)
