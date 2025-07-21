@@ -65,9 +65,8 @@ def main():
             return module.load_evaluation_json(args.json)
 
     try:
-        res = module.evaluate(args.json, knn=args.knn, linear=args.linear, ensemble=args.ensemble,
-                              save_results=True, dataset=None, override=args.override, override_linear=args.override_linear,
-                              inp=args.inp, ks=streval(args.ks), **kwargs)
+        res = module.evaluate(args.json, linear=args.linear, ensemble=args.ensemble, save_results=True, dataset=None,
+                              override=args.override, override_linear=args.override_linear, inp=args.inp, **kwargs)
     finally:
         # mark that you are no longer evaluating
         os.remove(evaluating_fn)
