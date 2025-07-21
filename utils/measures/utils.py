@@ -1,4 +1,3 @@
-from utils.data import GeneratorDataset
 from utils.model.model import load_model_from_json
 from utils.modules import Modules
 from utils.io_utils import load_json, save_json, get_file_time
@@ -59,8 +58,6 @@ def measure_model(model, module:Modules, iterations=50, b=128):
     dataset = module.get_class_from_data(kwargs.get('dataset', 'Cifar10'))(module=module, **kwargs.get("data_kwargs", {}))
     bins_per_frame = dataset.bins_per_frame if hasattr(dataset, 'bins_per_frame') else (
         dataset.bins_per_sample if hasattr(dataset, 'bins_per_sample') else None)
-    if issubclass(dataset.__class__, GeneratorDataset):
-        dataset = dataset.to_regular_dataset()
     test_embd = model.predict(dataset.get_x_test())[0]
 
     if module in (Modules.NEURONAL, ):

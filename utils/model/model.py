@@ -1,4 +1,3 @@
-from utils.data import GeneratorDataset
 from utils.model.callbacks import SaveOptimizerCallback, ErasePreviousCallback, SaveHistory, StopIfNaN
 from utils.model.losses import NullLoss
 from utils.model.optimizer import load_optimizer
@@ -161,24 +160,14 @@ def train(model_name, module: Modules, data_kwargs={}, dataset="Cifar10", batch_
                                      SaveHistory(module), StopIfNaN(module)]
                           )
 
-        if issubclass(dataset.__class__, GeneratorDataset):
-            val_dataset = dataset.get_val()
-            # fitting the model
-            history = model.fit(iter(dataset),
-                                validation_data=iter(val_dataset),
-                                batch_size=dataset.batch_size,
-                                steps_per_epoch=1000,
-                                validation_steps=250,
-                                **fit_kwargs)
-        else:
-            # fitting the model
-            history = model.fit(x=dataset.get_x_train(),
-                                y=dataset.get_y_train(),
-                                validation_split=dataset.get_val_split() if hasattr(dataset, 'get_val_split') else None,
-                                validation_data=None if hasattr(dataset, 'get_val_split') else (
-                                dataset.get_x_val(), dataset.get_y_val()),
-                                batch_size=batch_size,
-                                **fit_kwargs)
+        # fitting the model
+        history = model.fit(x=dataset.get_x_train(),
+                            y=dataset.get_y_train(),
+                            validation_split=dataset.get_val_split() if hasattr(dataset, 'get_val_split') else None,
+                            validation_data=None if hasattr(dataset, 'get_val_split') else (
+                            dataset.get_x_val(), dataset.get_y_val()),
+                            batch_size=batch_size,
+                            **fit_kwargs)
 
         printd("Done!")
     return model
