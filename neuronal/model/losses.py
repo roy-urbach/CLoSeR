@@ -26,7 +26,7 @@ class TemporalContiguityLoss(tf.keras.losses.Loss):
         losses = []
         if self.cont_w:
             losses.append("L_cont")
-        if self.std_w:
+        if self.var_w:
             losses.append("L_var")
         if self.cov_w:
             losses.append("L_cov")
