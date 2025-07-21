@@ -39,7 +39,7 @@ def create_model(input_shape, name='neuronal_model',
                  classifier=False, l2=False, kernel_regularizer=None, kernel_regularizer_sup=None,
                  encoder='TimeAgnosticMLP', encoder_per_path=False,
                  pathway_classification=True, pathway_classification_allpaths=False,
-                 ensemble_classification=True, classifier_pathways=True,
+                 ensemble_classification=True, classifier_pathways=True, bins_per_frame=1,
                  augmentation_kwargs={}, encoder_kwargs={}, pathways_kwargs={}, labels=Labels, label_to_dim=None,
                  module=Modules.NEURONAL, SplitClass=SplitPathwaysNeuronal):
     """
