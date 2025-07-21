@@ -38,7 +38,7 @@ class SplitPathwaysNeuronal(SplitPathways):
 
 def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
                  classifier=False, l2=False, kernel_regularizer=None, kernel_regularizer_sup=None,
-                 encoder='BasicRNN', encoder_per_path=False, random_rotation=False, random_rotations=False,
+                 encoder='TimeAgnosticMLP', encoder_per_path=False, random_rotation=False, random_rotations=False,
                  pathway_classification=True, pathway_classification_allpaths=False,
                  ensemble_classification=True, classifier_pathways=True,
                  predictor_kwargs={}, predictor_concat=True, pred_in_readout=False,
