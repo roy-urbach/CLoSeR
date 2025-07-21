@@ -3,7 +3,7 @@ from tensorflow.keras import layers
 
 from neuronal.model.losses import CrossPathwayTemporalContrastiveLoss
 from neuronal.utils.data import Labels
-from utils.model.layers import SplitPathways, Stack, RunningNorm
+from utils.model.layers import SplitPathways, Stack
 from utils.model.losses import NullLoss
 from utils.model.optimizer import get_optimizer
 from utils.modules import Modules
@@ -41,7 +41,7 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
                  encoder='BasicRNN', encoder_per_path=False, random_rotation=False, random_rotations=False,
                  pathway_classification=True, pathway_classification_allpaths=False,
                  ensemble_classification=True, classifier_pathways=True,
-                 predictor_kwargs={}, predictor_concat=True, pred_in_readout=False, bn=False,
+                 predictor_kwargs={}, predictor_concat=True, pred_in_readout=False,
                  augmentation_kwargs={}, encoder_kwargs={}, pathways_kwargs={}, labels=Labels, label_to_dim=None,
                  module=Modules.NEURONAL, SplitClass=SplitPathwaysNeuronal):
     if isinstance(kernel_regularizer, str) and kernel_regularizer.startswith("tf."):
@@ -63,12 +63,8 @@ def create_model(input_shape, name='neuronal_model', bins_per_frame=1,
     # Augment data.
     if different_areas:
         augmented = [get_neuronal_data_augmentation(bins_per_frame, **augmentation_kwargs, name=f'data_augmentation_{area}')(inp) for area, inp in zip(areas, inputs)]
-        if bn:
-            augmented = [RunningNorm(name=name + f"_bn{i}")(aug) for i, aug in augmented]
     else:
         augmented = get_neuronal_data_augmentation(bins_per_frame, **augmentation_kwargs)(inputs)
-        if bn:
-            augmented = RunningNorm(name=name + "_bn")(augmented)
 
     # divide to different pathways
     if classifier and not classifier_pathways:

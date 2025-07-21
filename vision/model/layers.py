@@ -1,8 +1,6 @@
 from utils.model.layers import SplitPathways
-from utils.tf_utils import serialize
 
 
-@serialize
 class SplitPathwaysVision(SplitPathways):
     def __init__(self, num_patches, token_per_path=False, n=2, d=0.5, intersection=True, fixed=False,
                  seed=0, class_token=True, pathway_to_cls=None, **kwargs):

@@ -298,8 +298,21 @@ class SplitPathways(tf.keras.layers.Layer):
     # Receives (B, ..., S, DIM)
     # Outputs (B, ..., d*S, P, DIM)
 
-    def __init__(self, num_signals, token_per_path=False, n=2, d=0.5, intersection=True, fixed=False,
+    def __init__(self, num_signals, token_per_path=False, n=2, d=0.5, intersection=True, fixed=True,
                  seed=0, class_token=True, pathway_to_cls=None, axis=-2, **kwargs):
+        """
+        :param num_signals: number of different signals to mask. For example, number of patches or number of neurons.
+        :param token_per_path: if true, uses a different class token per path
+        :param n: number of masks
+        :param d: masking fraction
+        :param intersection: if false and n and d allow that, makes sure that the masks are not intersecting
+        :param fixed: if true, the masks remain fixed
+        :param seed: random seed
+        :param class_token: if True, pads with mask tokens
+        :param pathway_to_cls: a list where the index corresponds to a mask index and the value corresponds to the class token index
+        :param axis: what axis to mask over
+        :param kwargs: tf.keras.layers.Layer kwargs
+        """
         super(SplitPathways, self).__init__(**kwargs)
         assert intersection or (n*int(num_signals * d)) <= num_signals
         self.axis = axis
@@ -347,6 +360,7 @@ class SplitPathways(tf.keras.layers.Layer):
                     (-1, self.n))
 
             if self.fixed:
+                # make sure it's fixed
                 self.indices = indices
         else:
             indices = self.indices
@@ -365,24 +379,6 @@ class SplitPathways(tf.keras.layers.Layer):
         return tf.gather(inputs, indices, axis=self.axis, batch_dims=0)
 
 
-class BasicRNNLayer(tf.keras.layers.Layer):
-    def __init__(self, width=32, dropout=0.1, activation='tanh', name='basic_rnn_layer', **kwargs):
-        super(BasicRNNLayer, self).__init__(name=name)
-        self.recurrent_connections = tf.keras.layers.Dense(width, activation=None, use_bias=False, name=f"{name}_recurrent", **kwargs)
-        self.input_projection = tf.keras.layers.Dense(width, activation=None, use_bias=True, name=f"{name}_proj", **kwargs)
-        self.dropout = tf.keras.layers.Dropout(dropout, name=f"{name}_dropout") if dropout else None
-        self.activation = tf.keras.layers.Activation(activation, name=f"{name}_act")
-        self.internal_state_size = width
-
-    def call(self, inputs, state):
-        external_input = self.input_projection(inputs)
-        if self.dropout is not None:
-            state = self.dropout(state)
-        internal = self.recurrent_connections(state)
-        output = self.activation(internal + external_input)
-        return output
-
-
 class Stack(tf.keras.layers.Layer):
     def __init__(self, axis=-1, name='stack', **kwargs):
         super().__init__(name=name, **kwargs)
@@ -390,44 +386,3 @@ class Stack(tf.keras.layers.Layer):
 
     def call(self, *inputs):
         return tf.stack(inputs, axis=self.axis)
-
-
-class RunningNorm(tf.keras.layers.Layer):
-    def __init__(self, momentum=0.99, epsilon=1e-5, **kwargs):
-        super(RunningNorm, self).__init__(**kwargs)
-        self.momentum = momentum
-        self.epsilon = epsilon
-
-    def build(self, input_shape):
-        param_shape = input_shape[1:]
-
-        self.running_mean = self.add_weight(
-            shape=param_shape,
-            initializer="zeros",
-            trainable=False,
-            name="running_mean"
-        )
-        self.running_std = self.add_weight(
-            shape=param_shape,
-            initializer="ones",
-            trainable=False,
-            name="running_std"
-        )
-
-    def call(self, inputs, training=False):
-        if training:
-            batch_mean = tf.reduce_mean(inputs, axis=0)
-            batch_std = tf.math.reduce_std(inputs, axis=0)
-
-            # Update running stats
-            self.running_mean.assign(self.momentum * self.running_mean + (1 - self.momentum) * batch_mean)
-            self.running_std.assign(self.momentum * self.running_std + (1 - self.momentum) * batch_std)
-
-            mean = batch_mean
-            std = batch_std
-        else:
-            mean = self.running_mean
-            std = self.running_std
-
-        return (inputs - mean) / (std + self.epsilon)
-
