@@ -56,7 +56,7 @@ def load_classfications_by_regex(model_regex, module, name_to_q_naive=False, con
 
 def plot_history(model_regex, module: Modules, window=10, name_to_name=lambda m: m, keys=None, keys_f=None,
                  log_keys={'embedding'}, plot_train=True, plot_val=True, name_to_c=None, save=None, legend=True, title=None,
-                 save_f=None):
+                 save_f=None, figsize=None):
     """
     Plots the training history of models
     :param model_regex: regex for all models that should be plotted
@@ -95,7 +95,7 @@ def plot_history(model_regex, module: Modules, window=10, name_to_name=lambda m:
     for k, v in histories.items():
         if k.startswith("val") or k == "loss": continue
         if keys is not None and k not in keys: continue
-        plt.figure()
+        plt.figure(figsize=figsize)
         plt.title((model_regex if title is None else title) + " " + k)
         for i, (model_name, value) in enumerate(v.items()):
             if plot_train:
