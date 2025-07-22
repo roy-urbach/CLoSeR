@@ -100,11 +100,11 @@ def classify_head_eval(dataset, m=flatten_but_batch, categorical=False,
 
 
 def classify_head_eval_ensemble(dataset, linear=True, k=10, base_name='',
-                                categorical=False,
+                                categorical=False, CS=CS,
                                 voting_methods=EnsembleVotingMethods, C=1, individual_ys=False, **kwargs):
     """
     Practically, this is used in the paper to train each classifier for every encoder,
-    since complicated ensembling methods didn't yield more interesting results then the simple concatenations
+    since complicated ensembling methods didn't yield more interesting results than the simple concatenations
     :return a dictionary with the scores of the individuals and votings
     """
     (x_train, y_train), (x_test, y_test) = dataset.get_all()
@@ -119,7 +119,8 @@ def classify_head_eval_ensemble(dataset, linear=True, k=10, base_name='',
         else:
             model = KNeighborsRegressor(k, weights='distance')
         name = f'knn{k}'
-    ensemble = EnsembleModel(model, get_score_method='predict_proba' if categorical else 'predict', ensemble_axis=-1)
+    ensemble = EnsembleModel(model, get_score_method='predict_proba' if categorical else 'predict',
+                             ensemble_axis=-1, CS=CS)
 
     res = {}
 
