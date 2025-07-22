@@ -8,9 +8,8 @@ GRAPH = None
 
 
 class GeneralGraphCLoSeRLoss(Loss):
-    def __init__(self, *args, num_pathways=None, graph=None, temperature=10, stable=True, stop_grad_dist=False, mse=False, **kwargs):
+    def __init__(self, num_pathways=None, graph=None, temperature=10, stable=True, stop_grad_dist=False, mse=False, **kwargs):
         """
-        :param args: Loss kwargs
         :param num_pathways: Number of nodes\encoders\pathways
         :param graph: a matrix of edges. If None, assumes all-to-all
         :param temperature: tau
@@ -20,7 +19,7 @@ class GeneralGraphCLoSeRLoss(Loss):
         :param mse: if true, the distance calculated is the mse and not Euclidian distance. Equivalent to higher temperature
         :param kwargs: Loss kwargs
         """
-        super().__init__(*args, **kwargs)
+        super().__init__(**kwargs)
         if graph is not None:
             global GRAPH
             GRAPH = tf.constant(eval(graph) if isinstance(graph, str) else graph, dtype=tf.float32)
