@@ -16,7 +16,7 @@ XTICKS_FRAC_F = lambda ax=None, ticksize=10: (ax.set_xticks if ax else plt.xtick
                                                                                    size=ticksize) and (ax.set_xlim if ax else plt.xlim)(0, 1)
 
 
-def D_OVER_ACC_F(ax=None, inp_name='image', ticksize=10):
+def Q_OVER_ACC_F(ax=None, inp_name='image', ticksize=10):
     # XTICKS_FRAC_F(ax=ax, ticksize=ticksize)
     XLABEL_FRAC_F(ax=ax, inp_name=inp_name)
     YLABEL_CLASS_F(ax=ax)
