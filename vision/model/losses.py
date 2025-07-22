@@ -89,10 +89,11 @@ class GeneralGraphCLoSeRLoss(Loss):
         negative_log_likelihood = -(logits[tf.eye(tf.shape(logits)[0], dtype=tf.bool)] - log_denom) # (B, N, N)
 
         mean_nll = tf.reduce_mean(negative_log_likelihood, axis=0)  # (N, N)
-        n = mean_nll.shape[0]
-        w = self.graph if self.graph is not None else tf.cast((1-tf.eye(n)) * (1/(n*(n-1))),
-                                                              dtype=mean_nll.dtype)
-        loss = tf.tensordot(w, mean_nll, axes=[[0, 1], [0, 1]])
+        g = self.get_graph(numpy=False)
+        if g is None:
+            n = mean_nll.shape[0]
+            g = tf.cast((1-tf.eye(n)) * (1/(n*(n-1))), dtype=mean_nll.dtype)
+        loss = tf.tensordot(g, mean_nll, axes=[[0, 1], [0, 1]])
 
         self.monitor.update_monitor("pull", loss)
         return loss
@@ -126,13 +127,17 @@ class GeneralGraphCLoSeRLoss(Loss):
         for sp in ax.spines:
             ax.spines[sp].set_color(interaction_c)
 
-    def get_graph(self, num_pathways=None):
+    def get_graph(self, num_pathways=None, numpy=True):
         if self.graph is not None:
-            return self.graph
+            g = self.graph
         elif num_pathways is not None:
-            return tf.constant((1 - np.eye(num_pathways)) / (num_pathways * (num_pathways - 1)))
+            g = tf.constant((1 - np.eye(num_pathways)) / (num_pathways * (num_pathways - 1)))
         else:
             return None
+        if numpy:
+            return g.numpy()
+        else:
+            return g
 
     def plot_pull(self, num_pathways=None, ax=None, interaction_c=(0.05, 0.3, 0.15, 0.8), nointeraction_c=(0.05, 0.3, 0.15, 0.1), **kwargs):
         graph = self.get_graph(num_pathways=num_pathways)
