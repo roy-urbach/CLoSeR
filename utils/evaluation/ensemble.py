@@ -26,7 +26,7 @@ class EnsembleModel:
         assert hasattr(self.base_model, get_score_method)
         self.ensemble_axis = ensemble_axis
         self.models = []
-        self.CS = CS
+        self.CS = np.array(CS)
         self.CS_models = []
         self.best_CS = None
         self.scores_val = None
