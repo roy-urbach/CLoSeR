@@ -8,9 +8,10 @@ GRAPH = None
 
 
 class GeneralGraphCLoSeRLoss(Loss):
-    def __init__(self, *args, graph=None, temperature=10, stable=True, stop_grad_dist=False, mse=False, **kwargs):
+    def __init__(self, *args, num_pathways=None, graph=None, temperature=10, stable=True, stop_grad_dist=False, mse=False, **kwargs):
         """
         :param args: Loss kwargs
+        :param num_pathways: Number of nodes\encoders\pathways
         :param graph: a matrix of edges. If None, assumes all-to-all
         :param temperature: tau
         :param stable: removes max from similarity measure (assuming it will next be divided by the denominator)
@@ -24,6 +25,8 @@ class GeneralGraphCLoSeRLoss(Loss):
             global GRAPH
             GRAPH = tf.constant(eval(graph) if isinstance(graph, str) else graph, dtype=tf.float32)
             self.graph = GRAPH
+        elif num_pathways is not None:
+            self.graph =  tf.constant((1 - np.eye(num_pathways)) / (num_pathways * (num_pathways - 1)))
         else:
             self.graph = None
         self.temperature = temperature
@@ -124,8 +127,20 @@ class GeneralGraphCLoSeRLoss(Loss):
         for sp in ax.spines:
             ax.spines[sp].set_color(interaction_c)
 
-    def plot_pull(self, ax=None, interaction_c=(0.05, 0.3, 0.15, 0.8), nointeraction_c=(0.05, 0.3, 0.15, 0.1), **kwargs):
-        self.plot_graph(self.graph.numpy().T, ax=ax, interaction_c=interaction_c, nointeraction_c=nointeraction_c, **kwargs)
+    def get_graph(self, num_pathways=None):
+        if self.graph is not None:
+            return self.graph
+        elif num_pathways is not None:
+            return tf.constant((1 - np.eye(num_pathways)) / (num_pathways * (num_pathways - 1)))
+        else:
+            return None
+
+    def plot_pull(self, num_pathways=None, ax=None, interaction_c=(0.05, 0.3, 0.15, 0.8), nointeraction_c=(0.05, 0.3, 0.15, 0.1), **kwargs):
+        graph = self.get_graph(num_pathways=num_pathways)
+        if graph is not None:
+            self.plot_graph(self.graph.numpy().T, ax=ax, interaction_c=interaction_c, nointeraction_c=nointeraction_c, **kwargs)
+        else:
+            raise Exception("Graph object doesn't have a graph set up")
 
 
 class CLoSeRLoss(GeneralGraphCLoSeRLoss):
@@ -156,7 +171,7 @@ class NumEdgesGraphLoss(GeneralGraphCLoSeRLoss):
         graph = np.full((num_pathways, num_pathways), False)
         graph[~np.eye(num_pathways).astype(bool)] = pull_masked
 
-        super(NumEdgesGraphLoss, self).__init__(*args, graph=graph, **kwargs)
+        super(NumEdgesGraphLoss, self).__init__(*args, num_pathways=num_pathways, graph=graph, **kwargs)
 
 
 class CirculantGraphLoss(GeneralGraphCLoSeRLoss):
@@ -177,7 +192,7 @@ class CirculantGraphLoss(GeneralGraphCLoSeRLoss):
                                  2*num_lateral * num_pathways)
         else:
             graph = scipy.linalg.circulant(np.concatenate([[0], np.zeros(num_pathways - num_lateral - 1), np.ones(num_lateral)])) / (num_lateral * num_pathways)
-        super(CirculantGraphLoss, self).__init__(*args, graph=graph, **kwargs)
+        super(CirculantGraphLoss, self).__init__(*args, num_pathways=num_pathways, graph=graph, **kwargs)
         self.symmetric = symmetric
         self.num_lateral = num_lateral
 
@@ -202,5 +217,5 @@ class StarGraphLoss(GeneralGraphCLoSeRLoss):
 
         graph = graph / graph.sum()
 
-        super(StarGraphLoss, self).__init__(*args, graph=graph, **kwargs)
+        super(StarGraphLoss, self).__init__(*args, num_pathways=num_pathways, graph=graph, **kwargs)
         self.num_center = num_center
