@@ -213,7 +213,7 @@ def plot_lines_different_along_q(model_format, module:Modules, seeds, args, qs, 
         qs = eval(qs)
     res = gather_results_over_all_args(model_format, module=module, name=name,
                                        seeds=seeds,
-                                       args={arg: args, 'q': qs} if arg else {'q': qs},
+                                       args={arg: args, 'd': qs} if arg else {'d': qs},
                                        measure=measure,
                                        **kwargs)
     if res is None or np.isnan(res).all():
