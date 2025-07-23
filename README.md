@@ -13,9 +13,7 @@ cross-supervising neural networks for representation learning.
 Similar to cortical columns in the brain, each encoder receives a fixed and random subset of the input. 
 Then, they are trained to have similar embeddings of the same input.
 
-
-<img src="images/main_scheme.png">
-
+![image](images/main_scheme.png)
 
 ## Installation
     conda create --name <env> --file requirements.txt
