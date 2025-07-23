@@ -36,6 +36,7 @@ Therefore, in both modules (**vision**, **neuronal**), this structure is kept.
 Also, each module has to be inserted to the [utils.modules.Modules](utils/modules.py) enum.
 
 An explanation of the files and folders at the root
+
     CLoSeR/
     ├── figures/                        # a directory to save figures in notebooks/figures_notebook.ipynb
     ├── images/                         # a folder with images for the README
