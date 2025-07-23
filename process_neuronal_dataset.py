@@ -5,7 +5,7 @@ from neuronal.utils.consts import NATURAL_MOVIES
 from neuronal.utils.data import DATA_DIR
 from utils.utils import printd
 
-CACHE_DIR = '../../../jonatham/allen_institute_data/ecephys_cache_dir/'
+CACHE_DIR = '../../../jonatham/allen_institute_data/ecephys_cache_dir/'         # Change according to the data path
 
 
 def process_session(index):
