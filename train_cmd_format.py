@@ -94,7 +94,13 @@ if __name__ == '__main__':
     # this script outputs (by writing to "/tmp/cmd") the command to run to send a job to train a model
 
     # Call this script using the bash function:
-    # function train_vis() { python3 train_cmd_format.py $@; cmd=$(<'/tmp/cmd'); eval $cmd; rm /tmp/cmd;}
+    # function train() { python3 train_cmd_format.py $@; cmd=$(<'/tmp/cmd'); eval $cmd; rm /tmp/cmd;}
+
+    # Notice it can also be used to create new configuration files based on previous ones and only changing:
+    #   - the masking ratio (-d)
+    #   - the seed (-s)
+
+
     from utils.io_utils import load_json, save_json
 
     with open('/tmp/cmd', 'w') as f:

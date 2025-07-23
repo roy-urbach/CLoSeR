@@ -7,6 +7,9 @@ from utils.utils import printd
 
 
 def parse():
+    """
+    Parse the arguments for the script
+    """
     parser = argparse.ArgumentParser(description='Train a model')
     parser.add_argument('-b', '--batch', type=int, default=128, help='batch size')
     parser.add_argument('-e', '--epochs', type=int, default=100, help='number of epochs')

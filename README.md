@@ -45,7 +45,7 @@ Use the [train.py](train.py) script to train your model, in the following way:
     python3 train.py -j {model} -m {module} -b {batchsize} -e {epochs}
 
 This assumes _model_ has a corresponding configuration file.
-See documentation in [train.py](train.py) for details.
+See [train.py](train.py) (and specifically the function _parse_) for details.
 
 If you are using parallelization (and specifically IBM LSF cluster), 
 consider using the bash scripts in [.bashrc](./bashrc), for example the function _train_.
