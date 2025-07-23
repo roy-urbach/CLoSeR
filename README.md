@@ -71,7 +71,7 @@ If you are using parallelization (and specifically IBM LSF cluster),
 consider using the bash scripts in [.bashrc](./bashrc), for example the function _train_.
 
 
-You can also use the notebook in _notebooks.train.ipynb_ if it was more convenient for you.
+You can also use the [training notebook](notebooks/train.ipynb) if it was more convenient for you.
 
 
 ### Evaluate a model
@@ -79,7 +79,7 @@ Use the [evaluate.py](evaluate.py) script to evaluate your model, in the followi
 
     python3 evaluate.py -j {model} -m {module}
 
-This will save a _classification_eval.json_ in *module*/models/_model_/ with the keys as the names of the metrics, 
+This will save a _classification_eval.json_ in _module_/models/_model_/ with the keys as the names of the metrics, 
 and the values as a tuple of (train, validation, test) results.
 If you are using parallelization (and specifically IBM LSF cluster), 
 consider using the bash scripts in [.bashrc](./bashrc), for example the function _evaluate_.
