@@ -35,7 +35,7 @@ In the repository, each modality corresponds to a "module", that must have a sim
                     └── compile_model   # a function that compiles a model
             └── evaluate.py
                     └── evaluate        # a function that evaluates a model
-            └── utils
+            └── utils/
                 └── data.py             # with a dataset calss that inherits from ~/utils/utils/data classes
                     └── Labels          # an enum where each object is a utils\data\Label
 
