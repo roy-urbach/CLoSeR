@@ -68,5 +68,5 @@ consider using the bash scripts in [.bashrc](./bashrc), for example the function
 
 We added two notebooks to the repository:
 
-- [figures_notebook](figures_notebook.ipynb) - that shows all the calculations done to create the figures in the paper. All the figures will be saved in [figures](figures). 
-- [train](train.ipynb) - that shows how to train and evaluate a model.
+- [figures_notebook](notebooks/figures_notebook.ipynb) - that shows all the calculations done to create the figures in the paper. All the figures will be saved in [figures](figures). 
+- [train](notebooks/train.ipynb) - that shows how to train and evaluate a model.
