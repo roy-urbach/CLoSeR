@@ -23,19 +23,25 @@ Use conda to create a virtual environment based on [requirements.txt](requiremen
 ## Repository structure
 In this work, the model was evaluated on two modalities - images and neuronal activity.
 In the repository, each modality corresponds to a "module", that must have a similar structure:
->- **config**           (package; where the models configurations files are saved)
->- **models**           (package; where the weights and training history are saved)
->- **model\model.py**   (file)
->  - **create_model**   (function; inits a model)
->  - **compile_model**  (function; compiles a model)
->- **evaluate.py**
->  - **evaluate**        (a function that evaluates a model)
->- **utils\data.py**  (file; with a class that inherits from _~\utils\utils\data_ classes)
 
-Therefore, in both modules (**vision**, **neuronal**), this structure is kept.
+    CLoSeR/
+         └── module
+            ├── config/                 # where configurations area saved
+            ├── models/                 # where weights and training history are saved
+            └── model/                  
+                └── model.py            
+                    ├── create_model    # a function that inits a model
+                    └── compile_model   # a function that compiles a model
+            └── evaluate.py
+                    └── evaluate        # a function that evaluates a model
+            └── utils
+                └── data.py             # with a dataset calss that inherits from ~/utils/utils/data classes
+
+
+Therefore, in both modules (vision, neuronal), this structure is kept.
 Also, each module has to be inserted to the [utils.modules.Modules](utils/modules.py) enum.
 
-An explanation of the files and folders at the root
+An explanation of the files and folders at the root:
 
     CLoSeR/
     ├── figures/                        # a directory to save figures in notebooks/figures_notebook.ipynb
