@@ -1,6 +1,7 @@
 from enum import Enum
 import os
 
+from utils.consts import MODELS_DIR, CONFIG_DIR
 from utils.utils import get_class
 
 
@@ -15,10 +16,10 @@ class Modules(Enum):
     NEURONAL = "neuronal"
 
     def get_models_path(self):
-        return import_variable(self.value + "/utils", "consts", "MODULE_MODELS_DIR")
+        return os.path.join(self.value, MODELS_DIR)
 
     def get_config_path(self):
-        return import_variable(self.value + "/utils", "consts", "MODULE_CONFIG_DIR")
+        return os.path.join(self.value, CONFIG_DIR)
 
     def get_class_from_data(self, cls):
         return import_variable(self.value + "/utils", "data", cls)

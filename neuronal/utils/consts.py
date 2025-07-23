@@ -1,13 +1,3 @@
-from utils.consts import MODELS_DIR, CONFIG_DIR
-
-NEURONAL_BASE_DIR = "neuronal"
-
-NEURONAL_MODELS_DIR = f"{NEURONAL_BASE_DIR}/{MODELS_DIR}"
-NEURONAL_CONFIG_DIR = f"{NEURONAL_BASE_DIR}/{CONFIG_DIR}"
-
-MODULE_MODELS_DIR = NEURONAL_MODELS_DIR
-MODULE_CONFIG_DIR = NEURONAL_CONFIG_DIR
-
 AREAS_DICT = {'cortex': ['VISp', 'VISl', 'VISrl', 'VISam', 'VISpm', 'VIS', 'VISal', 'VISmma', 'VISmmp', 'VISli'],
               'thalamus': ['LGd', 'LD', 'LP', 'VPM', 'TH', 'MGm', 'MGv', 'MGd', 'PO', 'LGv', 'VL',
                            'VPL', 'POL', 'Eth', 'PoT', 'PP', 'PIL', 'IntG', 'IGL', 'SGN', 'VPL', 'PF', 'RT'],

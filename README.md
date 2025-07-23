@@ -28,7 +28,8 @@ In the repository, each modality corresponds to a "module", that must have a sim
          └── module
             ├── config/                 # where configurations area saved
             ├── models/                 # where weights and training history are saved
-            └── model/                  
+            └── model/         
+                ├── losses.py           # optional. If exists, searches for the given loss in this file
                 └── model.py            
                     ├── create_model    # a function that inits a model
                     └── compile_model   # a function that compiles a model
@@ -36,6 +37,7 @@ In the repository, each modality corresponds to a "module", that must have a sim
                     └── evaluate        # a function that evaluates a model
             └── utils
                 └── data.py             # with a dataset calss that inherits from ~/utils/utils/data classes
+                    └── Labels          # an enum where each object is a utils\data\Label
 
 
 Therefore, in both modules (vision, neuronal), this structure is kept.

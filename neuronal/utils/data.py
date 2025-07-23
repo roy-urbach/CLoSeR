@@ -3,14 +3,14 @@ import os
 import pandas as pd
 from enum import Enum
 
-from neuronal.utils.consts import NEURONAL_BASE_DIR, NATURAL_MOVIES, NATURAL_MOVIES_FRAMES, \
+from neuronal.utils.consts import NATURAL_MOVIES, NATURAL_MOVIES_FRAMES, \
     NATURAL_MOVIES_TRIALS, SESSIONS, BLOCKS, VALID_SESSIONS, VALID_SESSIONS_PREV
 
 from utils.data import Label, ComplicatedData, CONTINUOUS, CATEGORICAL
 from utils.modules import Modules
 from utils.utils import streval
 
-DATA_DIR = f"{NEURONAL_BASE_DIR}/data"
+DATA_DIR = f"{Modules.NEURONAL.value}/data"
 
 
 class Labels(Enum):
