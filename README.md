@@ -18,7 +18,8 @@ Then, they are trained to have similar embeddings of the same input.
 
 
 ## Installation
-Use pip or conda to create a virtual environment based on [requirements.txt](requirements.txt).
+    conda create --name <env> --file requirements.txt
+Use conda to create a virtual environment based on [requirements.txt](requirements.txt).
 
 
 ## Repository structure
@@ -35,6 +36,27 @@ In the repository, each modality corresponds to a "module", that must have a sim
 
 Therefore, in both modules (**vision**, **neuronal**), this structure is kept.
 Also, each module has to be inserted to the [utils.modules.Modules](utils/modules.py) enum.
+
+An explanation of the files and folders at the root
+    CLoSeR/
+    ├── figures/                        # a directory to save figures in notebooks/figures_notebook.ipynb
+    ├── images/                         # a folder with images for the README
+    ├── neuronal/                       # a module for the neuronal data and model
+    ├── notebooks/                      # notebooks (see section below)
+    ├── utils/                          # module-general utils
+    ├── vision/                         # a module for the vision model
+    ├── .bashrc                         # the bashrc we used, for convenience (especially for IBM LSF clusters)
+    ├── cls_likelihood.py               # a script to calculate the mean class-class conditional pseudo-likelihood (figure 2a)
+    ├── evaluate.py                     # a script to evaluate a model
+    ├── measure.py                      # a script to calculate the cross-path measures of a model
+    ├── process_neuronal_dataset.py     # pre-processing needed over the Allen observatory data
+    ├── README.md                       # this file
+    ├── requirements.txt                # a requirements file, for conda installation 
+    ├── run_before_script.py            # a script called by other scripts. Needed for a dynamic adding of methods to the modules
+    ├── save_runtime.sh                 # a script that sums the runtime of all jobs that were done to train a model (in IBM LSF clusters)
+    ├── train.py                        # a script to train a model
+    └── train_cmd_format.py             # a script that prints the command to run to send a job to train a model
+
 
 ## Usage
 
