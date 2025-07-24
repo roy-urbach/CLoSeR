@@ -42,6 +42,7 @@ def run():
         print("already training")
         return
     else:
+        os.makedirs(os.path.dirname(training_fn), exist_ok=True)
         # mark that you are training the model, so that other jobs won't override you
         with open(training_fn, 'w') as f:
             f.write("Yes!")
