@@ -40,7 +40,7 @@ class Labels(Enum):
 
 
 class TinyImageNet200(Data):
-    DIRECTORY = os.path.join(Modules.VISION.value, "tiny_imagenet", "tiny_imagenet-200")
+    DIRECTORY = os.path.join(Modules.VISION.value, "tiny_imagenet", "tiny-imagenet-200")
     NUM_CLASSES = 200
 
     def __init__(self, *args, val_split=0.1, **kwargs):
