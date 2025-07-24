@@ -346,24 +346,25 @@ class SplitPathways(tf.keras.layers.Layer):
                     intersection=self.intersection, shift=self.shift, class_token=self.class_token,
                     pathway_to_cls=self.pathway_to_cls)
 
-    def get_indices(self):
-        if self.indices is None:
-            if self.intersection:
-                indices = tf.stack(
-                    [tf.random.shuffle(tf.range(self.shift, self.num_signals + self.shift))[:self.num_signals_per_path]
-                     for _ in range(self.n)],
-                    axis=-1)
+    def get_indices(self, indices=None):
+        if indices is None:
+            if self.indices is None:
+                if self.intersection:
+                    indices = tf.stack(
+                        [tf.random.shuffle(tf.range(self.shift, self.num_signals + self.shift))[:self.num_signals_per_path]
+                         for _ in range(self.n)],
+                        axis=-1)
+                else:
+                    indices = tf.reshape(
+                        tf.random.shuffle(tf.range(self.shift,
+                                                   self.num_signals + self.shift))[:self.num_signals_per_path * self.n],
+                        (-1, self.n))
             else:
-                indices = tf.reshape(
-                    tf.random.shuffle(tf.range(self.shift,
-                                               self.num_signals + self.shift))[:self.num_signals_per_path * self.n],
-                    (-1, self.n))
+                indices = self.indices
 
-            if self.fixed:
-                # make sure it's fixed
-                self.indices = indices
-        else:
-            indices = self.indices
+        if self.fixed:
+            # make sure it's fixed
+            self.indices = indices
 
         # everyone gets the class token
         if self.class_token:

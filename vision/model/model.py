@@ -96,7 +96,7 @@ def create_model(name='model', classifier=False, l2=False, divide_patches=True,
     else:
         # generate the input for each encoder with a corresponding class token
         pathways = SplitPathwaysVision(num_patches, class_token=patch_encoder and not patch_encoder_after_split,
-                                       name=name + '_pathways', **pathways_kwargs)(patches)
+                                       name=name + '_pathways', image_size=image_size, **pathways_kwargs)(patches)
         pathways = [tf.squeeze(path, axis=-2) for path in tf.split(pathways, pathways.shape[-2], axis=-2)]
         if patch_encoder and patch_encoder_after_split:
             assert encoder_per_path
