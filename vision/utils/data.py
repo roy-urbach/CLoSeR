@@ -68,7 +68,7 @@ class TinyImageNet200(Data):
             for filename in os.listdir(class_dir):
                 if filename.endswith('.JPEG'):
                     img_path = os.path.join(class_dir, filename)
-                    img = Image.open(img_path).resize(image_size)
+                    img = Image.open(img_path).convert("RGB").resize(image_size)
                     X_train.append(np.array(img))
                     y_train.append(wnid_to_label[wnid])
 
@@ -86,7 +86,7 @@ class TinyImageNet200(Data):
         for filename in tqdm(os.listdir(val_img_dir), desc="Loading val"):
             if filename.endswith('.JPEG'):
                 img_path = os.path.join(val_img_dir, filename)
-                img = Image.open(img_path).resize(image_size)
+                img = Image.open(img_path).convert("RGB").resize(image_size)
                 X_val.append(np.array(img))
                 y_val.append(val_img_to_label[filename])
 
