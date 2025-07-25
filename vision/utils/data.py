@@ -43,12 +43,13 @@ class TinyImageNet200(Data):
     DIRECTORY = os.path.join(Modules.VISION.value, "tiny_imagenet", "tiny-imagenet-200")
     NUM_CLASSES = 200
 
-    def __init__(self, *args, val_split=0.1, **kwargs):
-        (x_train, y_train), (x_test, y_test) = self.load()
-        super().__init__(x_train, y_train, x_test, y_test, *args, val_split=val_split, flatten_y=True, **kwargs)
+    def __init__(self, *args, val_split=0.1, test_only=False, **kwargs):
+        (x_train, y_train), (x_test, y_test) = self.load(test_only)
+        super().__init__(x_train, y_train, x_test, y_test, *args, test_only=test_only,
+                         val_split=val_split, flatten_y=True, **kwargs)
 
     @staticmethod
-    def load():
+    def load(test_only=False):
         import numpy as np
         from PIL import Image
         from tqdm import tqdm
@@ -61,16 +62,19 @@ class TinyImageNet200(Data):
         wnid_to_label = {wnid: i for i, wnid in enumerate(wnids)}
 
         # --- Load training data ---
-        X_train, y_train = [], []
-        train_dir = os.path.join(TinyImageNet200.DIRECTORY, 'train')
-        for wnid in tqdm(wnids, desc="Loading train"):
-            class_dir = os.path.join(train_dir, wnid, 'images')
-            for filename in os.listdir(class_dir):
-                if filename.endswith('.JPEG'):
-                    img_path = os.path.join(class_dir, filename)
-                    img = Image.open(img_path).convert("RGB").resize(image_size)
-                    X_train.append(np.array(img))
-                    y_train.append(wnid_to_label[wnid])
+        if not test_only:
+            X_train, y_train = [], []
+            train_dir = os.path.join(TinyImageNet200.DIRECTORY, 'train')
+            for wnid in tqdm(wnids, desc="Loading train"):
+                class_dir = os.path.join(train_dir, wnid, 'images')
+                for filename in os.listdir(class_dir):
+                    if filename.endswith('.JPEG'):
+                        img_path = os.path.join(class_dir, filename)
+                        img = Image.open(img_path).convert("RGB").resize(image_size)
+                        X_train.append(np.array(img))
+                        y_train.append(wnid_to_label[wnid])
+        else:
+            X_train, y_train = None, None
 
         # --- Load validation data ---
         val_annotations_file = os.path.join(TinyImageNet200.DIRECTORY, 'val', 'val_annotations.txt')

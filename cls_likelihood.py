@@ -6,11 +6,10 @@ from vision.utils.data import Cifar10
 from utils.utils import unknown_args_to_dict, printd
 
 
-def calculate_class_mean_likelihood(model, module, pred=None, save=False, examples_per_class=50, repeats=100, temp=10, inp=False, **kwargs):
+def calculate_class_mean_likelihood(model, module, ds=Cifar10(), pred=None, save=False, examples_per_class=50, repeats=100, temp=10, inp=False, **kwargs):
     """
     Calculate class mean conditional pseudo-likelihood
     """
-    ds = Cifar10()
     C = len(ds.LABELS)
 
     from tqdm import tqdm as counter
@@ -69,17 +68,20 @@ if __name__ == "__main__":
     module = Modules.VISION
     printd(f"running {model_name}. Loading model...")
     model = load_model_from_json(model_name, module=module)
+    dct = module.load_json(model_name, config=True)
+    dataset_name = dct.pop("dataset")
+    data_kwargs = dct.pop('data_kwargs', {})
+    dataset = Modules.VISION.get_class_from_data(dataset_name)(**data_kwargs, test_only=True)
     printd("done")
-    ds = Cifar10()
 
     printd("predicting test")
-    embd = model.predict(ds.get_x_test())[0]
+    embd = model.predict(dataset.get_x_test())[0]
     printd("done")
 
     if args.inp:
         printd("using input")
         from vision.evaluate import get_masked_ds
-        masked_inp = get_masked_ds(model, dataset=ds).get_x_test()
+        masked_inp = get_masked_ds(model, dataset=dataset).get_x_test()
 
         printd("running masked inputs...")
         calculate_class_mean_likelihood(model, module, pred=masked_inp, save=True,
@@ -88,7 +90,7 @@ if __name__ == "__main__":
         printd("done")
 
     printd("running individual pathways...")
-    calculate_class_mean_likelihood(model, module, pred=embd, save=True,
+    calculate_class_mean_likelihood(model, module, ds=dataset, pred=embd, save=True,
                                     repeats=args.repeats, examples_per_class=args.examples, temp=args.temp,
                                     inp=False, **kwargs)
     printd("done")
