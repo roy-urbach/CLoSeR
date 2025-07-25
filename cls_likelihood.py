@@ -17,7 +17,7 @@ def calculate_class_mean_likelihood(model, module, ds=Cifar10(), pred=None, save
             mean_cls_cls_likelihood = np.load(path_to_save)
     else:
         pred_x = model.predict(ds.get_x_test())[0] if pred is None else pred         # embedding
-        inds_by_class = [np.where(ds.get_y_test() == i)[0] for i in range(ds.NUM_LABELS)]
+        inds_by_class = [np.where(ds.get_y_test() == i)[0] for i in range(ds.NUM_CLASSES)]
         mean_cls_cls_likelihood = []
         for _ in counter(range(repeats)):   # calculate the average class-class conditional pseudo-likelihood over <repeats> image samples
             mean_cls_cls_likelihood_p = []
@@ -31,8 +31,8 @@ def calculate_class_mean_likelihood(model, module, ds=Cifar10(), pred=None, save
 
                 # conditional pseudo-likelihood
                 likelihood = sim / np.nansum(sim, axis=1, keepdims=True)  # (B, B)
-                mean_example_cls_likelihood = np.nanmean(likelihood.reshape(len(likelihood), ds.NUM_LABELS, examples_per_class), axis=-1)   # (B, C)
-                mean_cls_cls_likelihood_p.append(np.nanmean(mean_example_cls_likelihood.reshape(ds.NUM_LABELS, examples_per_class, ds.NUM_LABELS), axis=1))
+                mean_example_cls_likelihood = np.nanmean(likelihood.reshape(len(likelihood), ds.NUM_CLASSES, examples_per_class), axis=-1)   # (B, C)
+                mean_cls_cls_likelihood_p.append(np.nanmean(mean_example_cls_likelihood.reshape(ds.NUM_CLASSES, examples_per_class, ds.NUM_CLASSES), axis=1))
             mean_cls_cls_likelihood.append(np.stack(mean_cls_cls_likelihood_p, axis=-1))
         mean_cls_cls_likelihood = np.mean(mean_cls_cls_likelihood, axis=0)
         if save:
