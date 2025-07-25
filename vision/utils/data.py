@@ -9,6 +9,7 @@ from utils.modules import Modules
 
 class Cifar10(Data):
     LABELS = np.array(["airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck"])
+    NUM_LABELS = 10
 
     def __init__(self, *args, val_split=0.1, **kwargs):
         (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
@@ -19,6 +20,7 @@ class Cifar100(Data):
     """
     Not used in the paper, but preliminary results shows promising generalization
     """
+    NUM_LABELS = 100
     def __init__(self, *args, val_split=0.1, **kwargs):
         (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar100.load_data()
         super().__init__(x_train, y_train, x_test,  y_test, *args, val_split=val_split, flatten_y=True, **kwargs)
