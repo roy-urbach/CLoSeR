@@ -6,11 +6,6 @@ class SplitPathwaysVision(SplitPathways):
     def __init__(self, num_patches, token_per_path=False, n=2, d=0.5, intersection=True, fixed=False,
                  seed=0, class_token=True, pathway_to_cls=None, contiguous=False, rows=None, cols=None,
                  gaussian_mask=False, gaussian_std=4, image_size=32, **kwargs):
-        super(SplitPathwaysVision, self).__init__(num_signals=num_patches, token_per_path=token_per_path, n=n, d=d,
-                                                  intersection=intersection, fixed=fixed, seed=seed,
-                                                  class_token=class_token, pathway_to_cls=pathway_to_cls, **kwargs)
-        self.num_patches = num_patches
-        self.num_patches_per_path = self.num_signals_per_path
         self.contiguous = contiguous
         self.rows = rows
         self.cols = cols
@@ -19,6 +14,11 @@ class SplitPathwaysVision(SplitPathways):
         self.gaussian_mask = gaussian_mask
         self.gaussian_std = gaussian_std
         self.image_size = image_size
+        super(SplitPathwaysVision, self).__init__(num_signals=num_patches, token_per_path=token_per_path, n=n, d=d,
+                                                  intersection=intersection, fixed=fixed, seed=seed,
+                                                  class_token=class_token, pathway_to_cls=pathway_to_cls, **kwargs)
+        self.num_patches = num_patches
+        self.num_patches_per_path = self.num_signals_per_path
 
     @staticmethod
     def sample_gaussian_mask(image_size, samples, center=None, std=4, seed=None, flat=True):
