@@ -74,18 +74,18 @@ class SplitPathwaysVision(SplitPathways):
         return np.argsort(smoothed_dist_from_center.flatten())[:patches]
 
     def get_indices(self, indices=None):
-        if self.contiguous:
-            indices = tf.stack([self.sample_contiguous_mask(self.num_signals_per_path, self.rows, self.cols) + self.shift
-                                for _ in range(self.n)], axis=-1)
-            if self.fixed:
-                self.indices = indices
+        if self.indices is None:
+            if self.contiguous:
+                indices = tf.stack([self.sample_contiguous_mask(self.num_signals_per_path, self.rows, self.cols) + self.shift
+                                    for _ in range(self.n)], axis=-1)
+                if self.fixed:
+                    self.indices = indices
 
-        if self.indices is not None and indices is None and self.gaussian_mask:
-            indices = tf.stack([self.sample_gaussian_mask(self.image_size, self.num_signals_per_path,
-                                                          std=self.gaussian_std) + self.shift
-                                for _ in range(self.n)], axis=-1)
-            if self.fixed:
-                self.indices = indices
-
+            if self.indices is not None and indices is None and self.gaussian_mask:
+                indices = tf.stack([self.sample_gaussian_mask(self.image_size, self.num_signals_per_path,
+                                                              std=self.gaussian_std) + self.shift
+                                    for _ in range(self.n)], axis=-1)
+                if self.fixed:
+                    self.indices = indices
 
         return super().get_indices(indices=indices)
