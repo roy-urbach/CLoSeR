@@ -58,15 +58,17 @@ class SplitPathwaysVision(SplitPathways):
             return sampled_coords
 
     @staticmethod
-    def sample_contiguous_mask(patches, rows=8, cols=8, seed=None):
+    def sample_contiguous_mask(patches, rows=8, cols=8, center=None, seed=None):
         import numpy as np
-        center_row = np.random.choice(rows)
-        center_col = np.random.choice(cols)
+        if center is None:
+            center_row = np.random.choice(rows)
+            center_col = np.random.choice(cols)
+            center = np.array(center_row, center_col)
         locs = np.indices([rows+2, cols+2])
-        dist_from_center = np.linalg.norm(np.array([center_row, center_col])[..., None, None] - locs, axis=0)
+        dist_from_center = np.linalg.norm(center[..., None, None] - locs, axis=0)
         if seed:
             np.random.seed(seed)
-        dist_from_center_noisy = dist_from_center + np.random.rand(rows + 2, cols + 2) * 1e-1
+        dist_from_center_noisy = dist_from_center + np.random.rand(rows + 2, cols + 2) * 0.5
         from scipy.signal import convolve2d
         smoothed_dist_from_center = convolve2d(dist_from_center_noisy, np.array([[1, 2, 1], [2, 4, 2], [1, 2, 1]]) / 12, mode='valid')
         assert smoothed_dist_from_center.shape == (rows, cols)
@@ -76,8 +78,10 @@ class SplitPathwaysVision(SplitPathways):
     def get_indices(self, indices=None):
         if self.indices is None:
             if self.contiguous:
-                indices = tf.stack([self.sample_contiguous_mask(self.num_signals_per_path, self.rows, self.cols) + self.shift
-                                    for _ in range(self.n)], axis=-1)
+                import numpy as np
+                centers = np.indices([self.rows, self.cols]).reshape(2, -1)[np.random.choice(np.arange(self.rows*self.cols))]
+                indices = tf.stack([self.sample_contiguous_mask(self.num_signals_per_path, self.rows, self.cols, center=centers[i]) + self.shift
+                                    for i in range(self.n)], axis=-1)
                 if self.fixed:
                     self.indices = indices
 
