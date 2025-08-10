@@ -66,7 +66,7 @@ class SplitPathwaysVision(SplitPathways):
         dist_from_center = np.linalg.norm(np.array([center_row, center_col])[..., None, None] - locs, axis=0)
         if seed:
             np.random.seed(seed)
-        dist_from_center_noisy = dist_from_center + np.random.rand(2, rows + 2, cols + 2) * 1e-1
+        dist_from_center_noisy = dist_from_center + np.random.rand(rows + 2, cols + 2) * 1e-1
         from scipy.signal import convolve2d
         smoothed_dist_from_center = convolve2d(dist_from_center_noisy, np.array([[1, 2, 1], [2, 4, 2], [1, 2, 1]]) / 12, mode='valid')
         assert smoothed_dist_from_center.shape == (rows, cols)
