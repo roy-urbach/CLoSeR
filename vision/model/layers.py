@@ -68,7 +68,7 @@ class SplitPathwaysVision(SplitPathways):
         dist_from_center = np.linalg.norm(center[..., None, None] - locs, axis=0)
         if seed:
             np.random.seed(seed)
-        dist_from_center_noisy = dist_from_center + np.random.rand(rows + 2, cols + 2) * 0.5
+        dist_from_center_noisy = dist_from_center + np.random.rand(rows + 2, cols + 2)
         from scipy.signal import convolve2d
         smoothed_dist_from_center = convolve2d(dist_from_center_noisy, np.array([[1, 2, 1], [2, 4, 2], [1, 2, 1]]) / 12, mode='valid')
         assert smoothed_dist_from_center.shape == (rows, cols)
@@ -80,7 +80,6 @@ class SplitPathwaysVision(SplitPathways):
             if self.contiguous:
                 import numpy as np
                 centers = np.indices([self.rows, self.cols]).reshape(2, -1).T[np.random.choice(self.rows*self.cols, self.n)]
-                print(centers.shape)
                 indices = tf.stack([self.sample_contiguous_mask(self.num_signals_per_path, self.rows, self.cols, center=centers[i]) + self.shift
                                     for i in range(self.n)], axis=-1)
                 if self.fixed:
