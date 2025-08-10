@@ -80,7 +80,7 @@ class SplitPathwaysVision(SplitPathways):
             if self.contiguous:
                 import numpy as np
                 centers = np.indices([self.rows, self.cols]).reshape(2, -1)[np.random.choice(np.arange(self.rows*self.cols))]
-                indices = tf.stack([self.sample_contiguous_mask(self.num_signals_per_path, self.rows, self.cols, center=centers[i]) + self.shift
+                indices = tf.stack([self.sample_contiguous_mask(self.num_signals_per_path, self.rows, self.cols, center=centers[:, i]) + self.shift
                                     for i in range(self.n)], axis=-1)
                 if self.fixed:
                     self.indices = indices
