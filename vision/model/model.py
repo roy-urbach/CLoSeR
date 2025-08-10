@@ -61,7 +61,6 @@ def create_model(name='model', classifier=False, l2=False, divide_patches=True,
     :return: a tensorflow Model
     """
 
-
     if isinstance(kernel_regularizer, str) and kernel_regularizer.startswith("tf."):
         kernel_regularizer = eval(kernel_regularizer)
 
@@ -169,8 +168,6 @@ def compile_model(model, loss=CLoSeRLoss, loss_kwargs={},
     else:
         losses[model.name + '_embedding'] = loss(**loss_kwargs)
 
-    if (model.name + "_predembd") in [l.name for l in model.layers]:
-        losses[model.name + "_predembd"] = LateralPredictiveLoss(graph=model.get_layer(model.name + "_predembd").pred_graph)
 
     if metrics_kwargs:
         import utils.model.metrics as metrics_file
