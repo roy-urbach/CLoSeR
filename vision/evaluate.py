@@ -3,6 +3,7 @@ from typing import Optional
 from utils.data import Data
 from utils.evaluation.ensemble import EnsembleVotingMethods
 from utils.evaluation.evaluation import classify_head_eval_ensemble
+from utils.model.layers import SplitPathways
 from utils.model.model import load_model_from_json
 from utils.modules import Modules
 from utils.utils import printd
@@ -60,6 +61,10 @@ def evaluate(model, module: Modules=Modules.VISION, linear=True, ensemble=True,
         model_kwargs = module.load_json(model, config=True)
         assert model_kwargs is not None
         model = load_model_from_json(model, module)
+        if not model_kwargs['model_kwargs']['pathways_kwargs'].get('fixed', False):
+            pathways:SplitPathways = model.get_layer(model.name + "_pathways")
+            pathways.fixed = True
+            pathways.get_indices()
         if dataset is None:
             dataset_cls = module.get_class_from_data(model_kwargs.get('dataset', 'Cifar10'))
             dataset = dataset_cls(module=module, **model_kwargs.get('data_kwargs', {}), split=True)
