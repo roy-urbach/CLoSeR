@@ -68,6 +68,9 @@ if __name__ == "__main__":
     model_name = args.json
     module = Modules.VISION
     printd(f"running {model_name}. Loading model...")
+    if args.mse:
+        printd("using mse")
+    printd(f"using temp={args.temp}")
     model = load_model_from_json(model_name, module=module)
     dct = module.load_json(model_name, config=True)
     dataset_name = dct.pop("dataset")
