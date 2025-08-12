@@ -77,7 +77,7 @@ def create_model(name='model', classifier=False, l2=False, divide_patches=True,
         num_patches = (image_size // patch_size) ** 2
     else:
         if divide_rgb or pathways_kwargs.get("gaussian_mask", False):
-            patches = tf.reshape(augmented, (-1, augmented.shape[-3]*augmented.shape[-2], augmented.shape[-1]))
+            patches = tf.keras.layers.Reshape((augmented.shape[-3]*augmented.shape[-2], augmented.shape[-1]), name="reshape")(augmented)
         else:
             patches = tf.keras.layers.Flatten(name=name + "_flatten")(augmented)[..., None]
         num_patches = patches.shape[-2]
