@@ -48,7 +48,7 @@ class GeneralGraphCLoSeRLoss(Loss):
         reduce_f = tf.reduce_mean if mean else tf.reduce_sum
         left_side = (tf.stop_gradient(embedding) if stop_grad else embedding)[:, None, ..., :, None]
         right_side = (tf.stop_gradient(embedding) if other_stop_grad else embedding)[None, :, ..., None, :]
-        dist = reduce_f(tf.pow(left_side - right_side), 2, axis=2)
+        dist = reduce_f(tf.pow(left_side - right_side, 2), axis=2)
         return dist
 
     def calculate_logits(self, dist_squared):
@@ -90,12 +90,7 @@ class GeneralGraphCLoSeRLoss(Loss):
         negative_log_likelihood = -(logits[tf.eye(tf.shape(logits)[0], dtype=tf.bool)] - log_denom) # (B, N, N)
 
         mean_nll = tf.reduce_mean(negative_log_likelihood, axis=0)  # (N, N)
-        g = self.get_graph(numpy=False)
-        if g is None:
-            n = mean_nll.shape[0]
-            g = tf.cast((1-tf.eye(n)) * (1/(n*(n-1))), dtype=mean_nll.dtype)
-        else:
-            g = tf.cast(g, dtype=mean_nll.dtype)
+        g = tf.cast(self.get_graph(num_pathways=mean_nll.shape[0], numpy=False), dtype=mean_nll.dtype)
         loss = tf.tensordot(g, mean_nll, axes=[[0, 1], [0, 1]])
 
         self.monitor.update_monitor("pull", loss)
