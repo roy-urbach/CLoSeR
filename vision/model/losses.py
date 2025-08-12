@@ -25,7 +25,7 @@ class GeneralGraphCLoSeRLoss(Loss):
             GRAPH = tf.constant(eval(graph) if isinstance(graph, str) else graph, dtype=tf.float32)
             self.graph = GRAPH
         elif num_pathways is not None:
-            self.graph =  tf.constant((1 - np.eye(num_pathways)) / (num_pathways * (num_pathways - 1)))
+            self.graph = tf.constant((1 - np.eye(num_pathways)) / (num_pathways * (num_pathways - 1)))
         else:
             self.graph = None
         self.temperature = temperature
@@ -93,6 +93,8 @@ class GeneralGraphCLoSeRLoss(Loss):
         if g is None:
             n = mean_nll.shape[0]
             g = tf.cast((1-tf.eye(n)) * (1/(n*(n-1))), dtype=mean_nll.dtype)
+        else:
+            g = tf.cast(g, dtype=mean_nll.dtype)
         loss = tf.tensordot(g, mean_nll, axes=[[0, 1], [0, 1]])
 
         self.monitor.update_monitor("pull", loss)
