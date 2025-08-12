@@ -6,7 +6,8 @@ from vision.utils.data import Cifar10
 from utils.utils import unknown_args_to_dict, printd
 
 
-def calculate_class_mean_likelihood(model, module, ds=Cifar10(), pred=None, save=False, examples_per_class=50, repeats=100, temp=10, inp=False, **kwargs):
+def calculate_class_mean_likelihood(model, module, ds=Cifar10(), pred=None, save=False, mse=False,
+                                    examples_per_class=50, repeats=100, temp=10, inp=False, **kwargs):
     """
     Calculate class mean conditional pseudo-likelihood
     """
@@ -26,7 +27,8 @@ def calculate_class_mean_likelihood(model, module, ds=Cifar10(), pred=None, save
 
             for p in range(pred_x.shape[-1]):
                 # psi
-                sim = np.exp(-(np.linalg.norm(cur_examples[:, None, ..., p] - cur_examples[None,..., p], axis=-1)**2)/temp)
+                reduce_f = np.mean if mse else np.sum
+                sim = np.exp(-(reduce_f((cur_examples[:, None, ..., p] - cur_examples[None,..., p])**2, axis=-1)/temp))
                 np.fill_diagonal(sim, np.nan)
 
                 # conditional pseudo-likelihood
@@ -49,6 +51,7 @@ def parse():
     parser.add_argument('-r', '--repeats', type=int, default=250, help='number of repeats')
     parser.add_argument('-e', '--examples', type=int, default=50, help='examples per label')
     parser.add_argument('-t', '--temp', type=float, default=10., help='temperature')
+    parser.add_argument('--mse', action=argparse.BooleanOptionalAction, default=False, help='use mse instead of Euclidian distance')
     parser.add_argument('--inp', action=argparse.BooleanOptionalAction, default=False, help='use input')
     return parser.parse_known_args()
 
@@ -82,13 +85,13 @@ if __name__ == "__main__":
         masked_inp = get_masked_ds(model, dataset=dataset).get_x_test()
 
         printd("running masked inputs...")
-        calculate_class_mean_likelihood(model, module, pred=masked_inp, save=True,
+        calculate_class_mean_likelihood(model, module, pred=masked_inp, save=True, mse=args.mse,
                                         repeats=args.repeats, examples_per_class=args.examples, temp=args.temp,
                                         inp=True, **kwargs)
         printd("done")
 
     printd("running individual pathways...")
-    calculate_class_mean_likelihood(model, module, ds=dataset, pred=embd, save=True,
+    calculate_class_mean_likelihood(model, module, ds=dataset, pred=embd, save=True, mse=args.mse,
                                     repeats=args.repeats, examples_per_class=args.examples, temp=args.temp,
                                     inp=False, **kwargs)
     printd("done")
