@@ -145,7 +145,7 @@ def savefig(fn, suffix='png'):
 # violinplot functions
 
 def violinplot_with_CI(arr, x, c='C0', widths=0.5, bar=False, scatter=False, sem=False, horizontal=False, hatch=None,
-                       box=False, plot_CI=True, ax=None, capsize=10, **kwargs):
+                       box=False, plot_mean=True, plot_CI=True, ax=None, capsize=10, **kwargs):
     if bar:
        (plt if ax is None else ax).bar(x, arr.mean(), color=c, **kwargs)
     else:
@@ -178,6 +178,10 @@ def violinplot_with_CI(arr, x, c='C0', widths=0.5, bar=False, scatter=False, sem
             (plt if ax is None else ax).errorbar(mean, [x], xerr=CI, **err_kwargs)
         else:
             (plt if ax is None else ax).errorbar([x], mean, yerr=CI, **err_kwargs)
+    elif plot_mean:
+        mean = arr.mean()
+        plt.scatter([x],mean,marker='o',c=c)
+
     if scatter:
         if horizontal:
             (plt if ax is None else ax).scatter(arr, np.full_like(arr, x), alpha=kwargs.get("alpha", 0.8), c=c)
