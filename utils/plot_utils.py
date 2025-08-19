@@ -7,7 +7,7 @@ from utils.utils import paired_t_test
 mpl.rc('image', cmap='gray')
 
 YLABEL_CLASS = "Classification accuracy"
-XLABEL_PERC = "fraction of {inp} seen by encoder"
+XLABEL_PERC = "Fraction of {inp} seen by encoder"
 YLABEL_CLASS_F = lambda ax=None, **kwargs: (ax.set_ylabel if ax else plt.ylabel)(YLABEL_CLASS, **kwargs)
 XLABEL_FRAC_F = lambda ax=None, inp_name='image', **kwargs: (ax.set_xlabel if ax else plt.xlabel)(XLABEL_PERC.format(inp=inp_name), **kwargs)
 XTICKS_FRAC_F = lambda ax=None, ticksize=10: (ax.set_xticks if ax else plt.xticks)(np.linspace(0, 1, 11),
