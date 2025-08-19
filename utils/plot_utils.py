@@ -201,7 +201,7 @@ def multiviolin(arr, xshift=0, xs=None, fig=None, c=None, hatch=None, ax=None, *
                                **kwargs)
 
 
-def dct_to_multiviolin(dct, rotation=0, xs=None, horizontal=False, keys=None, c=None, hatch=None, ax=None, color_ticklabels=False, **kwargs):
+def dct_to_multiviolin(dct, rotation=0, xs=None, horizontal=False, keys=None, c=None, hatch=None, ax=None, color_ticklabels=False, ticks_ha='center', **kwargs):
     """
     Given a dictionary, each key becomes an xtick label, with the distribution of its value as the vioiln
     :param dct: {xtick name or NameAndColor: values to plot as violin}
@@ -224,11 +224,10 @@ def dct_to_multiviolin(dct, rotation=0, xs=None, horizontal=False, keys=None, c=
         hatch = [hatch[k] for k in keys]
     multiviolin([np.array(dct[k]) for k in keys], xs=xs, c=c, horizontal=horizontal, hatch=hatch, ax=ax, **kwargs)
     ticks_to_change = ((plt.yticks if ax is None else ax.set_yticks) if horizontal else (plt.xticks if ax is None else ax.set_xticks))
-    ticks_to_change(np.arange(len(keys)) if xs is None else xs, keys, rotation=rotation)
+    ticks_to_change(np.arange(len(keys)) if xs is None else xs, keys, rotation=rotation, ha=ticks_ha)
     if color_ticklabels and ax is not None:
         for xtick, color in zip(ax.get_xticklabels(), c):
             xtick.set_color(color)
-
 
 def get_CI(arr, conf=0.975, of_the_mean=True, axis=0, sem=False):
     """
