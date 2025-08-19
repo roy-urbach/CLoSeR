@@ -180,7 +180,7 @@ def violinplot_with_CI(arr, x, c='C0', widths=0.5, bar=False, scatter=False, sem
             (plt if ax is None else ax).errorbar([x], mean, yerr=CI, **err_kwargs)
     elif plot_mean:
         mean = arr.mean()
-        plt.scatter([x],mean,marker='o',c=c)
+        (plt if ax is None else ax).scatter([x],mean,marker='o',c=c)
 
     if scatter:
         if horizontal:
