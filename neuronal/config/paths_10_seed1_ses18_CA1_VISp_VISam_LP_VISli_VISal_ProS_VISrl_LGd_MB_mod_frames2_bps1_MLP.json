@@ -1,7 +1,6 @@
 {
     "model_kwargs": {
-        "l2": 0,
-        "kernel_regularizer": "tf.keras.regularizers.L1L2(l1=5e-6, l2=5e-6)",
+        "l2": 1e-05,
         "bins_per_frame": 1,
         "encoder_per_path": true,
         "pathways_kwargs": {
@@ -28,25 +27,28 @@
     "labels": [
         "Labels.STIMULUS"
     ],
-    "loss": "TemporalCLoSeR",
-    "loss_kwargs": {},
+    "loss": "LPL",
+    "loss_kwargs": {
+        "local": false,
+        "cross_w": 1
+    },
     "dataset": "SessionDataGenerator",
     "data_kwargs": {
-        "session_id": 12,
+        "session_id": 18,
         "frames_per_sample": 2,
         "bins_per_frame": 1,
         "split_scheme": "ODD_MOD_5",
         "areas": [
-            "LP",
-            "VISrl",
             "CA1",
-            "VISam",
-            "PO",
-            "LGd",
             "VISp",
-            "SUB",
-            "Eth",
-            "SGN"
+            "VISam",
+            "LP",
+            "VISli",
+            "VISal",
+            "ProS",
+            "VISrl",
+            "LGd",
+            "MB"
         ]
     }
 }

@@ -1,6 +1,8 @@
 {
     "model_kwargs": {
         "l2": 0,
+        "kernel_regularizer": "tf.keras.regularizers.L1L2(l1=5e-6, l2=5e-6)",
+        "bins_per_frame": 1,
         "encoder_per_path": true,
         "pathways_kwargs": {
             "n": 10,
@@ -16,8 +18,7 @@
                 32,
                 32
             ]
-        },
-        "kernel_regularizer": "tf.keras.regularizers.L1L2(l1=5e-6, l2=5e-6)"
+        }
     },
     "pathway_classification": true,
     "pathway_classification_allpaths": false,
@@ -28,7 +29,11 @@
         "Labels.STIMULUS"
     ],
     "loss": "LPL",
-    "loss_kwargs": {},
+    "loss_kwargs": {
+        "local": false,
+        "crosscont_w": 2,
+        "cont_w": null
+    },
     "dataset": "SessionDataGenerator",
     "data_kwargs": {
         "session_id": 15,

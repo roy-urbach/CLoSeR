@@ -1,6 +1,7 @@
 {
     "model_kwargs": {
         "l2": 0,
+        "bins_per_frame": 1,
         "encoder_per_path": true,
         "pathways_kwargs": {
             "n": 10,
@@ -28,7 +29,9 @@
         "Labels.STIMULUS"
     ],
     "loss": "LPL",
-    "loss_kwargs": {},
+    "loss_kwargs": {
+        "local": false
+    },
     "dataset": "SessionDataGenerator",
     "data_kwargs": {
         "session_id": 12,
