@@ -1,0 +1,37 @@
+{
+    "model_kwargs": {
+        "patch_encoder": false,
+        "l2": 0,
+        "pathways_kwargs": {
+            "n": 10,
+            "d": 0.1,
+            "fixed": true,
+            "seed": 1
+        },
+        "projection_dim": 256,
+        "image_size": 32,
+        "patch_size": 4,
+        "encoder": "MLPEncoder",
+        "encoder_kwargs": {
+            "hidden_units": [
+                1024,
+                512,
+                256
+            ],
+            "out_dim": 256
+        },
+        "encoder_per_path": true
+    },
+    "dataset": "Cifar10",
+    "data_kwargs": {
+        "img_normalize": true
+    },
+    "loss": "CirculantGraphLoss",
+    "loss_kwargs": {
+        "num_pathways": 10,
+        "mse": true,
+        "symmetric": true,
+        "num_lateral": 1,
+        "other_stop_grad_dist": true
+    }
+}
