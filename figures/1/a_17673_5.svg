@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="216pt" height="216pt" viewBox="0 0 216 216" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2025-08-20T14:11:08.618636</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.9.1.post1, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 216 
+L 216 216 
+L 216 0 
+L 0 0 
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 10.8 205.2 
+L 205.2 205.2 
+L 205.2 10.8 
+L 10.8 10.8 
+z
+" style="fill: #ffffff"/>
+   </g>
+   <g clip-path="url(#p2bda200835)">
+    <image xlink:href="data:image/png;base64,
+iVBORw0KGgoAAAANSUhEUgAAAQ4AAAEOCAYAAAB4sfmlAAAEy0lEQVR4nO3dOY+VVRgH8HOBWVCGGRUUl8aMqDHaaYOFxiClBZ2VS0ho+QI0UFhoYaLEgkZrlw+gkrgUWhBj4RbEuIyoswh3uMvcZe4dv4B5zjxEHJbfr33eOe973+Kfk8w/5y0FAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIBrWmOrH2CzpienNmrX9Ab96+b3wPVs21Y/AHD9ERxAmuAA0gQHkCY4gDTBAaQJDiBNcABpN1VhanpqNiyR9fqrN9X7gCtlxwGkCQ4gTXAAaYIDSBMcQJrgANIEB5B2Q/UWds3eHvY0RsNR+PeNbdWzgsr0HXPh/PkXXqyucerEiRvqvXPzseMA0gQHkCY4gDTBAaQJDiBNcABpggNIExxA2v9SRPrk8zerzapW92I4P336vfp9zpwL5xvDW8P5jsnJ6j0OHHo2nL909Gh1jYcefjCcP3b3XgUxrml2HECa4ADSBAeQJjiANMEBpAkOIE1wAGk7ahd8d/6DagfjkQcOh72DnVN7qg8yu/u2cH7o4FPVNb4++2c4v7i4Hs43U54YrcdX7Z6Jf0cppczM7ArnPzZXq+98/9ysrgdbxo4DSBMcQJrgANIEB5AmOIA0wQGkCQ4grdrjqHU0Sinl/C8fhr2Dmem56oN02s1w/szTB6trXFhoh/P33/0onP+12K3eo9uNr5mY3F5do7Et7pOMx/GHo0op5exPF8J3/vj8vXoeXDV2HECa4ADSBAeQJjiANMEBpAkOIE1wAGmCA0irFsA2Y3tjOpwPhmvVNTYa8TU7bxlX13ju8BPhfH7+rnD+ztsfV+8x7K+G826nVV1jeSX++NTS8kp1jUGnF86PHT9ePQzo9ZMnlcS4InYcQJrgANIEB5AmOIA0wQGkCQ4gTXAAaY2FpTPh//u3j3dWF7ln34GwD/Db759VOwVrwz/C+aXLC9XnWF75O5zPTN0Zzn8+V+9PfPXNr+F8/6NPVtfYNRf3Sb7/4dvqGu1Li+H8rVdP6Whw1dhxAGmCA0gTHECa4ADSBAeQJjiANMEBpAkOIK1aElpZ/rRa3mqtxofXtHr1L6StrTfDeXttqbpGuxXfZ7AWfyGt06ofODQYxF9q6/Xqvat2O36Oy8v1w4DGw0E4v/++fdU1JirHOB059poSGf/KjgNIExxAmuAA0gQHkCY4gDTBAaQJDiDtP/k//RdfvhEfBjRZPwxoOF4P5/1+u7pGu9MJ571ufI9hpedRSinrw/iaVrPewehWPqa0Z2980E8ppbx85BUdC7aMHQeQJjiANMEBpAkOIE1wAGmCA0gTHECa4ADSKke5bE6rHx+AM7WJNQaDuJw1GtX7Tv21cTgf9uN5v1cvgG1UjjUalfign1JKaUxMhPNmp1ldA7aSHQeQJjiANMEBpAkOIE1wAGmCA0gTHEDaP7uA3LJHDJbjAAAAAElFTkSuQmCC" id="image18ef5e85be" transform="scale(1 -1) translate(0 -194.4)" x="10.8" y="-10.8" width="194.4" height="194.4"/>
+   </g>
+   <g id="matplotlib.axis_1"/>
+   <g id="matplotlib.axis_2"/>
+   <g id="patch_3">
+    <path d="M 10.8 205.2 
+L 10.8 10.8 
+" style="fill: none; stroke: #000000; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 205.2 205.2 
+L 205.2 10.8 
+" style="fill: none; stroke: #000000; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 10.8 205.2 
+L 205.2 205.2 
+" style="fill: none; stroke: #000000; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="patch_6">
+    <path d="M 10.8 10.8 
+L 205.2 10.8 
+" style="fill: none; stroke: #000000; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="p2bda200835">
+   <rect x="10.8" y="10.8" width="194.4" height="194.4"/>
+  </clipPath>
+ </defs>
+</svg>

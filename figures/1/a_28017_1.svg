@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="216pt" height="216pt" viewBox="0 0 216 216" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2025-08-20T14:11:11.083026</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.9.1.post1, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 216 
+L 216 216 
+L 216 0 
+L 0 0 
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 10.8 205.2 
+L 205.2 205.2 
+L 205.2 10.8 
+L 10.8 10.8 
+z
+" style="fill: #ffffff"/>
+   </g>
+   <g clip-path="url(#p0c13e95aaf)">
+    <image xlink:href="data:image/png;base64,
+iVBORw0KGgoAAAANSUhEUgAAAQ4AAAEOCAYAAAB4sfmlAAAExElEQVR4nO3du2/VZRgH8PdIyyltoS2B3iAQFhn8D3Rx0YXVBRMZZDBGw6BO4KJRg4mDi1E2r3Ex6mLiYuriZbDEOOhCHAgRaWhroZdz2tNzXI3D8/ZJgXL5fNbnl+f35ly+503Ok/fXKNxxz5650Ivqiwvz1R7LN66F9Zs3/672WG8thfVedz1u0Huoeo9eaYb1PUOj1R6DI+NxfXh/tcfu/oGw3us1wvqXH74SX/CAqb/zAP8jOIA0wQGkCQ4gTXAAaYIDSBMcQFrfTi/gQdRqhWMcW7KxGc9YNBr134Tm7n1hvd2+sa01lFJKt7sW1hutaovS14xnMIYGR6s9BpqDYf2zD14wp5FgxwGkCQ4gTXAAaYIDSBMcQJrgANIEB5AmOIA0A2A7oNPZDOtffXq2Oox0+sV34imyzU51HUN79ob16/NXwvrVa5er91hcjA8l6my0qz3WW8vbqpdSSmdgpHoNW2fHAaQJDiBNcABpggNIExxAmuAA0gQHkGaOYwdMTRwM6+ff/a560s9gM37r+vv6q+tYWvgnri/FB/mM7pus3qNR4nXML8xVe2x24gODVpbjB0uVUspAc6x6DVtnxwGkCQ4gTXAAaYIDSBMcQJrgANIEB5AmOIA0A2A7YO9Q/GSypcX6QNPcavyEtMnx8WqP1ZXVsN5aiwevWq34QKJSSpmaOhLW2+360+B6pRtf0K2vo70Wv17k2HEAaYIDSBMcQJrgANIEB5AmOIA0wQGkVR/8w5335tvfVg/ymZ+7HtZHR/ZU77O8HPdYaa3Ea1hcqN7j6NGjYX14KH4oVCml7G7uCusb69WXq8xe/COs7xuLD/r56MIZ35X/sOMA0gQHkCY4gDTBAaQJDiBNcABpggNIExxAmqGWe9Rrr38dTj1dufx7tcelP2fD+uiB+DCgAwcPV+8xcfBQWD927Hi1x+FD02F9amqq2uOnn38J68+dftR3IcGOA0gTHECa4ADSBAeQJjiANMEBpAkOIM1/13eh739YqJ5M8/hj+8P37umTL1d7zM7OhPW+gf6wPjFRn+Mo3bjHrkaz2mJ6ejKsP3z8kWqPc+dO+azfQnYcQJrgANIEB5AmOIA0wQGkCQ4gTXAAaYIDSDMUc586ceL56gDY1b8uhfWNTidu0OtW19HrbYT1vvghbaWUUn797cdtf06fOXU2fD0++fgt34UEOw4gTXAAaYIDSBMcQJrgANIEB5AmOIC0vp1eALfH8NiR6jUXv3k/nF144smXwtmHzka7eo+ZmffuivkIcxq3lh0HkCY4gDTBAaQJDiBNcABpggNIExxAmv+2ua2eOvlGOAvyxeev+gzeg+w4gDTBAaQJDiBNcABpggNIExxAmuAA0gQHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADA/eZfafvAiMKVrJMAAAAASUVORK5CYII=" id="image2d4006b72c" transform="scale(1 -1) translate(0 -194.4)" x="10.8" y="-10.8" width="194.4" height="194.4"/>
+   </g>
+   <g id="matplotlib.axis_1"/>
+   <g id="matplotlib.axis_2"/>
+   <g id="patch_3">
+    <path d="M 10.8 205.2 
+L 10.8 10.8 
+" style="fill: none; stroke: #000000; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 205.2 205.2 
+L 205.2 10.8 
+" style="fill: none; stroke: #000000; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 10.8 205.2 
+L 205.2 205.2 
+" style="fill: none; stroke: #000000; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="patch_6">
+    <path d="M 10.8 10.8 
+L 205.2 10.8 
+" style="fill: none; stroke: #000000; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="p0c13e95aaf">
+   <rect x="10.8" y="10.8" width="194.4" height="194.4"/>
+  </clipPath>
+ </defs>
+</svg>

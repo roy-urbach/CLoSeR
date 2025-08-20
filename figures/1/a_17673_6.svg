@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="216pt" height="216pt" viewBox="0 0 216 216" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2025-08-20T14:11:08.689825</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.9.1.post1, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 216 
+L 216 216 
+L 216 0 
+L 0 0 
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 10.8 205.2 
+L 205.2 205.2 
+L 205.2 10.8 
+L 10.8 10.8 
+z
+" style="fill: #ffffff"/>
+   </g>
+   <g clip-path="url(#pcc18fdb82b)">
+    <image xlink:href="data:image/png;base64,
+iVBORw0KGgoAAAANSUhEUgAAAQ4AAAEOCAYAAAB4sfmlAAAEZklEQVR4nO3dvW6cVRAG4Nn17voveO3EViKRgrug4QZSESFR0VBgJG6AKhVcBaLhBqDlBmi4iyjmL3ZkJ/7bXa+/XQq6IM3xCAQOPE87zpzPRV6fYjSnF3DLffHl/jKrH509b/YYbOT1ycWrtL6c95pnrK9vpvXZ1Xmzx3C0mtYvp/P2d2yupfX7491mj+vZLK33mx0AXiM4gDLBAZQJDqBMcABlggMoExxA2eDf/gBoWrlMyw/29potTq/yHv07w7S+mF41z1h0+YzFYNj+Oz1fTNP68elJs8faLB9a2RiMmj36y3xuxY0DKBMcQJngAMoEB1AmOIAywQGUCQ6gTHAAZQbAuPWuG3/eunnX7HH463FaH63mA2C7d3eaZ1zNJmn9tLEcJyLi9OI0P2Pe7rG9dS+t91baA2CzWT6I5sYBlAkOoExwAGWCAygTHECZ4ADKBAdQZo6DW+/pT4dpfRj5A0QREZPL67R+ctJYkNNYbBMR0V/Nv+Nkkn9DRMQi8nmSzc1xs8fFNJ/1+Pn4ZbPHfOFBJuBvJjiAMsEBlAkOoExwAGWCAygTHECZ4ADK2lMtcMt9tP9o2fqZfn8lrS+W+eKawag9K/n8OF8WdHGdL+mJiFgb5OfsjvMlPRER/bX8dz2f5AuHIiK6WORnNDsAvEZwAGWCAygTHECZ4ADKBAdQJjiAMot8eONNb/BI0dbWVt5jlo+CvHj5onnG2eQsrfcGzXGTuDveS+sPdx82e2yP19P6wS/Pmj3ujLfTuhsHUCY4gDLBAZQJDqBMcABlggMoExxAmeAAygyA8ca7dz8f7oqI2FjfSOuzo/wlt67XXn7z1s4orQ9HeT0iYtHlr709e3rQ7LHyztt5vZcv+vnjZ/IX5dw4gDLBAZQJDqBMcABlggMoExxAmeAAyjzIxP/CZ08+TLfoHL86TP/9rDtvnnG96PL6LH/kKCLi8jCfF3mwk89oRER0w/w7jk5+a/aYdvO07sYBlAkOoExwAGWCAygTHECZ4ADKBAdQJjiAMgNgEBGfPnmcDojd5CW34ShffnN4cIMeXb7sZ2dru9ljuZoPmnWRD3dFRHz71Q9pNrhxAGWCAygTHECZ4ADKBAdQJjiAMsEBlJnjgH/Io4/fTWdFIiK+/+bHv/x/8oP999Jzvvs6n9G4CTcOoExwAGWCAygTHECZ4ADKBAdQJjiAMnMcwJ988vn76SyIGwdQJjiAMsEBlAkOoExwAGWCAygTHECZ4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPiv+R30zK8VtbLGDQAAAABJRU5ErkJggg==" id="image2f7c873687" transform="scale(1 -1) translate(0 -194.4)" x="10.8" y="-10.8" width="194.4" height="194.4"/>
+   </g>
+   <g id="matplotlib.axis_1"/>
+   <g id="matplotlib.axis_2"/>
+   <g id="patch_3">
+    <path d="M 10.8 205.2 
+L 10.8 10.8 
+" style="fill: none; stroke: #000000; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 205.2 205.2 
+L 205.2 10.8 
+" style="fill: none; stroke: #000000; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 10.8 205.2 
+L 205.2 205.2 
+" style="fill: none; stroke: #000000; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="patch_6">
+    <path d="M 10.8 10.8 
+L 205.2 10.8 
+" style="fill: none; stroke: #000000; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="pcc18fdb82b">
+   <rect x="10.8" y="10.8" width="194.4" height="194.4"/>
+  </clipPath>
+ </defs>
+</svg>
