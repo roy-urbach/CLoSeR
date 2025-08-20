@@ -10,17 +10,19 @@ CONTINUOUS = 'continuous'
 
 class Data:
     def __init__(self, x_train, y_train, x_test, y_test, x_val=None, y_val=None, val_split=None, normalize=False,
-                 img_normalize=False, flatten_y=False, split=False, simple_norm=False, module:Modules=None, seed=1929):
+                 img_normalize=False, flatten_y=False, split=False, simple_norm=False, module:Modules=None, seed=1929,
+                 test_only=False):
         self.x_train = x_train
         self.y_train = y_train
         self.x_test = x_test
         self.y_test = y_test
         self.x_val = x_val
         self.y_val = y_val
+        self.test_only = test_only
         self.val_split = val_split
         self.module = module
 
-        if val_split and self.x_val is None and split:
+        if not test_only and (val_split and self.x_val is None and split):
             print("splitting randomly")
             np.random.seed(seed)
             perm = np.random.permutation(len(self.x_train if not isinstance(self.x_train, dict) else list(self.x_train.value())[0]))
@@ -33,26 +35,28 @@ class Data:
             self.x_train = run_on_dict(self.x_train, lambda arr: arr[train_idx])
             self.y_train = run_on_dict(self.y_train, lambda arr: arr[train_idx])
 
-        self.shape = run_on_dict(x_train, lambda x: x[0].shape)
+        self.shape = run_on_dict(x_test, lambda x: x[0].shape)
         if img_normalize:
             self.image_normalize_data()
         if normalize:
             self.normalize_data(simple=simple_norm)
         if flatten_y:
-            self.y_train = run_on_dict(self.y_train, lambda y: y.flatten())
             self.y_test = run_on_dict(self.y_test, lambda y: y.flatten())
-            if self.y_val is not None:
-                self.y_val = run_on_dict(self.y_val, lambda y: y.flatten())
+            if not test_only:
+                self.y_train = run_on_dict(self.y_train, lambda y: y.flatten())
+                if self.y_val is not None:
+                    self.y_val = run_on_dict(self.y_val, lambda y: y.flatten())
 
     @staticmethod
     def is_generator():
         return False
 
     def image_normalize_data(self):
-        self.x_train = run_on_dict(self.x_train, lambda a: a / 255)
         self.x_test = run_on_dict(self.x_test, lambda a: a / 255)
-        if self.x_val is not None:
-            self.x_val = run_on_dict(self.x_val, lambda a: a / 255)
+        if not self.test_only:
+            self.x_train = run_on_dict(self.x_train, lambda a: a / 255)
+            if self.x_val is not None:
+                self.x_val = run_on_dict(self.x_val, lambda a: a / 255)
 
     def normalize_data(self, simple=False):
         def normalize(arr_train, arr_test, arr_val=None):

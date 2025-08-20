@@ -8,7 +8,8 @@ GRAPH = None
 
 
 class GeneralGraphCLoSeRLoss(Loss):
-    def __init__(self, num_pathways=None, graph=None, temperature=10, stable=True, stop_grad_dist=False, mse=False, **kwargs):
+    def __init__(self, num_pathways=None, graph=None, temperature=10, stable=True, stop_grad_dist=False,
+                 other_stop_grad_dist=False, mse=False, **kwargs):
         """
         :param num_pathways: Number of nodes\encoders\pathways
         :param graph: a matrix of edges. If None, assumes all-to-all
@@ -25,29 +26,29 @@ class GeneralGraphCLoSeRLoss(Loss):
             GRAPH = tf.constant(eval(graph) if isinstance(graph, str) else graph, dtype=tf.float32)
             self.graph = GRAPH
         elif num_pathways is not None:
-            self.graph =  tf.constant((1 - np.eye(num_pathways)) / (num_pathways * (num_pathways - 1)))
+            self.graph = tf.constant((1 - np.eye(num_pathways)) / (num_pathways * (num_pathways - 1)))
         else:
             self.graph = None
         self.temperature = temperature
         self.stable = stable
         self.stop_grad_dist = stop_grad_dist
+        self.other_stop_grad_dist = other_stop_grad_dist
         self.mse = mse
         self.monitor = LossMonitors("pull", name="")
 
-    def calculate_dists(self, embedding, stop_grad=False, mean=False):
+    def calculate_dists(self, embedding, stop_grad=False, other_stop_grad=False, mean=False):
         """
         Euclidian distance squared
         :param embedding: (B, DIM, N)
         :param stop_grad: if true, (*B*, B, N, N) is calculated with stop grad
+        :param other_stop_grad: if true, (B, *B*, N, N) is calculated with stop grad
         :param mean: if true, calculating the MSE, not squared Euclidian distance
         :return: (B, B, N, N) distance matrix
         """
         reduce_f = tf.reduce_mean if mean else tf.reduce_sum
-        if stop_grad:
-            dist = reduce_f(tf.pow(tf.stop_gradient(embedding[:, None, ..., :, None]) - embedding[None, :, ..., None, :], 2),
-                            axis=2)
-        else:
-            dist = reduce_f(tf.pow(embedding[:, None, ..., None, :] - embedding[None, :, ..., None], 2), axis=2)
+        left_side = (tf.stop_gradient(embedding) if stop_grad else embedding)[:, None, ..., :, None]
+        right_side = (tf.stop_gradient(embedding) if other_stop_grad else embedding)[None, :, ..., None, :]
+        dist = reduce_f(tf.pow(left_side - right_side, 2), axis=2)
         return dist
 
     def calculate_logits(self, dist_squared):
@@ -82,17 +83,14 @@ class GeneralGraphCLoSeRLoss(Loss):
 
     def call(self, y_true, y_pred):
         embd = y_pred
-        dists_squared = self.calculate_dists(embd, stop_grad=self.stop_grad_dist, mean=self.mse)
+        dists_squared = self.calculate_dists(embd, stop_grad=self.stop_grad_dist, other_stop_grad=self.other_stop_grad_dist, mean=self.mse)
         logits = self.calculate_logits(dists_squared)
 
         log_denom = tf.math.reduce_logsumexp(logits, axis=0)    # (B, N, N)
         negative_log_likelihood = -(logits[tf.eye(tf.shape(logits)[0], dtype=tf.bool)] - log_denom) # (B, N, N)
 
         mean_nll = tf.reduce_mean(negative_log_likelihood, axis=0)  # (N, N)
-        g = self.get_graph(numpy=False)
-        if g is None:
-            n = mean_nll.shape[0]
-            g = tf.cast((1-tf.eye(n)) * (1/(n*(n-1))), dtype=mean_nll.dtype)
+        g = tf.cast(self.get_graph(num_pathways=mean_nll.shape[0], numpy=False), dtype=mean_nll.dtype)
         loss = tf.tensordot(g, mean_nll, axes=[[0, 1], [0, 1]])
 
         self.monitor.update_monitor("pull", loss)

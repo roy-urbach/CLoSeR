@@ -7,7 +7,7 @@ from utils.utils import paired_t_test
 mpl.rc('image', cmap='gray')
 
 YLABEL_CLASS = "Classification accuracy"
-XLABEL_PERC = "fraction of {inp} seen by encoder"
+XLABEL_PERC = "Fraction of {inp} seen by encoder"
 YLABEL_CLASS_F = lambda ax=None, **kwargs: (ax.set_ylabel if ax else plt.ylabel)(YLABEL_CLASS, **kwargs)
 XLABEL_FRAC_F = lambda ax=None, inp_name='image', **kwargs: (ax.set_xlabel if ax else plt.xlabel)(XLABEL_PERC.format(inp=inp_name), **kwargs)
 XTICKS_FRAC_F = lambda ax=None, ticksize=10: (ax.set_xticks if ax else plt.xticks)(np.linspace(0, 1, 11),
@@ -57,13 +57,13 @@ class NameAndColor:
 
 
 class NamesAndColors(Enum):
-    CHANCE = NameAndColor("chance level", color='k', linestyle=':')
-    MASKED = NameAndColor("masked raw input", i=0, ending='_untrained')
-    UNTRAINED = NameAndColor("untrained model", color='chocolate', ending='_untrained')
-    SHARED = NameAndColor("shared weights CLoSeR", i=5)
-    FULL_INPUT = NameAndColor("full raw input", i=0)
+    CHANCE = NameAndColor("Chance level", color='k', linestyle=':')
+    MASKED = NameAndColor("Masked raw input", i=0, ending='_untrained')
+    UNTRAINED = NameAndColor("Untrained model", color='chocolate', ending='_untrained')
+    SHARED = NameAndColor("Shared weights CLoSeR", i=5)
+    FULL_INPUT = NameAndColor("Full raw input", i=0)
     UNSUPERVISED = NameAndColor("CLoSeR", color='g')
-    SUPERVISED = NameAndColor("supervised", color='hotpink', ending='_pathsup')
+    SUPERVISED = NameAndColor("Supervised", color='hotpink', ending='_pathsup')
 
 
 def basic_scatterplot(x, y, identity=True, fig=None, c='k', corr=False, t=False,
@@ -145,7 +145,7 @@ def savefig(fn, suffix='png'):
 # violinplot functions
 
 def violinplot_with_CI(arr, x, c='C0', widths=0.5, bar=False, scatter=False, sem=False, horizontal=False, hatch=None,
-                       box=False, plot_CI=True, ax=None, capsize=10, **kwargs):
+                       box=False, plot_mean=True, plot_CI=True, ax=None, capsize=10, **kwargs):
     if bar:
        (plt if ax is None else ax).bar(x, arr.mean(), color=c, **kwargs)
     else:
@@ -178,6 +178,10 @@ def violinplot_with_CI(arr, x, c='C0', widths=0.5, bar=False, scatter=False, sem
             (plt if ax is None else ax).errorbar(mean, [x], xerr=CI, **err_kwargs)
         else:
             (plt if ax is None else ax).errorbar([x], mean, yerr=CI, **err_kwargs)
+    elif plot_mean:
+        mean = arr.mean()
+        (plt if ax is None else ax).scatter([x],mean,marker='o',c=c)
+
     if scatter:
         if horizontal:
             (plt if ax is None else ax).scatter(arr, np.full_like(arr, x), alpha=kwargs.get("alpha", 0.8), c=c)
@@ -197,7 +201,7 @@ def multiviolin(arr, xshift=0, xs=None, fig=None, c=None, hatch=None, ax=None, *
                                **kwargs)
 
 
-def dct_to_multiviolin(dct, rotation=0, xs=None, horizontal=False, keys=None, c=None, hatch=None, ax=None, **kwargs):
+def dct_to_multiviolin(dct, rotation=0, xs=None, horizontal=False, keys=None, c=None, hatch=None, ax=None, color_ticklabels=False, ticks_ha='center', **kwargs):
     """
     Given a dictionary, each key becomes an xtick label, with the distribution of its value as the vioiln
     :param dct: {xtick name or NameAndColor: values to plot as violin}
@@ -220,8 +224,10 @@ def dct_to_multiviolin(dct, rotation=0, xs=None, horizontal=False, keys=None, c=
         hatch = [hatch[k] for k in keys]
     multiviolin([np.array(dct[k]) for k in keys], xs=xs, c=c, horizontal=horizontal, hatch=hatch, ax=ax, **kwargs)
     ticks_to_change = ((plt.yticks if ax is None else ax.set_yticks) if horizontal else (plt.xticks if ax is None else ax.set_xticks))
-    ticks_to_change(np.arange(len(keys)) if xs is None else xs, keys, rotation=rotation)
-
+    ticks_to_change(np.arange(len(keys)) if xs is None else xs, keys, rotation=rotation, ha=ticks_ha)
+    if color_ticklabels and ax is not None:
+        for xtick, color in zip(ax.get_xticklabels(), c):
+            xtick.set_color(color)
 
 def get_CI(arr, conf=0.975, of_the_mean=True, axis=0, sem=False):
     """
