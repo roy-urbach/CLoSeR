@@ -6,7 +6,7 @@
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
     <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
-    <dc:date>2025-08-20T14:12:02.549542</dc:date>
+    <dc:date>2025-08-25T16:45:19.964330</dc:date>
     <dc:format>image/svg+xml</dc:format>
     <dc:creator>
      <cc:Agent>
@@ -37,9 +37,9 @@ L 10.8 10.8
 z
 " style="fill: #ffffff"/>
    </g>
-   <g clip-path="url(#p7e534fc003)">
+   <g clip-path="url(#p535febbaaa)">
     <image xlink:href="data:image/png;base64,
-iVBORw0KGgoAAAANSUhEUgAAAQ4AAAEOCAYAAAB4sfmlAAADtklEQVR4nO3WQY4VMRAFwTL6979ysWIzAkGysUeKOMFTu5Wqs7s78BvnnNsTZmbGL/qeH7cHAN+PcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcADZ5/YA3rW7tyfwKBcHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkH1uD/jlnHN7wjN29/aEmXnnTV75Hi945U1cHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEB2dndvjwC+FxcHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkH1uD+Bd55zbE2ZmZndvT+ALFweQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQfW4PgL8559ye8IzdvT1hZlwcwH8QDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiA7M7O3R8zM7D4xA/gHLg4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4g++zu7Q3POOfcnjAzM6+8ie/Bn7g4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gOwnU0cpFeXtPMAAAAAASUVORK5CYII=" id="imageb37853b3ee" transform="scale(1 -1) translate(0 -194.4)" x="10.8" y="-10.8" width="194.4" height="194.4"/>
+iVBORw0KGgoAAAANSUhEUgAAAQ4AAAEOCAYAAAB4sfmlAAADtklEQVR4nO3WQY4VMRAFwTL6979ysWIzAkGysUeKOMFTu5Wqs7s78BvnnNsTZmbGL/qeH7cHAN+PcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcACZcADZ5/YA3rW7tyfwKBcHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkH1uD/jlnHN7wjN29/aEmXnnTV75Hi945U1cHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEAmHEB2dndvjwC+FxcHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkH1uD+Bd55zbE2ZmZndvT+ALFweQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQCQeQfW4PgL8559ye8IzdvT1hZlwcwH8QDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiATDiA7M7O3R8zM7D4xA/gHLg4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4g++zu7Q3POOfcnjAzM6+8ie/Bn7g4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gOwnU0cpFeXtPMAAAAAASUVORK5CYII=" id="image2b53260dcb" transform="scale(1 -1) translate(0 -194.4)" x="10.8" y="-10.8" width="194.4" height="194.4"/>
    </g>
    <g id="matplotlib.axis_1"/>
    <g id="matplotlib.axis_2"/>
@@ -66,7 +66,7 @@ L 205.2 10.8
   </g>
  </g>
  <defs>
-  <clipPath id="p7e534fc003">
+  <clipPath id="p535febbaaa">
    <rect x="10.8" y="10.8" width="194.4" height="194.4"/>
   </clipPath>
  </defs>

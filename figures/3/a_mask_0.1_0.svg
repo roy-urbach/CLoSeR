@@ -6,7 +6,7 @@
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
     <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
-    <dc:date>2025-08-20T14:11:38.064301</dc:date>
+    <dc:date>2025-08-25T16:45:04.473433</dc:date>
     <dc:format>image/svg+xml</dc:format>
     <dc:creator>
      <cc:Agent>
@@ -37,9 +37,9 @@ L 10.8 10.8
 z
 " style="fill: #ffffff"/>
    </g>
-   <g clip-path="url(#p8e40de9f28)">
+   <g clip-path="url(#p9e4c5d0aae)">
     <image xlink:href="data:image/png;base64,
-iVBORw0KGgoAAAANSUhEUgAAAQ4AAAEOCAYAAAB4sfmlAAAD0klEQVR4nO3dQWrDQBQFQSn4/leeHGHUZixZVtU6EEGg+YvHZB9jjA0g+Lv6A4D7EQ4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4ge53xS/Z9n/7MGOMrvmPmjO+Eb+fiADLhADLhADLhADLhADLhADLhADLhALIlA7DZsOrIaOqMcZbxFqzh4gAy4QAy4QAy4QAy4QAy4QAy4QCyfUzGDSv2Fb/EFgRcHMAbhAPIhAPIhAPIhAPIhAPIhAPI9m3bDBMWsvPgCVwcQCYcQCYcQCYcQCYcQCYcQCYcQCYcQOYhnwsYiXF3Lg4gEw4gEw4gEw4gEw4gEw4gEw4g85DPYjYaPIGLA8iEA8iEA8iEA8iEA8iEA8iEA8iEA8g85HMBIzHuzsUBZMIBZMIBZMIBZMIBZMIBZMIBZMIBZMIBZMIBZMIBZMIBZMIBZMIBZMIBZMIBZC8P9dzT7O/msSA+ycUBZMIBZMIBZMIBZMIBZMIBZMIBZK+rP+DXrNhPHNnW2GlwJRcHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkO3jhCXRLz0WZHgFLg7gDcIBZMIBZMIBZMIBZMIBZMIBZNOHfO60wZhtLM74J0Ye4eEJXBxAJhxAJhxAJhxAJhxAJhxAJhxAdsp7HEecsbEA1nBxAJlwAJlwAJlwAJlwAJlwAJlwAJlwANn0IZ8jVoy3DLzgPlwcQCYcQCYcQCYcQCYcQCYcQCYcQLZkx2GDAc/i4gAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QCyf2BQWvrqL95yAAAAAElFTkSuQmCC" id="imagefa8f5318f2" transform="scale(1 -1) translate(0 -194.4)" x="10.8" y="-10.8" width="194.4" height="194.4"/>
+iVBORw0KGgoAAAANSUhEUgAAAQ4AAAEOCAYAAAB4sfmlAAAD0klEQVR4nO3dQWrDQBQFQSn4/leeHGHUZixZVtU6EEGg+YvHZB9jjA0g+Lv6A4D7EQ4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4gEw4ge53xS/Z9n/7MGOMrvmPmjO+Eb+fiADLhADLhADLhADLhADLhADLhADLhALIlA7DZsOrIaOqMcZbxFqzh4gAy4QAy4QAy4QAy4QAy4QAy4QCyfUzGDSv2Fb/EFgRcHMAbhAPIhAPIhAPIhAPIhAPIhAPI9m3bDBMWsvPgCVwcQCYcQCYcQCYcQCYcQCYcQCYcQCYcQOYhnwsYiXF3Lg4gEw4gEw4gEw4gEw4gEw4gEw4g85DPYjYaPIGLA8iEA8iEA8iEA8iEA8iEA8iEA8iEA8g85HMBIzHuzsUBZMIBZMIBZMIBZMIBZMIBZMIBZMIBZMIBZMIBZMIBZMIBZMIBZMIBZMIBZMIBZC8P9dzT7O/msSA+ycUBZMIBZMIBZMIBZMIBZMIBZMIBZK+rP+DXrNhPHNnW2GlwJRcHkAkHkAkHkAkHkAkHkAkHkAkHkAkHkO3jhCXRLz0WZHgFLg7gDcIBZMIBZMIBZMIBZMIBZMIBZNOHfO60wZhtLM74J0Ye4eEJXBxAJhxAJhxAJhxAJhxAJhxAJhxAdsp7HEecsbEA1nBxAJlwAJlwAJlwAJlwAJlwAJlwAJlwANn0IZ8jVoy3DLzgPlwcQCYcQCYcQCYcQCYcQCYcQCYcQLZkx2GDAc/i4gAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QAy4QCyf2BQWvrqL95yAAAAAElFTkSuQmCC" id="image48e7020f53" transform="scale(1 -1) translate(0 -194.4)" x="10.8" y="-10.8" width="194.4" height="194.4"/>
    </g>
    <g id="matplotlib.axis_1"/>
    <g id="matplotlib.axis_2"/>
@@ -66,7 +66,7 @@ L 205.2 10.8
   </g>
  </g>
  <defs>
-  <clipPath id="p8e40de9f28">
+  <clipPath id="p9e4c5d0aae">
    <rect x="10.8" y="10.8" width="194.4" height="194.4"/>
   </clipPath>
  </defs>
