@@ -4,7 +4,7 @@ Code for the paper _Semantic representations emerge in brain-inspired cross-supe
 Authors: Roy Urbach & Elad Schneidman
 
 ## Links
-Awaiting NeurIPS decision, then it will be published on arXiv.
+Soon to be published on arXiv.
 
 
 ## Overview
