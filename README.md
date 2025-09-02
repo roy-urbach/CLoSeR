@@ -1,5 +1,5 @@
 # Brain-inspired Cooperative Learning of Semantic Representations (CLoSeR)
-Code for the paper _Semantic representations emerge in brain-inspired cross-supervising ensembles of neural networks_, submitted to NeruIPS 2025.
+Code for the paper _Semantic representations emerge in brain-inspired cross-supervising ensembles of neural networks_.
 
 Authors: Roy Urbach & Elad Schneidman
 
