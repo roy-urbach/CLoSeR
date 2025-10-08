@@ -104,3 +104,8 @@ class LPL(TemporalContiguityLoss):
 class TemporalCLoSeR(TemporalContiguityLoss):
     def __init__(self, *args, cont_w=None, var_w=1, cov_w=10, tpull_w=2, **kwargs):
         super(TemporalCLoSeR, self).__init__(*args, cont_w=cont_w, var_w=var_w, cov_w=cov_w, tpull_w=tpull_w, **kwargs)
+
+
+class NoTemporalCLoSeR(TemporalContiguityLoss):
+    def __init__(self, *args, cont_w=None, var_w=1, cov_w=10, pull_w=2, **kwargs):
+        super(NoTemporalCLoSeR, self).__init__(*args, cont_w=cont_w, var_w=var_w, cov_w=cov_w, pull_w=pull_w, **kwargs)
