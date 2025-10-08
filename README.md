@@ -1,10 +1,10 @@
 # Brain-inspired Cooperative Learning of Semantic Representations (CLoSeR)
-Code for the paper _Semantic representations emerge in brain-inspired cross-supervising ensembles of neural networks_, submitted to NeruIPS 2025.
+Code for the paper _Semantic representations emerge in brain-inspired cross-supervising ensembles of neural networks_.
 
 Authors: Roy Urbach & Elad Schneidman
 
 ## Links
-Awaiting NeurIPS decision, then it will be published on arXiv.
+Soon to be published on arXiv.
 
 
 ## Overview
@@ -13,7 +13,8 @@ cross-supervising neural networks for representation learning.
 Similar to cortical columns in the brain, each encoder receives a fixed and random subset of the input. 
 Then, they are trained to have similar embeddings of the same input.
 
-![image](images/main_scheme.png)
+<img src="images/main_scheme.png" width="500">
+
 
 ## Installation
     conda create --name <env> --file requirements.txt
