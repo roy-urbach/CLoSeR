@@ -4,8 +4,7 @@ Code for the paper _Semantic representations emerge in biologically inspired ens
 Authors: Roy Urbach & Elad Schneidman
 
 ## Links
-Soon to be published on arXiv.
-
+[https://arxiv.org/abs/2510.14486](https://arxiv.org/abs/2510.14486)
 
 ## Overview
 Cooperative Learning of Semantic Representations (CLoSeR) is a biologically-inspired algorithm for 
@@ -100,3 +99,15 @@ We added two notebooks to the repository:
 
 - [figures_notebook](notebooks/figures_notebook.ipynb) - that shows all the calculations done to create the figures in the paper. All the figures will be saved in [figures](figures). 
 - [train](notebooks/train.ipynb) - that shows how to train and evaluate a model.
+
+
+## Citation
+    @misc{urbach2025semanticrepresentationsemergebiologically,
+      title={Semantic representations emerge in biologically inspired ensembles of cross-supervising neural networks}, 
+      author={Roy Urbach and Elad Schneidman},
+      year={2025},
+      eprint={2510.14486},
+      archivePrefix={arXiv},
+      primaryClass={q-bio.NC},
+      url={https://arxiv.org/abs/2510.14486}, 
+    }
